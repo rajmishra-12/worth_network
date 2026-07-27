@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "143684120020",
+    "project_id": "worth-network",
+    "storage_bucket": "worth-network.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:143684120020:android:da4d9237bf00158eb9fa41",
+        "android_client_info": {
+          "package_name": "com.rm.worth_network"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkNNDXPWe-gOdd7551iDpAf-G3VvusZns"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

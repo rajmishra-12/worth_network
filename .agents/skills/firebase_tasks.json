@@ -1,0 +1,7 @@
+- [ ] Add Firebase dependencies to pubspec.yaml
+- [ ] Initialize Firebase in main.dart
+- [ ] Implement Firebase Auth & Firestore inside AuthRepository (auth_repo.dart)
+- [ ] Update AuthState and AuthCubit for Firebase integration
+- [ ] Implement ForgotPasswordPage (forget_password_page.dart)
+- [ ] Connect Forget Password route in app_pages.dart and sign_in_page.dart
+- [ ] Verify everything compiles cleanly (flutter analyze)
