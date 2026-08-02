@@ -1,11 +1,11 @@
-// lib/pages/dashboard/network/network_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-
+import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
+import 'package:worth_network/core/utils/app_localizations.dart';
 import 'package:worth_network/pages/network/cubit/network_cubit.dart';
 import 'package:worth_network/pages/network/widgets/common_search_bar.dart';
 import 'package:worth_network/pages/network/widgets/filter_chips.dart';
@@ -183,47 +183,52 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              isSearching ? Icons.search_off_outlined : Icons.people_outline,
-              size: 40,
-              color: AppColors.black100,
-            ),
-          ),
-          const SizedBox(height: AppSize.spacingL),
-          Text(
-            isSearching ? 'No users found' : 'Explore the network',
-            style: CustomTextStyle.size18W600(color: AppColors.white100),
-          ),
-          const SizedBox(height: AppSize.spacingS),
-          Text(
-            isSearching
-                ? 'Try a different search term'
-                : 'Connect with people and build your worth',
-            style: CustomTextStyle.size14W400(color: AppColors.grey400),
-          ),
-          if (isSearching) ...[
-            const SizedBox(height: AppSize.spacingL),
-            TextButton(
-              onPressed: onClearSearch,
-              child: Text(
-                'Clear search',
-                style: CustomTextStyle.size14W600(color: AppColors.primary),
+    return BlocBuilder<LocaleCubit, String>(
+      builder: (context, localeCode) {
+        final loc = AppLocalizations(localeCode);
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isSearching ? Icons.search_off_outlined : Icons.people_outline,
+                  size: 40,
+                  color: AppColors.black100,
+                ),
               ),
-            ),
-          ],
-        ],
-      ),
+              const SizedBox(height: AppSize.spacingL),
+              Text(
+                isSearching ? loc.translate('no_users_found') : loc.translate('explore_network'),
+                style: CustomTextStyle.size18W600(color: AppColors.white100),
+              ),
+              const SizedBox(height: AppSize.spacingS),
+              Text(
+                isSearching
+                    ? loc.translate('try_different_search')
+                    : loc.translate('connect_with_people'),
+                style: CustomTextStyle.size14W400(color: AppColors.grey400),
+              ),
+              if (isSearching) ...[
+                const SizedBox(height: AppSize.spacingL),
+                TextButton(
+                  onPressed: onClearSearch,
+                  child: Text(
+                    loc.translate('clear_search'),
+                    style: CustomTextStyle.size14W600(color: AppColors.primary),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }

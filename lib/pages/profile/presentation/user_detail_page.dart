@@ -1,13 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
 import 'package:worth_network/core/model/home/action_model.dart';
 import 'package:worth_network/core/model/profile/profile_model.dart';
 import 'package:worth_network/core/repo/action_repo.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
+import 'package:worth_network/core/utils/app_localizations.dart';
 import 'package:worth_network/pages/home/widgets/action_cards.dart';
 import 'package:worth_network/pages/profile/widgets/badge_section.dart';
 import 'package:worth_network/pages/profile/widgets/stats_card.dart';
@@ -163,142 +166,145 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   Widget build(BuildContext context) {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.white100),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          _username.isNotEmpty ? '@$_username' : _name,
-          style: CustomTextStyle.size18W600(color: AppColors.white100),
-        ),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : CustomScrollView(
-              slivers: [
-                // User Header
-                SliverToBoxAdapter(
-                  child: Container(
-                    padding: const EdgeInsets.all(AppSize.paddingL),
-                    child: Column(
-                      children: [
-                        // Avatar
-                        Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: AppColors.primaryGradient,
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primary.withValues(alpha: 0.3),
-                                blurRadius: 20,
-                                offset: const Offset(0, 4),
+    return BlocBuilder<LocaleCubit, String>(
+      builder: (context, localeCode) {
+        final loc = AppLocalizations(localeCode);
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            backgroundColor: AppColors.background,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: AppColors.white100),
+              onPressed: () => context.pop(),
+            ),
+            title: Text(
+              _username.isNotEmpty ? '@$_username' : _name,
+              style: CustomTextStyle.size18W600(color: AppColors.white100),
+            ),
+          ),
+          body: _isLoading
+              ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+              : CustomScrollView(
+                  slivers: [
+                    // User Header
+                    SliverToBoxAdapter(
+                      child: Container(
+                        padding: const EdgeInsets.all(AppSize.paddingL),
+                        child: Column(
+                          children: [
+                            // Avatar
+                            Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: AppColors.primaryGradient,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primary.withValues(alpha: 0.3),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: CircleAvatar(
+                                radius: 46,
+                                backgroundColor: AppColors.grey800,
+                                backgroundImage: _avatarUrl != null && _avatarUrl!.isNotEmpty
+                                    ? NetworkImage(_avatarUrl!)
+                                    : null,
+                                child: _avatarUrl == null || _avatarUrl!.isEmpty
+                                    ? Text(
+                                        _name.isNotEmpty ? _name[0].toUpperCase() : 'U',
+                                        style: CustomTextStyle.size24W600(color: AppColors.white100),
+                                      )
+                                    : null,
+                              ),
+                            ),
+                            const SizedBox(height: AppSize.spacingM),
+
+                            // Name
+                            Text(
+                              _name,
+                              style: CustomTextStyle.size20W600(color: AppColors.white100),
+                            ),
+                            if (_username.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                '@$_username',
+                                style: CustomTextStyle.size14W400(color: AppColors.primary),
                               ),
                             ],
-                          ),
-                          child: CircleAvatar(
-                            radius: 46,
-                            backgroundColor: AppColors.grey800,
-                            backgroundImage: _avatarUrl != null && _avatarUrl!.isNotEmpty
-                                ? NetworkImage(_avatarUrl!)
-                                : null,
-                            child: _avatarUrl == null || _avatarUrl!.isEmpty
-                                ? Text(
-                                    _name.isNotEmpty ? _name[0].toUpperCase() : 'U',
-                                    style: CustomTextStyle.size24W600(color: AppColors.white100),
-                                  )
-                                : null,
-                          ),
+                            const SizedBox(height: 4),
+
+                            // Bio
+                            if (_bio.isNotEmpty)
+                              Text(
+                                _bio,
+                                style: CustomTextStyle.size14W400(color: AppColors.grey400),
+                                textAlign: TextAlign.center,
+                              ),
+                          ],
                         ),
-                        const SizedBox(height: AppSize.spacingM),
+                      ),
+                    ),
 
-                        // Name
-                        Text(
-                          _name,
-                          style: CustomTextStyle.size20W600(color: AppColors.white100),
+                    // Stats Card
+                    SliverToBoxAdapter(
+                      child: StatsCard(
+                        totalActions: _totalActions,
+                        validatedPercentage: _validatedPercentage,
+                        score: _score,
+                        level: _level,
+                        xp: _xp,
+                        nextLevelXp: _nextLevelXp,
+                      ),
+                    ),
+
+                    // Badges Section
+                    SliverToBoxAdapter(
+                      child: BadgesSection(badges: _badges),
+                    ),
+
+                    // User Actions Header
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSize.paddingM,
+                          AppSize.paddingL,
+                          AppSize.paddingM,
+                          AppSize.paddingS,
                         ),
-                        if (_username.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            '@$_username',
-                            style: CustomTextStyle.size14W400(color: AppColors.primary),
-                          ),
-                        ],
-                        const SizedBox(height: 4),
-
-                        // Bio
-                        if (_bio.isNotEmpty)
-                          Text(
-                            _bio,
-                            style: CustomTextStyle.size14W400(color: AppColors.grey400),
-                            textAlign: TextAlign.center,
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Stats Card
-                SliverToBoxAdapter(
-                  child: StatsCard(
-                    totalActions: _totalActions,
-                    validatedPercentage: _validatedPercentage,
-                    score: _score,
-                    level: _level,
-                    xp: _xp,
-                    nextLevelXp: _nextLevelXp,
-                  ),
-                ),
-
-                // Badges Section
-                SliverToBoxAdapter(
-                  child: BadgesSection(badges: _badges),
-                ),
-
-                // User Actions Header
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSize.paddingM,
-                      AppSize.paddingL,
-                      AppSize.paddingM,
-                      AppSize.paddingS,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Published Actions (${_userActions.length})',
-                          style: CustomTextStyle.size16W600(color: AppColors.white100),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Actions Feed
-                _userActions.isEmpty
-                    ? SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppSize.paddingXL),
-                          child: Center(
-                            child: Column(
-                              children: [
-                                const Icon(Icons.assignment_outlined, size: 48, color: AppColors.grey600),
-                                const SizedBox(height: AppSize.spacingM),
-                                Text(
-                                  'No actions published yet.',
-                                  style: CustomTextStyle.size14W400(color: AppColors.grey500),
-                                ),
-                              ],
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${loc.translate('published_actions')} (${_userActions.length})',
+                              style: CustomTextStyle.size16W600(color: AppColors.white100),
                             ),
-                          ),
+                          ],
                         ),
-                      )
+                      ),
+                    ),
+
+                    // Actions Feed
+                    _userActions.isEmpty
+                        ? SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.all(AppSize.paddingXL),
+                              child: Center(
+                                child: Column(
+                                  children: [
+                                    const Icon(Icons.assignment_outlined, size: 48, color: AppColors.grey600),
+                                    const SizedBox(height: AppSize.spacingM),
+                                    Text(
+                                      loc.translate('no_published_actions'),
+                                      style: CustomTextStyle.size14W400(color: AppColors.grey500),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          )
                     : SliverList(
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
@@ -346,6 +352,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                 ),
               ],
             ),
+        );
+      },
     );
   }
 }

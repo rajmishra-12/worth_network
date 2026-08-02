@@ -1,10 +1,11 @@
-// lib/pages/dashboard/profile/widgets/badges_section.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
 import 'package:worth_network/core/model/profile/profile_model.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
-
+import 'package:worth_network/core/utils/app_localizations.dart';
 
 class BadgesSection extends StatelessWidget {
   final List<BadgeModel> badges;
@@ -15,39 +16,44 @@ class BadgesSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final earnedBadges = badges.where((b) => b.isEarned).toList();
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: AppSize.paddingM, vertical: AppSize.paddingS),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return BlocBuilder<LocaleCubit, String>(
+      builder: (context, localeCode) {
+        final loc = AppLocalizations(localeCode);
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: AppSize.paddingM, vertical: AppSize.paddingS),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Badges',
-                style: CustomTextStyle.size15W600(color: AppColors.white100),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    loc.translate('badges_title'),
+                    style: CustomTextStyle.size15W600(color: AppColors.white100),
+                  ),
+                  Text(
+                    '${earnedBadges.length}/${badges.length}',
+                    style: CustomTextStyle.size13W500(color: AppColors.grey400),
+                  ),
+                ],
               ),
-              Text(
-                '${earnedBadges.length}/${badges.length}',
-                style: CustomTextStyle.size13W500(color: AppColors.grey400),
+              const SizedBox(height: AppSize.spacingS),
+              SizedBox(
+                height: 75,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: badges.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: AppSize.spacingM),
+                  itemBuilder: (context, index) {
+                    final badge = badges[index];
+                    return _BadgeItem(badge: badge);
+                  },
+                ),
               ),
             ],
           ),
-          const SizedBox(height: AppSize.spacingS),
-          SizedBox(
-            height: 75,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: badges.length,
-              separatorBuilder: (_, __) => const SizedBox(width: AppSize.spacingM),
-              itemBuilder: (context, index) {
-                final badge = badges[index];
-                return _BadgeItem(badge: badge);
-              },
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

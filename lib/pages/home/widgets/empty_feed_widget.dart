@@ -173,45 +173,50 @@ class ValidationBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (color, label, icon) = _getStatusDetails();
+    return BlocBuilder<LocaleCubit, String>(
+      builder: (context, localeCode) {
+        final loc = AppLocalizations(localeCode);
+        final (color, labelKey, icon) = _getStatusDetails();
 
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSize.paddingS,
-        vertical: AppSize.paddingXS,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(AppSize.radiusM),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-           style:CustomTextStyle.size14W500(
-                               color: color,
-                            )
+        return Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSize.paddingS,
+            vertical: AppSize.paddingXS,
           ),
-        ],
-      ),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(AppSize.radiusM),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 12, color: color),
+              const SizedBox(width: 4),
+              Text(
+                loc.translate(labelKey),
+                style: CustomTextStyle.size14W500(
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
   (Color, String, IconData) _getStatusDetails() {
     switch (status) {
       case ValidationStatus.certified:
-        return (AppColors.accent, 'Certified', Icons.verified);
+        return (AppColors.accent, 'status_certified', Icons.verified);
       case ValidationStatus.confirmed:
-        return (AppColors.primary, 'Confirmed', Icons.check_circle_outline);
+        return (AppColors.primary, 'status_confirmed', Icons.check_circle_outline);
       case ValidationStatus.pending:
-        return (AppColors.warning, 'Pending', Icons.timer_outlined);
+        return (AppColors.warning, 'status_pending', Icons.timer_outlined);
       case ValidationStatus.rejected:
-        return (AppColors.error, 'Rejected', Icons.cancel_outlined);
+        return (AppColors.error, 'status_rejected', Icons.cancel_outlined);
       case ValidationStatus.declared:
-        return (AppColors.grey500, 'Declared', Icons.hourglass_empty);
+        return (AppColors.grey500, 'status_declared', Icons.hourglass_empty);
     }
   }
 }

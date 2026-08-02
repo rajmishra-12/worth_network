@@ -133,27 +133,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: AppSize.spacingL),
 
-              // Privacy Section
-              _buildSettingsHeader(loc.translate('sec_privacy')),
-              _buildSwitchTile(
-                title: loc.translate('private_profile'),
-                subtitle: loc.translate('private_profile_desc'),
-                value: _profilePrivate,
-                onChanged: (val) => setState(() => _profilePrivate = val),
-              ),
-              _buildSwitchTile(
-                title: loc.translate('hide_reputation_score'),
-                subtitle: loc.translate('hide_reputation_desc'),
-                value: _hideScore,
-                onChanged: (val) => setState(() => _hideScore = val),
-              ),
-              _buildSwitchTile(
-                title: loc.translate('validation_invitations'),
-                subtitle: loc.translate('validation_invitations_desc'),
-                value: _allowInvites,
-                onChanged: (val) => setState(() => _allowInvites = val),
-              ),
-              const SizedBox(height: AppSize.spacingL),
+              // // Privacy Section
+              // _buildSettingsHeader(loc.translate('sec_privacy')),
+              // _buildSwitchTile(
+              //   title: loc.translate('private_profile'),
+              //   subtitle: loc.translate('private_profile_desc'),
+              //   value: _profilePrivate,
+              //   onChanged: (val) => setState(() => _profilePrivate = val),
+              // ),
+              // _buildSwitchTile(
+              //   title: loc.translate('hide_reputation_score'),
+              //   subtitle: loc.translate('hide_reputation_desc'),
+              //   value: _hideScore,
+              //   onChanged: (val) => setState(() => _hideScore = val),
+              // ),
+              // _buildSwitchTile(
+              //   title: loc.translate('validation_invitations'),
+              //   subtitle: loc.translate('validation_invitations_desc'),
+              //   value: _allowInvites,
+              //   onChanged: (val) => setState(() => _allowInvites = val),
+              // ),
+              // const SizedBox(height: AppSize.spacingL),
 
               // About & Policy Settings
               _buildSettingsHeader(loc.translate('sec_general')),
@@ -169,7 +169,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: loc.translate('privacy_policy_desc'),
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Privacy Policy coming soon!'), duration: Duration(seconds: 1)),
+                    const SnackBar(
+                      content: Text('Privacy Policy coming soon!'),
+                      duration: Duration(seconds: 1),
+                    ),
                   );
                 },
               ),
@@ -177,7 +180,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               // Logout Button
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSize.paddingS),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSize.paddingS,
+                ),
                 child: OutlinedButton.icon(
                   onPressed: () => _showLogoutDialog(loc),
                   icon: const Icon(Icons.logout, color: AppColors.error),
@@ -190,7 +195,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppSize.radiusM),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: AppSize.paddingM),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSize.paddingM,
+                    ),
                   ),
                 ),
               ),
@@ -203,7 +210,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildSettingsHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: AppSize.paddingS, top: AppSize.paddingM, bottom: AppSize.paddingS),
+      padding: const EdgeInsets.only(
+        left: AppSize.paddingS,
+        top: AppSize.paddingM,
+        bottom: AppSize.paddingS,
+      ),
       child: Text(
         title.toUpperCase(),
         style: CustomTextStyle.size12W600(color: AppColors.primary),
@@ -226,8 +237,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       child: ListTile(
         leading: Icon(icon, color: AppColors.primary),
-        title: Text(title, style: CustomTextStyle.size14W600(color: AppColors.white100)),
-        subtitle: Text(subtitle, style: CustomTextStyle.size12W400(color: AppColors.grey500)),
+        title: Text(
+          title,
+          style: CustomTextStyle.size14W600(color: AppColors.white100),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: CustomTextStyle.size12W400(color: AppColors.grey500),
+        ),
         trailing: const Icon(Icons.chevron_right, color: AppColors.grey500),
         onTap: onTap,
       ),
@@ -248,8 +265,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         border: Border.all(color: AppColors.grey800),
       ),
       child: SwitchListTile(
-        title: Text(title, style: CustomTextStyle.size14W600(color: AppColors.white100)),
-        subtitle: Text(subtitle, style: CustomTextStyle.size12W400(color: AppColors.grey500)),
+        title: Text(
+          title,
+          style: CustomTextStyle.size14W600(color: AppColors.white100),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: CustomTextStyle.size12W400(color: AppColors.grey500),
+        ),
         value: value,
         activeThumbColor: AppColors.primary,
         activeTrackColor: AppColors.primary.withValues(alpha: 0.3),

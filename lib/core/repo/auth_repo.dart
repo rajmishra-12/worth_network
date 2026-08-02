@@ -10,6 +10,34 @@ class AuthRepository {
 
   User? get currentUser => _firebaseAuth.currentUser;
 
+  /// Check if a username is available (case-insensitive check)
+  Future<bool> isUsernameAvailable(String username, {String? excludeUid}) async {
+    final cleanUsername = username.trim().replaceAll('@', '').toLowerCase();
+    if (cleanUsername.isEmpty) return false;
+
+    // 1. Check by lowercased username
+    final queryByLower = await _firestore
+        .collection('users')
+        .where('username_lowercase', isEqualTo: cleanUsername)
+        .get();
+
+    if (queryByLower.docs.isNotEmpty) {
+      return queryByLower.docs.every((doc) => doc.id == excludeUid);
+    }
+
+    // 2. Fallback check by legacy username field
+    final legacyQuery = await _firestore
+        .collection('users')
+        .where('username', isEqualTo: username.trim().replaceAll('@', ''))
+        .get();
+
+    if (legacyQuery.docs.isNotEmpty) {
+      return legacyQuery.docs.every((doc) => doc.id == excludeUid);
+    }
+
+    return true;
+  }
+
   /// Register user in Firebase Auth and create profile in Firestore
   Future<User?> signUp({
     required String fullName,
@@ -20,7 +48,14 @@ class AuthRepository {
   }) async {
     try {
       final emailStr = email.trim();
-      final usernameStr = username.trim();
+      final usernameStr = username.trim().replaceAll('@', '');
+      final cleanUsername = usernameStr.toLowerCase();
+
+      // Check username availability BEFORE creating Firebase Auth user
+      final isAvailable = await isUsernameAvailable(usernameStr);
+      if (!isAvailable) {
+        throw Exception("Username '@$usernameStr' is already taken. Please choose another username.");
+      }
 
       // 1. Create Firebase Auth user
       final UserCredential userCredential = await _firebaseAuth
@@ -48,6 +83,7 @@ class AuthRepository {
           'id': user.uid,
           'name': fullName,
           'username': usernameStr,
+          'username_lowercase': cleanUsername,
           'email': emailStr,
           'bio': 'New to Worth Network! 🚀',
           'avatarUrl': avatarUrl ?? 'https://i.pravatar.cc/150?img=10',
@@ -73,7 +109,7 @@ class AuthRepository {
     } on FirebaseAuthException catch (e) {
       throw Exception(_mapFirebaseError(e));
     } catch (e) {
-      throw Exception("Registration failed: $e");
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
     }
   }
 
@@ -85,8 +121,17 @@ class AuthRepository {
     File? profileImage,
   }) async {
     try {
+      final usernameStr = username.trim().replaceAll('@', '');
+      final cleanUsername = usernameStr.toLowerCase();
+
+      final isAvailable = await isUsernameAvailable(usernameStr, excludeUid: uid);
+      if (!isAvailable) {
+        throw Exception("Username '@$usernameStr' is already taken. Please choose another username.");
+      }
+
       final updates = <String, dynamic>{
-        'username': username.trim(),
+        'username': usernameStr,
+        'username_lowercase': cleanUsername,
         'bio': bio.trim(),
       };
 
@@ -104,9 +149,9 @@ class AuthRepository {
 
       // Cache changes locally in Shared Preferences
       final prefs = Preferences();
-      prefs.username = username.trim();
+      prefs.username = usernameStr;
     } catch (e) {
-      throw Exception("Profile update failed: $e");
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
     }
   }
 
@@ -120,10 +165,19 @@ class AuthRepository {
 
       // If it doesn't contain '@', resolve the username from Firestore
       if (!resolvedEmail.contains('@')) {
-        final querySnapshot = await _firestore
+        final cleanUsername = resolvedEmail.replaceAll('@', '').toLowerCase();
+
+        var querySnapshot = await _firestore
             .collection('users')
-            .where('username', isEqualTo: resolvedEmail)
+            .where('username_lowercase', isEqualTo: cleanUsername)
             .get();
+
+        if (querySnapshot.docs.isEmpty) {
+          querySnapshot = await _firestore
+              .collection('users')
+              .where('username', isEqualTo: resolvedEmail.replaceAll('@', ''))
+              .get();
+        }
 
         if (querySnapshot.docs.isEmpty) {
           throw Exception("No account found with username '$emailOrUsername'.");

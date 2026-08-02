@@ -17,6 +17,9 @@ import 'package:worth_network/pages/dashboard/cubit/dashboard_cubit.dart';
 
 
 
+import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
+import 'package:worth_network/core/utils/app_localizations.dart';
+
 class AddActionScreen extends StatefulWidget {
   const AddActionScreen({super.key});
 
@@ -48,298 +51,299 @@ class _AddActionScreenState extends State<AddActionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(
-          'Add Action',
-          style: CustomTextStyle.size18W600(color: AppColors.white100),
-        ),
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        // leading: IconButton(
-        //   icon: const Icon(Icons.close, color: AppColors.white100),
-        //   onPressed: () => Navigator.pop(context),
-        // ),
-        actions: [
-          BlocBuilder<AddActionCubit, AddActionState>(
+    return BlocBuilder<LocaleCubit, String>(
+      builder: (context, localeCode) {
+        final loc = AppLocalizations(localeCode);
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            title: Text(
+              loc.translate('add_action_title'),
+              style: CustomTextStyle.size18W600(color: AppColors.white100),
+            ),
+            backgroundColor: AppColors.background,
+            elevation: 0,
+            actions: [
+              BlocBuilder<AddActionCubit, AddActionState>(
+                builder: (context, state) {
+                  return TextButton(
+                    onPressed: state.isSubmitting
+                        ? null
+                        : () {
+                            if (_formKey.currentState!.validate()) {
+                              _cubit.submitAction();
+                            }
+                          },
+                    child: state.isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.primary,
+                            ),
+                          )
+                        : Text(
+                            loc.translate('post_btn'),
+                            style: CustomTextStyle.size16W600(
+                              color: AppColors.primary,
+                            ),
+                          ),
+                  );
+                },
+              ),
+            ],
+          ),
+          body: BlocConsumer<AddActionCubit, AddActionState>(
+            listener: (context, state) {
+              if (state.isSuccess) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(loc.translate('action_submitted_success')),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+
+                // Navigate to Home tab
+                context.read<DashboardCubit>().changeTab(0);
+
+                // Reset cubit state
+                _cubit.resetState();
+
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                }
+              } else if (state.errorMessage != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.errorMessage!),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
+            },
             builder: (context, state) {
-              return TextButton(
-                onPressed: state.isSubmitting
-                    ? null
-                    : () {
-                        if (_formKey.currentState!.validate()) {
-                          _cubit.submitAction();
-                        }
-                      },
-                child: state.isSubmitting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.primary,
+              return Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppSize.paddingM),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Title Field
+                      _buildLabel(loc.translate('title_label')),
+                      const SizedBox(height: AppSize.spacingS),
+                      TextFormField(
+                        controller: _titleController,
+                        style: CustomTextStyle.size15W400(color: AppColors.white100),
+                        decoration: _buildInputDecoration(
+                          hintText: loc.translate('title_placeholder'),
                         ),
-                      )
-                    : Text(
-                        'Post',
-                        style: CustomTextStyle.size16W600(
-                          color: AppColors.primary,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a title';
+                          }
+                          if (value.length < 5) {
+                            return 'Title must be at least 5 characters';
+                          }
+                          return null;
+                        },
+                        onChanged: (value) => _cubit.updateTitle(value),
+                      ),
+                      const SizedBox(height: AppSize.spacingL),
+                      
+                      // Category Selector
+                      _buildLabel(loc.translate('category_label')),
+                      const SizedBox(height: AppSize.spacingS),
+                      CategorySelector(
+                        selectedCategory: state.category,
+                        onCategorySelected: _cubit.updateCategory,
+                      ),
+                      const SizedBox(height: AppSize.spacingL),
+                      
+                      // Date Field
+                      _buildLabel(loc.translate('date_label')),
+                      const SizedBox(height: AppSize.spacingS),
+                      DatePickerField(
+                        selectedDate: state.date,
+                        onDateSelected: _cubit.updateDate,
+                      ),
+                      const SizedBox(height: AppSize.spacingL),
+                      
+                      // Request Validation from Person Involved
+                      _buildLabel(loc.translate('request_validation_label')),
+                      const SizedBox(height: AppSize.spacingS),
+                      PersonField(
+                        controller: _personController,
+                        cubit: _cubit,
+                        state: state,
+                      ),
+                      const SizedBox(height: AppSize.spacingL),
+
+                      
+                      // Description Field
+                      _buildLabel(loc.translate('description_label')),
+                      const SizedBox(height: AppSize.spacingS),
+                      TextFormField(
+                        controller: _descriptionController,
+                        style: CustomTextStyle.size15W400(color: AppColors.white100),
+                        maxLines: 4,
+                        decoration: _buildInputDecoration(
+                          hintText: loc.translate('describe_placeholder'),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a description';
+                          }
+                          if (value.length < 10) {
+                            return 'Description must be at least 10 characters';
+                          }
+                          return null;
+                        },
+                        onChanged: (value) => _cubit.updateDescription(value),
+                      ),
+                      const SizedBox(height: AppSize.spacingL),
+                      
+                      // Evidence System Title
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.verified_outlined,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
+                          const SizedBox(width: AppSize.spacingS),
+                          Text(
+                            loc.translate('add_proof_title'),
+                            style: CustomTextStyle.size16W600(
+                              color: AppColors.white100,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSize.spacingS),
+                      Text(
+                        loc.translate('add_proof_desc'),
+                        style: CustomTextStyle.size12W400(color: AppColors.grey400),
+                      ),
+                      const SizedBox(height: AppSize.spacingM),
+                      
+                      // Evidence Type Selector
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.grey900,
+                          borderRadius: BorderRadius.circular(AppSize.radiusM),
+                          border: Border.all(color: AppColors.grey800),
+                        ),
+                        child: Column(
+                          children: [
+                            _buildEvidenceOption(
+                              icon: Icons.photo_camera_outlined,
+                              label: loc.translate('proof_photo'),
+                              description: loc.translate('proof_photo_desc'),
+                              isSelected: state.evidenceType == EvidenceType.photo,
+                              onTap: () => _pickImage(context),
+                            ),
+                            _buildDivider(),
+                            _buildEvidenceOption(
+                              icon: Icons.description_outlined,
+                              label: loc.translate('proof_document'),
+                              description: loc.translate('proof_document_desc'),
+                              isSelected: state.evidenceType == EvidenceType.document,
+                              onTap: () => _pickDocument(context),
+                            ),
+                            _buildDivider(),
+                            _buildEvidenceOption(
+                              icon: Icons.mic_none_outlined,
+                              label: loc.translate('proof_audio'),
+                              description: loc.translate('proof_audio_desc'),
+                              isSelected: state.evidenceType == EvidenceType.audio,
+                              onTap: () => _showAudioRecorderDialog(context),
+                            ),
+                            _buildDivider(),
+                            _buildEvidenceOption(
+                              icon: Icons.text_fields,
+                              label: loc.translate('proof_text'),
+                              description: loc.translate('proof_text_desc'),
+                              isSelected: state.evidenceType == EvidenceType.text,
+                              onTap: () => _showTextProofDialog(context),
+                            ),
+                          ],
                         ),
                       ),
+                      
+                      // Evidence Preview
+                      if (state.evidenceFile != null || state.textProof != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: AppSize.paddingM),
+                          child: EvidencePreview(
+                            evidenceType: state.evidenceType,
+                            evidenceFile: state.evidenceFile,
+                            textProof: state.textProof,
+                            onRemove: _cubit.removeEvidence,
+                          ),
+                        ),
+                      
+                      const SizedBox(height: AppSize.spacingXL),
+                      
+                      // Validation Info
+                      Container(
+                        padding: const EdgeInsets.all(AppSize.paddingM),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.primary.withValues(alpha: 0.1),
+                              Colors.transparent,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(AppSize.radiusM),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.shield_outlined,
+                              color: AppColors.primary,
+                              size: 24,
+                            ),
+                            const SizedBox(width: AppSize.spacingM),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    loc.translate('validation_required_title'),
+                                    style: CustomTextStyle.size14W600(
+                                      color: AppColors.white100,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    loc.translate('validation_required_desc'),
+                                    style: CustomTextStyle.size12W400(
+                                      color: AppColors.grey400,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      const SizedBox(height: AppSize.paddingXL),
+                    ],
+                  ),
+                ),
               );
             },
           ),
-        ],
-      ),
-      body: BlocConsumer<AddActionCubit, AddActionState>(
-        listener: (context, state) {
-          if (state.isSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Action submitted successfully!'),
-                backgroundColor: AppColors.success,
-              ),
-            );
-
-            // Navigate to Home tab
-            context.read<DashboardCubit>().changeTab(0);
-
-            // Reset cubit state
-            _cubit.resetState();
-
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
-            }
-          } else if (state.errorMessage != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.errorMessage!),
-                backgroundColor: AppColors.error,
-              ),
-            );
-          }
-        },
-        builder: (context, state) {
-          return Form(
-            key: _formKey,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSize.paddingM),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title Field
-                  _buildLabel('Title *'),
-                  const SizedBox(height: AppSize.spacingS),
-                  TextFormField(
-                    controller: _titleController,
-                    style: CustomTextStyle.size15W400(color: AppColors.white100),
-                    decoration: _buildInputDecoration(
-                      hintText: 'e.g., Helped a friend move',
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a title';
-                      }
-                      if (value.length < 5) {
-                        return 'Title must be at least 5 characters';
-                      }
-                      return null;
-                    },
-                    onChanged: (value) => _cubit.updateTitle(value),
-                  ),
-                  const SizedBox(height: AppSize.spacingL),
-                  
-                  // Category Selector
-                  _buildLabel('Category *'),
-                  const SizedBox(height: AppSize.spacingS),
-                  CategorySelector(
-                    selectedCategory: state.category,
-                    onCategorySelected: _cubit.updateCategory,
-                  ),
-                  const SizedBox(height: AppSize.spacingL),
-                  
-                  // Date Field
-                  _buildLabel('Date *'),
-                  const SizedBox(height: AppSize.spacingS),
-                  DatePickerField(
-                    selectedDate: state.date,
-                    onDateSelected: _cubit.updateDate,
-                  ),
-                  const SizedBox(height: AppSize.spacingL),
-                  
-                  // Request Validation from Person Involved
-                  _buildLabel('Request Validation from Person Involved'),
-                  const SizedBox(height: AppSize.spacingS),
-                  PersonField(
-                    controller: _personController,
-                    cubit: _cubit,
-                    state: state,
-                  ),
-                  const SizedBox(height: AppSize.spacingL),
-
-                  
-                  // Description Field
-                  _buildLabel('Description *'),
-                  const SizedBox(height: AppSize.spacingS),
-                  TextFormField(
-                    controller: _descriptionController,
-                    style: CustomTextStyle.size15W400(color: AppColors.white100),
-                    maxLines: 4,
-                    decoration: _buildInputDecoration(
-                      hintText: 'Describe what you did...',
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a description';
-                      }
-                      if (value.length < 10) {
-                        return 'Description must be at least 10 characters';
-                      }
-                      return null;
-                    },
-                    onChanged: (value) => _cubit.updateDescription(value),
-                  ),
-                  const SizedBox(height: AppSize.spacingL),
-                  
-                  // Evidence System Title
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.verified_outlined,
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
-                      const SizedBox(width: AppSize.spacingS),
-                      Text(
-                        'Add Proof (Recommended)',
-                        style: CustomTextStyle.size16W600(
-                          color: AppColors.white100,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSize.spacingS),
-                  Text(
-                    'Adding proof increases your action\'s credibility score',
-                    style: CustomTextStyle.size12W400(color: AppColors.grey400),
-                  ),
-                  const SizedBox(height: AppSize.spacingM),
-                  
-                  // Evidence Type Selector
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.grey900,
-                      borderRadius: BorderRadius.circular(AppSize.radiusM),
-                      border: Border.all(color: AppColors.grey800),
-                    ),
-                    child: Column(
-                      children: [
-                        _buildEvidenceOption(
-                          icon: Icons.photo_camera_outlined,
-                          label: 'Photo',
-                          description: 'Take or upload a photo',
-                          isSelected: state.evidenceType == EvidenceType.photo,
-                          onTap: () => _pickImage(context),
-                        ),
-                        _buildDivider(),
-                        _buildEvidenceOption(
-                          icon: Icons.description_outlined,
-                          label: 'Document',
-                          description: 'Upload PDF, DOC, or TXT',
-                          isSelected: state.evidenceType == EvidenceType.document,
-                          onTap: () => _pickDocument(context),
-                        ),
-                        _buildDivider(),
-                        _buildEvidenceOption(
-                          icon: Icons.mic_none_outlined,
-                          label: 'Audio',
-                          description: 'Record audio proof',
-                          isSelected: state.evidenceType == EvidenceType.audio,
-                          onTap: () => _showAudioRecorderDialog(context),
-                        ),
-                        _buildDivider(),
-                        _buildEvidenceOption(
-                          icon: Icons.text_fields,
-                          label: 'Text Note',
-                          description: 'Write a text proof',
-                          isSelected: state.evidenceType == EvidenceType.text,
-                          onTap: () => _showTextProofDialog(context),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  // Evidence Preview
-                  if (state.evidenceFile != null || state.textProof != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: AppSize.paddingM),
-                      child: EvidencePreview(
-                        evidenceType: state.evidenceType,
-                        evidenceFile: state.evidenceFile,
-                        textProof: state.textProof,
-                        onRemove: _cubit.removeEvidence,
-                      ),
-                    ),
-                  
-                  const SizedBox(height: AppSize.spacingXL),
-                  
-                  // Validation Info
-                  Container(
-                    padding: const EdgeInsets.all(AppSize.paddingM),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.primary.withValues(alpha: 0.1),
-                          Colors.transparent,
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(AppSize.radiusM),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.shield_outlined,
-                          color: AppColors.primary,
-                          size: 24,
-                        ),
-                        const SizedBox(width: AppSize.spacingM),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Validation Required',
-                                style: CustomTextStyle.size14W600(
-                                  color: AppColors.white100,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'After posting, send this action to the person involved for validation',
-                                style: CustomTextStyle.size12W400(
-                                  color: AppColors.grey400,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  const SizedBox(height: AppSize.paddingXL),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+        );
+      },
     );
   }
 

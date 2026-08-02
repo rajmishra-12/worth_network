@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
+import 'package:worth_network/core/repo/auth_repo.dart';
 import 'package:worth_network/core/utils/preferences.dart';
 import 'package:worth_network/pages/profile/cubit/profile_cubit.dart';
 
@@ -151,12 +152,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       final newName = _nameController.text.trim();
       final newBio = _bioController.text.trim();
+      final newUsername = _usernameController.text.trim();
 
-      // Update Firestore user document
+      // Update user profile with unique username check
       if (user != null) {
+        final repo = AuthRepository();
+        await repo.updateProfile(
+          uid: user.uid,
+          username: newUsername,
+          bio: newBio,
+          profileImage: _newAvatarFile,
+        );
+
+        // Update name and avatarUrl if updated
         await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
           'name': newName,
-          'bio': newBio,
           if (avatarUrl != null) 'avatarUrl': avatarUrl,
         });
       }
@@ -177,9 +187,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     } catch (e) {
       print('Error saving profile: $e');
       if (mounted) {
+        final errorMsg = e.toString().replaceFirst('Exception: ', '');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update profile: $e'),
+            content: Text(errorMsg),
             backgroundColor: AppColors.error,
           ),
         );

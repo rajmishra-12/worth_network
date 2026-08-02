@@ -1,19 +1,19 @@
-// lib/pages/dashboard/profile/profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
+import 'package:worth_network/core/navigator/app_pages.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
+import 'package:worth_network/core/utils/app_localizations.dart';
+import 'package:worth_network/pages/authentication/cubit/auth_cubit.dart';
 import 'package:worth_network/pages/profile/cubit/profile_cubit.dart';
 import 'package:worth_network/pages/profile/presentation/action_history_tab.dart';
 import 'package:worth_network/pages/profile/presentation/my_actions_tab.dart';
 import 'package:worth_network/pages/profile/widgets/badge_section.dart';
 import 'package:worth_network/pages/profile/widgets/profile_header.dart';
 import 'package:worth_network/pages/profile/widgets/stats_card.dart';
-import 'package:worth_network/pages/authentication/cubit/auth_cubit.dart';
-import 'package:worth_network/core/navigator/app_pages.dart';
-
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -32,24 +32,24 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     context.read<ProfileCubit>().loadProfile();
   }
 
-  void _showLogoutDialog(BuildContext context) {
+  void _showLogoutDialog(BuildContext context, AppLocalizations loc) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.grey900,
         title: Text(
-          'Log Out',
+          loc.translate('logout_dialog_title'),
           style: CustomTextStyle.size18W600(color: AppColors.white100),
         ),
         content: Text(
-          'Are you sure you want to log out of Worth Network?',
+          loc.translate('logout_dialog_desc'),
           style: CustomTextStyle.size14W400(color: AppColors.grey400),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
-              'Cancel',
+              loc.translate('cancel'),
               style: CustomTextStyle.size14W500(color: AppColors.grey400),
             ),
           ),
@@ -60,7 +60,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               context.go(Routes.loginScreen);
             },
             child: Text(
-              'Log Out',
+              loc.translate('logout_btn'),
               style: CustomTextStyle.size14W600(color: AppColors.error),
             ),
           ),
@@ -77,89 +77,93 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: BlocBuilder<ProfileCubit, ProfileState>(
-        builder: (context, state) {
-          if (state.isLoading && state.profile == null) {
-            return const _LoadingState();
-          }
+    return BlocBuilder<LocaleCubit, String>(
+      builder: (context, localeCode) {
+        final loc = AppLocalizations(localeCode);
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          body: BlocBuilder<ProfileCubit, ProfileState>(
+            builder: (context, state) {
+              if (state.isLoading && state.profile == null) {
+                return const _LoadingState();
+              }
 
-          if (state.profile == null) {
-            return const _ErrorState();
-          }
+              if (state.profile == null) {
+                return const _ErrorState();
+              }
 
-          return SafeArea(
-            child: NestedScrollView(
-              headerSliverBuilder: (context, innerBoxIsScrolled) {
-                return [
-                  // Top Action bar: Settings & Logout
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: AppSize.paddingM, top: AppSize.paddingS),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.settings, color: AppColors.white100),
-                            onPressed: () => context.push('/settings'),
+              return SafeArea(
+                child: NestedScrollView(
+                  headerSliverBuilder: (context, innerBoxIsScrolled) {
+                    return [
+                      // Top Action bar: Settings & Logout
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: AppSize.paddingM, top: AppSize.paddingS),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.settings, color: AppColors.white100),
+                                onPressed: () => context.push('/settings'),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.logout, color: AppColors.error),
+                                onPressed: () => _showLogoutDialog(context, loc),
+                              ),
+                            ],
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.logout, color: AppColors.error),
-                            onPressed: () => _showLogoutDialog(context),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
 
-                  // Spacious Profile Header
-                  SliverToBoxAdapter(
-                    child: ProfileHeader(profile: state.profile!),
-                  ),
+                      // Spacious Profile Header
+                      SliverToBoxAdapter(
+                        child: ProfileHeader(profile: state.profile!),
+                      ),
 
-                  // Spacious Stats Card
-                  SliverToBoxAdapter(
-                    child: StatsCard(
-                      totalActions: state.profile!.totalActions,
-                      validatedPercentage: state.profile!.validatedPercentage,
-                      score: state.profile!.score,
-                      level: state.profile!.level,
-                      xp: state.profile!.xp,
-                      nextLevelXp: state.profile!.nextLevelXp,
-                    ),
-                  ),
+                      // Spacious Stats Card
+                      SliverToBoxAdapter(
+                        child: StatsCard(
+                          totalActions: state.profile!.totalActions,
+                          validatedPercentage: state.profile!.validatedPercentage,
+                          score: state.profile!.score,
+                          level: state.profile!.level,
+                          xp: state.profile!.xp,
+                          nextLevelXp: state.profile!.nextLevelXp,
+                        ),
+                      ),
 
-                  // Badges Section
-                  SliverToBoxAdapter(
-                    child: BadgesSection(badges: state.profile!.badges),
-                  ),
+                      // Badges Section
+                      SliverToBoxAdapter(
+                        child: BadgesSection(badges: state.profile!.badges),
+                      ),
 
-                  // Pinned Tab Bar
-                  SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _TabBarDelegate(
-                      tabController: _tabController,
-                      tabs: const [
-                        Tab(text: 'My Actions'),
-                        Tab(text: 'History'),
-                      ],
-                    ),
+                      // Pinned Tab Bar
+                      SliverPersistentHeader(
+                        pinned: true,
+                        delegate: _TabBarDelegate(
+                          tabController: _tabController,
+                          tabs: [
+                            Tab(text: loc.translate('tab_my_actions')),
+                            Tab(text: loc.translate('tab_history')),
+                          ],
+                        ),
+                      ),
+                    ];
+                  },
+                  body: TabBarView(
+                    controller: _tabController,
+                    children: const [
+                      MyActionsTab(),
+                      ActionHistoryTab(),
+                    ],
                   ),
-                ];
-              },
-              body: TabBarView(
-                controller: _tabController,
-                children: const [
-                  MyActionsTab(),
-                  ActionHistoryTab(),
-                ],
-              ),
-            ),
-          );
-
-        },
-      ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

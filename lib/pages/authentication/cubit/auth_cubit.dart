@@ -12,11 +12,11 @@ class AuthCubit extends Cubit<AuthState> {
 
   // ==================== LOGIN METHODS ====================
   void updateLoginEmail(String email) {
-    emit(state.copyWith(loginemail: email, loginEmailError: ''));
+    emit(state.copyWith(loginemail: email, loginEmailError: '', signInError: null));
   }
 
   void updateLoginPassword(String password) {
-    emit(state.copyWith(loginpassword: password, loginPasswordError: ''));
+    emit(state.copyWith(loginpassword: password, loginPasswordError: '', signInError: null));
   }
 
   void updateLoginEmailError(String error) {
@@ -77,19 +77,19 @@ class AuthCubit extends Cubit<AuthState> {
 
   // ==================== SIGNUP METHODS ====================
   void updateSignUpFullName(String fullName) {
-    emit(state.copyWith(signUpFullName: fullName, signUpFullNameError: ''));
+    emit(state.copyWith(signUpFullName: fullName, signUpFullNameError: '', signUpError: null));
   }
 
   void updateSignUpUsername(String username) {
-    emit(state.copyWith(signUpUsername: username, signUpUsernameError: ''));
+    emit(state.copyWith(signUpUsername: username, signUpUsernameError: '', signUpError: null));
   }
 
   void updateSignUpEmail(String email) {
-    emit(state.copyWith(signUpEmail: email, signUpEmailError: ''));
+    emit(state.copyWith(signUpEmail: email, signUpEmailError: '', signUpError: null));
   }
 
   void updateSignUpPassword(String password) {
-    emit(state.copyWith(signUpPassword: password, signUpPasswordError: ''));
+    emit(state.copyWith(signUpPassword: password, signUpPasswordError: '', signUpError: null));
   }
 
   void updateProfileImage(File? image) {
@@ -208,9 +208,12 @@ class AuthCubit extends Cubit<AuthState> {
         isSignUpSuccess: true,
       ));
     } catch (e) {
+      final errorMsg = e.toString().replaceFirst('Exception: ', '');
+      final isUsernameError = errorMsg.toLowerCase().contains('username');
       emit(state.copyWith(
         isLoading: false,
-        signUpError: e.toString().replaceFirst('Exception: ', ''),
+        signUpError: errorMsg,
+        signUpUsernameError: isUsernameError ? errorMsg : null,
       ));
     }
   }

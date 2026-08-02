@@ -1,11 +1,12 @@
-// lib/pages/dashboard/dashboard_screen.dart
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
+import 'package:worth_network/core/utils/app_localizations.dart';
 import 'package:worth_network/pages/dashboard/cubit/dashboard_cubit.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -33,77 +34,82 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<DashboardCubit, DashboardState>(
-      builder: (context, state) {
-        if (state.pages.isEmpty) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(
-                color: AppColors.primary,
-              ),
-            ),
-          );
-        }
+    return BlocBuilder<LocaleCubit, String>(
+      builder: (context, localeCode) {
+        final loc = AppLocalizations(localeCode);
+        return BlocBuilder<DashboardCubit, DashboardState>(
+          builder: (context, state) {
+            if (state.pages.isEmpty) {
+              return const Scaffold(
+                body: Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.primary,
+                  ),
+                ),
+              );
+            }
 
-        return Scaffold(
-          body: state.pages[state.currentIndex],
-          bottomNavigationBar: !kIsWeb
-              ? Container(
-                  decoration: BoxDecoration(
-                     color: AppColors.grey900,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        blurRadius: 15,
-                        offset: const Offset(0, -3),
+            return Scaffold(
+              body: state.pages[state.currentIndex],
+              bottomNavigationBar: !kIsWeb
+                  ? Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.grey900,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 15,
+                            offset: const Offset(0, -3),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(AppSize.radiusL),
-                      topRight: Radius.circular(AppSize.radiusL),
-                    ),
-                    child: BottomNavigationBar(
-                      type: BottomNavigationBarType.fixed,
-                      backgroundColor: AppColors.grey900,
-                      selectedItemColor: AppColors.primary,
-                      unselectedItemColor: AppColors.grey500,
-                      selectedLabelStyle: CustomTextStyle.size11W500(
-                        color: AppColors.primary,
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(AppSize.radiusL),
+                          topRight: Radius.circular(AppSize.radiusL),
+                        ),
+                        child: BottomNavigationBar(
+                          type: BottomNavigationBarType.fixed,
+                          backgroundColor: AppColors.grey900,
+                          selectedItemColor: AppColors.primary,
+                          unselectedItemColor: AppColors.grey500,
+                          selectedLabelStyle: CustomTextStyle.size11W500(
+                            color: AppColors.primary,
+                          ),
+                          unselectedLabelStyle: CustomTextStyle.size11W400(
+                            color: AppColors.grey500,
+                          ),
+                          currentIndex: state.currentIndex,
+                          onTap: (index) {
+                            context.read<DashboardCubit>().changeTab(index);
+                          },
+                          elevation: 0,
+                          showSelectedLabels: true,
+                          showUnselectedLabels: true,
+                          iconSize: 24,
+                          items: _buildNavItems(loc),
+                        ),
                       ),
-                      unselectedLabelStyle: CustomTextStyle.size11W400(
-                        color: AppColors.grey500,
-                      ),
-                      currentIndex: state.currentIndex,
-                      onTap: (index) {
-                        context.read<DashboardCubit>().changeTab(index);
-                      },
-                      elevation: 0,
-                      showSelectedLabels: true,
-                      showUnselectedLabels: true,
-                      iconSize: 24,
-                      items: _buildNavItems(),
-                    ),
-                  ),
-                )
-              : const SizedBox.shrink(),
+                    )
+                  : const SizedBox.shrink(),
+            );
+          },
         );
       },
     );
   }
 
-  List<BottomNavigationBarItem> _buildNavItems() {
+  List<BottomNavigationBarItem> _buildNavItems(AppLocalizations loc) {
     return [
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.home_outlined),
-        activeIcon: Icon(Icons.home_rounded),
-        label: 'Home',
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.home_outlined),
+        activeIcon: const Icon(Icons.home_rounded),
+        label: loc.translate('nav_home'),
       ),
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.search_outlined),
-        activeIcon: Icon(Icons.search_rounded),
-        label: 'Network',
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.search_outlined),
+        activeIcon: const Icon(Icons.search_rounded),
+        label: loc.translate('nav_network'),
       ),
       BottomNavigationBarItem(
         icon: Container(
@@ -143,12 +149,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
         ),
-        label: 'Action',
+        label: loc.translate('nav_action'),
       ),
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.person_outline),
-        activeIcon: Icon(Icons.person_rounded),
-        label: 'Profile',
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.person_outline),
+        activeIcon: const Icon(Icons.person_rounded),
+        label: loc.translate('nav_profile'),
       ),
     ];
   }

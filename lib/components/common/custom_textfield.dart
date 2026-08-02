@@ -74,6 +74,7 @@ class CustomTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool hasError = errorText != null && errorText!.isNotEmpty;
+    final double effectiveRadius = borderRadius ?? 12.radiusMultiplier;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,10 +82,8 @@ class CustomTextField extends StatelessWidget {
         Container(
           height: height,
           decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(
-              borderRadius ?? 8.radiusMultiplier,
-            ),
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(effectiveRadius),
           ),
           child: Center(
             child: TextFormField(
@@ -96,7 +95,7 @@ class CustomTextField extends StatelessWidget {
                       : TextCapitalization.none,
               cursorHeight: cursorHeight,
               cursorWidth: cursorWidth ?? 2.0,
-           maxLines: obscureText ? 1 : (maxlines ?? 1),
+              maxLines: obscureText ? 1 : (maxlines ?? 1),
               readOnly: readOnly ?? false,
               autovalidateMode: autovalidateMode,
               inputFormatters: inputFormatters,
@@ -158,10 +157,10 @@ class CustomTextField extends StatelessWidget {
                 hintStyle:
                     hintTextStyle ??
                     CustomTextStyle.size14W400(color: AppColors.primaryLight),
-                border: border(),
-                focusedBorder: border(),
-                enabledBorder: border(),
-                disabledBorder: border(),
+                border: border(effectiveRadius),
+                focusedBorder: border(effectiveRadius),
+                enabledBorder: border(effectiveRadius),
+                disabledBorder: border(effectiveRadius),
                 contentPadding: EdgeInsets.symmetric(
                   vertical: 16.heightMultiplier,
                   horizontal: 12.widthMultiplier,
@@ -184,9 +183,9 @@ class CustomTextField extends StatelessWidget {
     );
   }
 
-  OutlineInputBorder border() {
+  OutlineInputBorder border(double radius) {
     return OutlineInputBorder(
-      borderRadius: BorderRadius.circular(borderRadius ?? 16.radiusMultiplier),
+      borderRadius: BorderRadius.circular(radius),
       borderSide: BorderSide(color: borderColor ?? AppColors.black200),
     );
   }

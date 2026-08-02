@@ -42,22 +42,29 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       ),
       body: SafeArea(
         child: BlocListener<AuthCubit, AuthState>(
+          listenWhen: (previous, current) =>
+              previous.isResetSuccess != current.isResetSuccess ||
+              previous.resetError != current.resetError,
           listener: (context, state) {
             if (state.isResetSuccess) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('📩 Reset email sent! Please check your inbox.'),
-                  backgroundColor: AppColors.success,
-                ),
-              );
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  const SnackBar(
+                    content: Text('📩 Reset email sent! Please check your inbox.'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
               context.pop();
-            } else if (state.resetError != null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.resetError!),
-                  backgroundColor: AppColors.error,
-                ),
-              );
+            } else if (state.resetError != null && state.resetError!.isNotEmpty) {
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  SnackBar(
+                    content: Text(state.resetError!),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
             }
           },
           child: SingleChildScrollView(

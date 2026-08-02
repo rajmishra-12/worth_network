@@ -7,6 +7,7 @@ import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
 import 'package:worth_network/pages/home/widgets/empty_feed_widget.dart';
+import 'package:worth_network/pages/home/widgets/proof_card.dart';
 
 class ActionDetailsScreen extends StatefulWidget {
   final ActionModel action;
@@ -532,122 +533,10 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
 
 
   Widget _buildEvidencePreview(ActionModel action) {
-    final proofType = action.proofType ?? 'text';
-    final proofUrl = action.proofUrl;
-
-    if (proofType == 'photo' && proofUrl != null && proofUrl.isNotEmpty) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(AppSize.radiusM),
-        child: Image.network(
-          proofUrl,
-          fit: BoxFit.cover,
-          width: double.infinity,
-          height: 200,
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              height: 120,
-              color: AppColors.grey900,
-              child: const Center(
-                child: Icon(Icons.broken_image_outlined, color: AppColors.grey500, size: 36),
-              ),
-            );
-          },
-        ),
-      );
-    }
-
-    if (proofType == 'document') {
-      return Container(
-        padding: const EdgeInsets.all(AppSize.paddingM),
-        decoration: BoxDecoration(
-          color: AppColors.grey900,
-          borderRadius: BorderRadius.circular(AppSize.radiusM),
-          border: Border.all(color: AppColors.grey800),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.picture_as_pdf, color: AppColors.error, size: 36),
-            const SizedBox(width: AppSize.spacingM),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Uploaded_Verification_Document.pdf',
-                    style: CustomTextStyle.size14W500(color: AppColors.white100),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    proofUrl != null ? 'Download link available' : 'Attached document',
-                    style: CustomTextStyle.size12W400(color: AppColors.grey500),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.file_present_rounded, color: AppColors.primary, size: 20),
-          ],
-        ),
-      );
-    }
-
-    if (proofType == 'audio') {
-      return Container(
-        padding: const EdgeInsets.all(AppSize.paddingM),
-        decoration: BoxDecoration(
-          color: AppColors.grey900,
-          borderRadius: BorderRadius.circular(AppSize.radiusM),
-          border: Border.all(color: AppColors.grey800),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.mic, color: AppColors.primary, size: 36),
-            const SizedBox(width: AppSize.spacingM),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Audio Proof (Voice Note)',
-                    style: CustomTextStyle.size14W500(color: AppColors.white100),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: List.generate(15, (i) {
-                      final h = (i % 3 == 0) ? 12.0 : (i % 2 == 0 ? 18.0 : 8.0);
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                        width: 2.5,
-                        height: h,
-                        decoration: BoxDecoration(
-                          color: i < 6 ? AppColors.primary : AppColors.grey700,
-                          borderRadius: BorderRadius.circular(1),
-                        ),
-                      );
-                    }),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // Default to text proof note
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSize.paddingM),
-      decoration: BoxDecoration(
-        color: AppColors.grey900,
-        borderRadius: BorderRadius.circular(AppSize.radiusM),
-        border: Border.all(color: AppColors.grey800),
-      ),
-      child: Text(
-        action.textProof != null && action.textProof!.isNotEmpty
-            ? action.textProof!
-            : 'Text proof submitted by user.',
-        style: CustomTextStyle.size14W400(color: AppColors.grey300),
-      ),
+    return ProofCard(
+      proofType: action.proofType,
+      proofUrl: action.proofUrl,
+      textProof: action.textProof,
     );
   }
 }

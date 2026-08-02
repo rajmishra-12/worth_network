@@ -11,6 +11,7 @@ import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
 import 'package:worth_network/core/utils/app_localizations.dart';
+import 'package:worth_network/core/utils/app_version.dart';
 import 'package:worth_network/pages/authentication/cubit/auth_cubit.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -45,30 +46,40 @@ class _LoginScreenState extends State<LoginScreen> {
           backgroundColor: AppColors.background,
           body: SafeArea(
             child: BlocListener<AuthCubit, AuthState>(
+              listenWhen: (previous, current) =>
+                  previous.isSignInSuccess != current.isSignInSuccess ||
+                  previous.signInError != current.signInError,
               listener: (context, state) {
                 if (state.isSignInSuccess) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(loc.translate('welcome_back')),
-                      backgroundColor: AppColors.success,
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(
+                      SnackBar(
+                        content: Text(loc.translate('welcome_back')),
+                        backgroundColor: AppColors.success,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
                   context.go(Routes.dashBoardScreen);
-                } else if (state.signInError != null && state.signInError!.isNotEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(state.signInError!),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
+                } else if (state.signInError != null &&
+                    state.signInError!.isNotEmpty) {
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(
+                      SnackBar(
+                        content: Text(state.signInError!),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
                 }
               },
               child: BlocBuilder<AuthCubit, AuthState>(
                 builder: (context, state) {
                   return SingleChildScrollView(
                     padding: EdgeInsets.symmetric(
-                      horizontal: isMobile ? AppSize.paddingL : 60.widthMultiplier,
+                      horizontal: isMobile
+                          ? AppSize.paddingL
+                          : 60.widthMultiplier,
                       vertical: AppSize.paddingXL,
                     ),
                     child: Column(
@@ -85,11 +96,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           AppIcons.appLogo,
                           width: 350.widthMultiplier,
                         ),
-                        
+
                         // Email / Username Field
                         Text(
                           loc.translate('login_title'),
-                          style: CustomTextStyle.size14W500(color: AppColors.white100),
+                          style: CustomTextStyle.size14W500(
+                            color: AppColors.white100,
+                          ),
                         ),
                         const SizedBox(height: AppSize.spacingS),
                         CustomTextField(
@@ -98,8 +111,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           useLabelText: false,
                           borderColor: AppColors.grey800,
                           backgroundColor: AppColors.grey900,
-                          textStyle: CustomTextStyle.size15W400(color: AppColors.white100),
-                          hintTextStyle: CustomTextStyle.size14W400(color: AppColors.grey500),
+                          textStyle: CustomTextStyle.size15W400(
+                            color: AppColors.white100,
+                          ),
+                          hintTextStyle: CustomTextStyle.size14W400(
+                            color: AppColors.grey500,
+                          ),
                           keyboardType: TextInputType.emailAddress,
                           onChanged: authCubit.updateLoginEmail,
                           validator: (value) {
@@ -108,23 +125,32 @@ class _LoginScreenState extends State<LoginScreen> {
                             }
                             return null;
                           },
-                          prefixIcon: const Icon(Icons.person_outline, color: AppColors.primary),
+                          prefixIcon: const Icon(
+                            Icons.person_outline,
+                            color: AppColors.primary,
+                          ),
                         ),
                         if (state.loginEmailError.isNotEmpty)
                           Padding(
-                            padding: const EdgeInsets.only(top: AppSize.spacingS),
+                            padding: const EdgeInsets.only(
+                              top: AppSize.spacingS,
+                            ),
                             child: Text(
                               state.loginEmailError,
-                              style: CustomTextStyle.size12W400(color: AppColors.error),
+                              style: CustomTextStyle.size12W400(
+                                color: AppColors.error,
+                              ),
                             ),
                           ),
-                        
+
                         const SizedBox(height: AppSize.spacingL),
-                        
+
                         // Password Field
                         Text(
                           loc.translate('password_title'),
-                          style: CustomTextStyle.size14W500(color: AppColors.white100),
+                          style: CustomTextStyle.size14W500(
+                            color: AppColors.white100,
+                          ),
                         ),
                         const SizedBox(height: AppSize.spacingS),
                         CustomTextField(
@@ -133,8 +159,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           useLabelText: false,
                           borderColor: AppColors.grey800,
                           backgroundColor: AppColors.grey900,
-                          textStyle: CustomTextStyle.size15W400(color: AppColors.white100),
-                          hintTextStyle: CustomTextStyle.size14W400(color: AppColors.grey500),
+                          textStyle: CustomTextStyle.size15W400(
+                            color: AppColors.white100,
+                          ),
+                          hintTextStyle: CustomTextStyle.size14W400(
+                            color: AppColors.grey500,
+                          ),
                           obscureText: !_showPassword,
                           onChanged: authCubit.updateLoginPassword,
                           validator: (value) {
@@ -143,10 +173,15 @@ class _LoginScreenState extends State<LoginScreen> {
                             }
                             return null;
                           },
-                          prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primary),
+                          prefixIcon: const Icon(
+                            Icons.lock_outline,
+                            color: AppColors.primary,
+                          ),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _showPassword ? Icons.visibility : Icons.visibility_off,
+                              _showPassword
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
                               color: AppColors.grey500,
                             ),
                             onPressed: () {
@@ -158,15 +193,19 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         if (state.loginPasswordError.isNotEmpty)
                           Padding(
-                            padding: const EdgeInsets.only(top: AppSize.spacingS),
+                            padding: const EdgeInsets.only(
+                              top: AppSize.spacingS,
+                            ),
                             child: Text(
                               state.loginPasswordError,
-                              style: CustomTextStyle.size12W400(color: AppColors.error),
+                              style: CustomTextStyle.size12W400(
+                                color: AppColors.error,
+                              ),
                             ),
                           ),
-                        
+
                         const SizedBox(height: AppSize.spacingM),
-                        
+
                         // Remember Me & Forgot Password Row
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -186,8 +225,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                     },
                                     activeColor: AppColors.primary,
                                     checkColor: AppColors.black100,
-                                    side: const BorderSide(color: AppColors.grey700),
-                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    side: const BorderSide(
+                                      color: AppColors.grey700,
+                                    ),
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
                                   ),
                                 ),
                                 const SizedBox(width: AppSize.spacingS),
@@ -199,7 +241,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               ],
                             ),
-                            
+
                             // Forgot Password Button
                             GestureDetector(
                               onTap: () {
@@ -214,33 +256,39 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ],
                         ),
-                        
+
                         const SizedBox(height: AppSize.spacingXL),
-                        
+
                         // Login Button
                         CustomButton(
                           text: loc.translate('login_button'),
                           isLoading: state.isLoading,
-                          textStyle: CustomTextStyle.size16W600(color: AppColors.black100),
+                          textStyle: CustomTextStyle.size16W600(
+                            color: AppColors.black100,
+                          ),
                           onTap: () {
                             if (_emailController.text.isEmpty) {
-                              authCubit.updateLoginEmailError(loc.translate('enter_email_error'));
+                              authCubit.updateLoginEmailError(
+                                loc.translate('enter_email_error'),
+                              );
                               return;
                             }
                             if (_passwordController.text.isEmpty) {
-                              authCubit.updateLoginPasswordError(loc.translate('enter_password_error'));
+                              authCubit.updateLoginPasswordError(
+                                loc.translate('enter_password_error'),
+                              );
                               return;
                             }
-                            
+
                             authCubit.signIn(
                               email: _emailController.text,
                               password: _passwordController.text,
                             );
                           },
                         ),
-                        
+
                         const SizedBox(height: AppSize.spacingXL),
-                        
+
                         // Sign Up Link
                         Center(
                           child: Row(
@@ -248,7 +296,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             children: [
                               Text(
                                 loc.translate('dont_have_account'),
-                                style: CustomTextStyle.size14W400(color: AppColors.grey400),
+                                style: CustomTextStyle.size14W400(
+                                  color: AppColors.grey400,
+                                ),
                               ),
                               GestureDetector(
                                 onTap: () {
@@ -256,20 +306,29 @@ class _LoginScreenState extends State<LoginScreen> {
                                 },
                                 child: Text(
                                   loc.translate('signup_button'),
-                                  style: CustomTextStyle.size14W600(color: AppColors.primary),
+                                  style: CustomTextStyle.size14W600(
+                                    color: AppColors.primary,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        
+
                         const SizedBox(height: AppSize.paddingL),
-                        
+
                         // Version Info
                         Center(
-                          child: Text(
-                            'Version 1.0.0',
-                            style: CustomTextStyle.size10W400(color: AppColors.grey700),
+                          child: FutureBuilder<String>(
+                            future: AppVersion.getVersion(),
+                            builder: (context, snapshot) {
+                              return Text(
+                                snapshot.data ?? 'Version 1.0.0',
+                                style: CustomTextStyle.size10W400(
+                                  color: AppColors.grey700,
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ],

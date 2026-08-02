@@ -1,11 +1,13 @@
-// lib/widgets/action_card_small.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
 import 'package:worth_network/core/model/home/action_model.dart';
 import 'package:worth_network/core/model/profile/history_model.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
+import 'package:worth_network/core/utils/app_localizations.dart';
 import 'package:worth_network/pages/home/widgets/empty_feed_widget.dart';
 
 
@@ -78,8 +80,6 @@ class ActionCardSmall extends StatelessWidget {
   }
 }
 
-
-
 class HistoryCard extends StatelessWidget {
   final HistoryItem history;
 
@@ -87,80 +87,89 @@ class HistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSize.paddingM),
-      decoration: BoxDecoration(
-        color: AppColors.grey900,
-        borderRadius: BorderRadius.circular(AppSize.radiusM),
-        border: Border.all(color: AppColors.grey800),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: history.statusColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppSize.radiusM),
-            ),
-            child: Icon(
-              _getStatusIcon(history.status),
-              color: history.statusColor,
-              size: 24,
-            ),
+    return BlocBuilder<LocaleCubit, String>(
+      builder: (context, localeCode) {
+        final loc = AppLocalizations(localeCode);
+        final statusKey = 'status_${history.status.toLowerCase()}';
+        final translatedStatus = loc.translate(statusKey);
+        final displayStatus = translatedStatus.startsWith('status_') ? history.status : translatedStatus;
+
+        return Container(
+          padding: const EdgeInsets.all(AppSize.paddingM),
+          decoration: BoxDecoration(
+            color: AppColors.grey900,
+            borderRadius: BorderRadius.circular(AppSize.radiusM),
+            border: Border.all(color: AppColors.grey800),
           ),
-          const SizedBox(width: AppSize.spacingM),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  history.title,
-                  style: CustomTextStyle.size14W600(color: AppColors.white100),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  DateFormat('MMM dd, yyyy').format(history.date),
-                  style: CustomTextStyle.size11W400(color: AppColors.grey500),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSize.paddingS,
-                  vertical: AppSize.paddingXS,
-                ),
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: history.statusColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppSize.radiusS),
+                  borderRadius: BorderRadius.circular(AppSize.radiusM),
                 ),
-                child: Text(
-                  history.status,
-                  style: CustomTextStyle.size10W500(
-                    color: history.statusColor,
-                  ),
+                child: Icon(
+                  _getStatusIcon(history.status),
+                  color: history.statusColor,
+                  size: 24,
                 ),
               ),
-              if (history.points > 0)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    '+${history.points} pts',
-                    style: CustomTextStyle.size11W500(
-                      color: AppColors.success,
+              const SizedBox(width: AppSize.spacingM),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      history.title,
+                      style: CustomTextStyle.size14W600(color: AppColors.white100),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      DateFormat('MMM dd, yyyy').format(history.date),
+                      style: CustomTextStyle.size11W400(color: AppColors.grey500),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSize.paddingS,
+                      vertical: AppSize.paddingXS,
+                    ),
+                    decoration: BoxDecoration(
+                      color: history.statusColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppSize.radiusS),
+                    ),
+                    child: Text(
+                      displayStatus,
+                      style: CustomTextStyle.size10W500(
+                        color: history.statusColor,
+                      ),
                     ),
                   ),
-                ),
+                  if (history.points > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '+${history.points} pts',
+                        style: CustomTextStyle.size11W500(
+                          color: AppColors.success,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

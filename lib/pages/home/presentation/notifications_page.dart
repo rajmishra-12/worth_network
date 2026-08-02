@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:worth_network/core/model/home/action_model.dart';
+import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
 import 'package:worth_network/core/repo/action_repo.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
+import 'package:worth_network/core/utils/app_localizations.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -42,53 +44,56 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.white100),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          'Notifications',
-          style: CustomTextStyle.size18W600(color: AppColors.white100),
-        ),
-      ),
-      body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: _actionRepo.getUserNotificationsStream(),
-        builder: (context, snapshot) {
-          final liveNotifications = snapshot.data ?? [];
+    return BlocBuilder<LocaleCubit, String>(
+      builder: (context, localeCode) {
+        final loc = AppLocalizations(localeCode);
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            backgroundColor: AppColors.background,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: AppColors.white100),
+              onPressed: () => context.pop(),
+            ),
+            title: Text(
+              loc.translate('notifications'),
+              style: CustomTextStyle.size18W600(color: AppColors.white100),
+            ),
+          ),
+          body: StreamBuilder<List<Map<String, dynamic>>>(
+            stream: _actionRepo.getUserNotificationsStream(),
+            builder: (context, snapshot) {
+              final liveNotifications = snapshot.data ?? [];
 
-          final List<Map<String, dynamic>> displayNotifications = List.from(liveNotifications);
+              final List<Map<String, dynamic>> displayNotifications = List.from(liveNotifications);
 
-          // If no live notifications exist, show clean empty state or default items
-          if (displayNotifications.isEmpty) {
-            displayNotifications.addAll(_defaultNotifications);
-          }
+              // If no live notifications exist, show clean empty state or default items
+              if (displayNotifications.isEmpty) {
+                displayNotifications.addAll(_defaultNotifications);
+              }
 
-          if (displayNotifications.isEmpty) {
-            return _buildEmptyState();
-          }
+              if (displayNotifications.isEmpty) {
+                return _buildEmptyState(loc);
+              }
 
-          return ListView.separated(
-            padding: const EdgeInsets.all(AppSize.paddingM),
-            itemCount: displayNotifications.length,
-            separatorBuilder: (context, index) => const SizedBox(height: AppSize.spacingM),
-            itemBuilder: (context, index) {
-              final item = displayNotifications[index];
-              return _buildNotificationCard(item);
+              return ListView.separated(
+                padding: const EdgeInsets.all(AppSize.paddingM),
+                itemCount: displayNotifications.length,
+                separatorBuilder: (context, index) => const SizedBox(height: AppSize.spacingM),
+                itemBuilder: (context, index) {
+                  final item = displayNotifications[index];
+                  return _buildNotificationCard(item, loc);
+                },
+              );
             },
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
-
-
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppLocalizations loc) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -108,12 +113,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
           const SizedBox(height: AppSize.spacingL),
           Text(
-            'All caught up!',
+            loc.translate('all_caught_up'),
             style: CustomTextStyle.size16W600(color: AppColors.white100),
           ),
           const SizedBox(height: AppSize.spacingS),
           Text(
-            'No new updates at the moment.',
+            loc.translate('no_new_notifications'),
             style: CustomTextStyle.size13W400(color: AppColors.grey500),
           ),
         ],
@@ -121,7 +126,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _buildNotificationCard(Map<String, dynamic> item) {
+  Widget _buildNotificationCard(Map<String, dynamic> item, AppLocalizations loc) {
     final type = item['type'] as String;
     final title = item['title'] as String;
     final description = item['description'] as String;
@@ -227,7 +232,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         ),
                         elevation: 0,
                       ),
-                      child: const Text('Inspect Request', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                      child: Text(loc.translate('inspect_request'), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
                     ),
                   ],
                 ],
