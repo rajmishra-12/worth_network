@@ -206,6 +206,10 @@ class ValidationBadge extends StatelessWidget {
         return (AppColors.accent, 'Certified', Icons.verified);
       case ValidationStatus.confirmed:
         return (AppColors.primary, 'Confirmed', Icons.check_circle_outline);
+      case ValidationStatus.pending:
+        return (AppColors.warning, 'Pending', Icons.timer_outlined);
+      case ValidationStatus.rejected:
+        return (AppColors.error, 'Rejected', Icons.cancel_outlined);
       case ValidationStatus.declared:
         return (AppColors.grey500, 'Declared', Icons.hourglass_empty);
     }

@@ -14,7 +14,7 @@ import 'package:worth_network/core/theme/app_text.dart';
 import 'package:worth_network/pages/action/cubit/add_action_cubit.dart';
 import 'package:worth_network/pages/action/widgets/category_selector.dart';
 import 'package:worth_network/pages/dashboard/cubit/dashboard_cubit.dart';
-import 'package:worth_network/pages/home/cubit/home_cubit.dart';
+
 
 
 class AddActionScreen extends StatefulWidget {
@@ -94,29 +94,24 @@ class _AddActionScreenState extends State<AddActionScreen> {
       ),
       body: BlocConsumer<AddActionCubit, AddActionState>(
         listener: (context, state) {
-         if (state.isSuccess) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text('Action submitted successfully!'),
-      backgroundColor: AppColors.success,
-    ),
-  );
+          if (state.isSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Action submitted successfully!'),
+                backgroundColor: AppColors.success,
+              ),
+            );
 
-  // 1. Go to Home tab
-  context.read<DashboardCubit>().changeTab(0);
+            // Navigate to Home tab
+            context.read<DashboardCubit>().changeTab(0);
 
-  // 2. Add new action to Home feed
-  context.read<HomeCubit>().addNewAction(
-    title: state.title,
-    description: state.description,
-    category: state.category,
-  );
+            // Reset cubit state
+            _cubit.resetState();
 
-  // 3. Close screen safely
-  if (Navigator.canPop(context)) {
-    Navigator.pop(context);
-  }
-} else if (state.errorMessage != null) {
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            }
+          } else if (state.errorMessage != null) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.errorMessage!),
@@ -173,14 +168,16 @@ class _AddActionScreenState extends State<AddActionScreen> {
                   ),
                   const SizedBox(height: AppSize.spacingL),
                   
-                  // Person Involved Field
-                  _buildLabel('Person Involved (Optional)'),
+                  // Request Validation from Person Involved
+                  _buildLabel('Request Validation from Person Involved'),
                   const SizedBox(height: AppSize.spacingS),
                   PersonField(
                     controller: _personController,
-                    onPersonSelected: _cubit.updatePersonInvolved,
+                    cubit: _cubit,
+                    state: state,
                   ),
                   const SizedBox(height: AppSize.spacingL),
+
                   
                   // Description Field
                   _buildLabel('Description *'),
@@ -485,9 +482,28 @@ class _AddActionScreenState extends State<AddActionScreen> {
     );
     
     if (result != null) {
-      final pickedFile = await picker.pickImage(source: result);
+      final pickedFile = await picker.pickImage(
+        source: result,
+        imageQuality: 70, // Reduces image file size by ~60-70%
+        maxWidth: 1200,
+        maxHeight: 1200,
+      );
       if (pickedFile != null) {
-        _cubit.addEvidence(EvidenceType.photo, File(pickedFile.path));
+        final file = File(pickedFile.path);
+        final bytes = await file.length();
+        // Validation: max 10MB limit
+        if (bytes > 10 * 1024 * 1024) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Image size exceeds 10MB limit. Please select a smaller photo.'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+          return;
+        }
+        _cubit.addEvidence(EvidenceType.photo, file);
       }
     }
   }
@@ -497,9 +513,22 @@ class _AddActionScreenState extends State<AddActionScreen> {
       type: FileType.custom,
       allowedExtensions: ['pdf', 'doc', 'docx', 'txt'],
     );
-    
-    if (result != null) {
-      _cubit.addEvidence(EvidenceType.document, File(result.files.single.path!));
+
+    if (result != null && result.files.single.path != null) {
+      final file = File(result.files.single.path!);
+      final bytes = await file.length();
+      if (bytes > 10 * 1024 * 1024) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Document size exceeds 10MB limit. Please select a smaller file.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+        return;
+      }
+      _cubit.addEvidence(EvidenceType.document, file);
     }
   }
 
@@ -507,12 +536,25 @@ class _AddActionScreenState extends State<AddActionScreen> {
     showDialog(
       context: context,
       builder: (context) => const AudioRecorderDialog(),
-    ).then((recordedFile) {
+    ).then((recordedFile) async {
       if (recordedFile != null) {
+        final bytes = await recordedFile.length();
+        if (bytes > 10 * 1024 * 1024) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Audio size exceeds 10MB limit. Please record a shorter message.'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+          return;
+        }
         _cubit.addEvidence(EvidenceType.audio, recordedFile);
       }
     });
   }
+
 
   void _showTextProofDialog(BuildContext context) {
     final controller = TextEditingController();

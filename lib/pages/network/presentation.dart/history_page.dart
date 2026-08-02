@@ -1,6 +1,8 @@
 // lib/pages/dashboard/network/network_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
@@ -88,9 +90,14 @@ class _NetworkScreenState extends State<NetworkScreen> {
                         return UserCard(
                           user: user,
                           onTap: () {
-                            // Navigate to user profile
+                            context.push('/user-detail', extra: {
+                              'userId': user.id,
+                              'userName': user.name,
+                              'userAvatar': user.avatarUrl,
+                            });
                           },
                         );
+
                       },
                     ),
                   );

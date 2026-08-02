@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:worth_network/core/model/home/action_model.dart';
+import 'package:worth_network/core/repo/action_repo.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
@@ -18,35 +19,25 @@ class ActionDetailsScreen extends StatefulWidget {
 
 class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
   final TextEditingController _commentController = TextEditingController();
-  final List<Map<String, String>> _comments = [
-    {
-      'userName': 'Sarah Johnson',
-      'avatarUrl': 'https://i.pravatar.cc/150?img=1',
-      'text': 'This is highly inspiring! Thanks for doing this.',
-      'time': '2h ago',
-    },
-    {
-      'userName': 'Marcus Aurelius',
-      'avatarUrl': 'https://i.pravatar.cc/150?img=4',
-      'text': 'Proof looks solid. Keep it up!',
-      'time': '1h ago',
-    },
-  ];
+  final ActionRepository _actionRepo = ActionRepository();
+  bool _isSubmittingComment = false;
 
-  void _addComment() {
+  Future<void> _addComment() async {
     final text = _commentController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || _isSubmittingComment) return;
 
-    setState(() {
-      _comments.add({
-        'userName': 'You',
-        'avatarUrl': 'https://i.pravatar.cc/150?img=10',
-        'text': text,
-        'time': 'Just now',
-      });
+    setState(() => _isSubmittingComment = true);
+    try {
+      await _actionRepo.addComment(widget.action.id, text);
       _commentController.clear();
-    });
-    FocusScope.of(context).unfocus();
+      FocusScope.of(context).unfocus();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to add comment: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmittingComment = false);
+    }
   }
 
   @override
@@ -57,59 +48,173 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final action = widget.action;
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.white100),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          'Action Details',
-          style: CustomTextStyle.size18W600(color: AppColors.white100),
-        ),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSize.paddingM),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // User Details & Score
+    return StreamBuilder<ActionModel?>(
+      stream: _actionRepo.getActionStream(widget.action.id),
+      builder: (context, snapshot) {
+        final action = snapshot.data ?? widget.action;
+        final isOwner = action.userId == _actionRepo.currentUserId || action.userId == 'currentUser';
+        final isValidator = action.validatorId != null &&
+            action.validatorId == _actionRepo.currentUserId;
+
+
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            backgroundColor: AppColors.background,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: AppColors.white100),
+              onPressed: () => context.pop(),
+            ),
+            title: Text(
+              'Action Details',
+              style: CustomTextStyle.size18W600(color: AppColors.white100),
+            ),
+            actions: [
+              if (isOwner)
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (dialogContext) => AlertDialog(
+                        backgroundColor: AppColors.grey900,
+                        title: Text(
+                          'Delete Action?',
+                          style: CustomTextStyle.size18W600(color: AppColors.white100),
+                        ),
+                        content: Text(
+                          'Are you sure you want to delete this action? This cannot be undone.',
+                          style: CustomTextStyle.size14W400(color: AppColors.grey300),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(dialogContext),
+                            child: Text('Cancel', style: CustomTextStyle.size14W500(color: AppColors.grey400)),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              Navigator.pop(dialogContext);
+                              await _actionRepo.deleteAction(action.id);
+                              if (context.mounted) {
+                                context.pop();
+                              }
+                            },
+                            child: Text('Delete', style: CustomTextStyle.size14W600(color: AppColors.error)),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+            ],
+          ),
+
+          body: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppSize.paddingM),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Validator banner if assigned validator and status is pending
+                      if (isValidator && action.validationStatus == ValidationStatus.pending) ...[
+
+                    Container(
+                      padding: const EdgeInsets.all(AppSize.paddingM),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.primary.withValues(alpha: 0.2),
+                            AppColors.grey900,
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(AppSize.radiusM),
+                        border: Border.all(color: AppColors.primary),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.verified_outlined, color: AppColors.primary, size: 28),
+                          const SizedBox(width: AppSize.spacingM),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Validation Requested',
+                                  style: CustomTextStyle.size15W600(color: AppColors.white100),
+                                ),
+                                Text(
+                                  'You are requested to validate this action',
+                                  style: CustomTextStyle.size12W400(color: AppColors.grey400),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppSize.radiusS),
+                              ),
+                            ),
+                            onPressed: () {
+                              context.push('/validation-request', extra: action);
+                            },
+                            child: Text(
+                              'Validate',
+                              style: CustomTextStyle.size13W600(color: AppColors.black100),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSize.spacingL),
+                  ],
+
                   Row(
                     children: [
-                      CircleAvatar(
-                        radius: 22,
-                        backgroundColor: AppColors.grey800,
-                        backgroundImage: action.userAvatar != null
-                            ? NetworkImage(action.userAvatar!)
-                            : null,
-                        child: action.userAvatar == null
-                            ? Text(action.userName[0], style: const TextStyle(color: AppColors.white100))
-                            : null,
-                      ),
-                      const SizedBox(width: AppSize.spacingM),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      GestureDetector(
+                        onTap: () {
+                          context.push('/user-detail', extra: {
+                            'userId': action.userId,
+                            'userName': action.userName,
+                            'userAvatar': action.userAvatar,
+                          });
+                        },
+                        child: Row(
                           children: [
-                            Text(
-                              action.userName,
-                              style: CustomTextStyle.size15W600(color: AppColors.white100),
+                            CircleAvatar(
+                              radius: 22,
+                              backgroundColor: AppColors.grey800,
+                              backgroundImage: action.userAvatar != null && action.userAvatar!.isNotEmpty
+                                  ? NetworkImage(action.userAvatar!)
+                                  : null,
+                              child: action.userAvatar == null || action.userAvatar!.isEmpty
+                                  ? Text(action.userName.isNotEmpty ? action.userName[0].toUpperCase() : 'U',
+                                      style: const TextStyle(color: AppColors.white100))
+                                  : null,
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              DateFormat('MMMM dd, yyyy').format(action.createdAt),
-                              style: CustomTextStyle.size12W400(color: AppColors.grey500),
+                            const SizedBox(width: AppSize.spacingM),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  action.userName,
+                                  style: CustomTextStyle.size15W600(color: AppColors.white100),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  DateFormat('MMMM dd, yyyy').format(action.createdAt),
+                                  style: CustomTextStyle.size12W400(color: AppColors.grey500),
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ),
+                      const Spacer(),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
@@ -119,7 +224,7 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.star, color: AppColors.primary, size: 16),
+                            const Icon(Icons.star, color: AppColors.primary, size: 16),
                             const SizedBox(width: 4),
                             Text(
                               '${action.score}',
@@ -130,6 +235,7 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                       ),
                     ],
                   ),
+
                   const SizedBox(height: AppSize.spacingL),
 
                   // Action Title
@@ -159,7 +265,97 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                   ),
                   const SizedBox(height: AppSize.spacingL),
 
+                  // Validator Info
+                  if (action.validatorName != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(AppSize.paddingS),
+                      decoration: BoxDecoration(
+                        color: AppColors.grey900,
+                        borderRadius: BorderRadius.circular(AppSize.radiusS),
+                        border: Border.all(color: AppColors.grey800),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.person_search_outlined, color: AppColors.primary, size: 16),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Requested Validator: ${action.validatorName} (@${action.validatorUsername ?? ''})',
+                            style: CustomTextStyle.size12W400(color: AppColors.grey400),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSize.spacingL),
+                  ],
+
+                  // Interactive Like & Engagement Bar
+                  Row(
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          _actionRepo.toggleLike(action.id, isCurrentlyLiked: action.isLikedByUser);
+                        },
+                        borderRadius: BorderRadius.circular(AppSize.radiusM),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: action.isLikedByUser
+                                ? AppColors.error.withValues(alpha: 0.15)
+                                : AppColors.grey900,
+                            borderRadius: BorderRadius.circular(AppSize.radiusM),
+                            border: Border.all(
+                              color: action.isLikedByUser ? AppColors.error : AppColors.grey800,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                action.isLikedByUser ? Icons.favorite : Icons.favorite_border_outlined,
+                                color: action.isLikedByUser ? AppColors.error : AppColors.grey400,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${action.likesCount} ${action.likesCount == 1 ? "Like" : "Likes"}',
+                                style: CustomTextStyle.size13W600(
+                                  color: action.isLikedByUser ? AppColors.error : AppColors.white100,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: AppSize.spacingM),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.grey900,
+                          borderRadius: BorderRadius.circular(AppSize.radiusM),
+                          border: Border.all(color: AppColors.grey800),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.chat_bubble_outline_rounded,
+                              color: AppColors.grey400,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${action.commentsCount} Comments',
+                              style: CustomTextStyle.size13W600(color: AppColors.white100),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSize.spacingL),
+
                   // Description
+
                   Text(
                     'Description',
                     style: CustomTextStyle.size15W600(color: AppColors.white100),
@@ -180,71 +376,96 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                   _buildEvidencePreview(action),
                   const SizedBox(height: AppSize.spacingXL),
 
-                  // Comments Header
-                  Row(
-                    children: [
-                      Text(
-                        'Comments',
-                        style: CustomTextStyle.size15W600(color: AppColors.white100),
-                      ),
-                      const SizedBox(width: AppSize.spacingS),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.grey800,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '${_comments.length}',
-                          style: CustomTextStyle.size11W600(color: AppColors.white100),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSize.spacingM),
-
-                  // Comments List
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _comments.length,
-                    separatorBuilder: (context, index) => Divider(color: AppColors.grey900, height: 24),
-                    itemBuilder: (context, index) {
-                      final c = _comments[index];
-                      return Row(
+                  // Real-Time Comments Stream Header & List
+                  StreamBuilder<List<CommentModel>>(
+                    stream: _actionRepo.getCommentsStream(action.id),
+                    builder: (context, snapshot) {
+                      final comments = snapshot.data ?? [];
+                      return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          CircleAvatar(
-                            radius: 16,
-                            backgroundColor: AppColors.grey800,
-                            backgroundImage: NetworkImage(c['avatarUrl']!),
+                          Row(
+                            children: [
+                              Text(
+                                'Comments',
+                                style: CustomTextStyle.size15W600(color: AppColors.white100),
+                              ),
+                              const SizedBox(width: AppSize.spacingS),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.grey800,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  '${comments.length}',
+                                  style: CustomTextStyle.size11W600(color: AppColors.white100),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: AppSize.spacingM),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          const SizedBox(height: AppSize.spacingM),
+                          if (comments.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: AppSize.paddingM),
+                              child: Text(
+                                'No comments yet. Be the first to comment!',
+                                style: CustomTextStyle.size13W400(color: AppColors.grey500),
+                              ),
+                            )
+                          else
+                            ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: comments.length,
+                              separatorBuilder: (context, index) =>
+                                  const Divider(color: AppColors.grey900, height: 24),
+                              itemBuilder: (context, index) {
+                                final c = comments[index];
+                                return Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      c['userName']!,
-                                      style: CustomTextStyle.size13W600(color: AppColors.white100),
+                                    CircleAvatar(
+                                      radius: 16,
+                                      backgroundColor: AppColors.grey800,
+                                      backgroundImage: c.userAvatar != null && c.userAvatar!.isNotEmpty
+                                          ? NetworkImage(c.userAvatar!)
+                                          : null,
+                                      child: c.userAvatar == null || c.userAvatar!.isEmpty
+                                          ? Text(c.userName[0].toUpperCase(),
+                                              style: const TextStyle(color: AppColors.white100, fontSize: 12))
+                                          : null,
                                     ),
-                                    Text(
-                                      c['time']!,
-                                      style: CustomTextStyle.size11W400(color: AppColors.grey500),
+                                    const SizedBox(width: AppSize.spacingM),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                c.userName,
+                                                style: CustomTextStyle.size13W600(color: AppColors.white100),
+                                              ),
+                                              Text(
+                                                DateFormat('MMM dd, HH:mm').format(c.createdAt),
+                                                style: CustomTextStyle.size11W400(color: AppColors.grey500),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            c.text,
+                                            style: CustomTextStyle.size13W400(color: AppColors.grey300),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  c['text']!,
-                                  style: CustomTextStyle.size13W400(color: AppColors.grey300),
-                                ),
-                              ],
+                                );
+                              },
                             ),
-                          ),
                         ],
                       );
                     },
@@ -255,7 +476,7 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
             ),
           ),
 
-          // Add Comment Section
+          // Add Comment Input Bar
           Container(
             padding: const EdgeInsets.symmetric(horizontal: AppSize.paddingM, vertical: AppSize.paddingS),
             decoration: const BoxDecoration(
@@ -289,7 +510,13 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                   ),
                   const SizedBox(width: AppSize.spacingS),
                   IconButton(
-                    icon: Icon(Icons.send_rounded, color: AppColors.primary),
+                    icon: _isSubmittingComment
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                          )
+                        : const Icon(Icons.send_rounded, color: AppColors.primary),
                     onPressed: _addComment,
                   ),
                 ],
@@ -299,13 +526,16 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
         ],
       ),
     );
+  },
+);
   }
+
 
   Widget _buildEvidencePreview(ActionModel action) {
     final proofType = action.proofType ?? 'text';
     final proofUrl = action.proofUrl;
 
-    if (proofType == 'photo' && proofUrl != null) {
+    if (proofType == 'photo' && proofUrl != null && proofUrl.isNotEmpty) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(AppSize.radiusM),
         child: Image.network(
@@ -336,25 +566,25 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
         ),
         child: Row(
           children: [
-            Icon(Icons.picture_as_pdf, color: AppColors.error, size: 36),
+            const Icon(Icons.picture_as_pdf, color: AppColors.error, size: 36),
             const SizedBox(width: AppSize.spacingM),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Signed_Verification_Document.pdf',
+                    'Uploaded_Verification_Document.pdf',
                     style: CustomTextStyle.size14W500(color: AppColors.white100),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '142 KB • PDF Document',
+                    proofUrl != null ? 'Download link available' : 'Attached document',
                     style: CustomTextStyle.size12W400(color: AppColors.grey500),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.download_rounded, color: AppColors.primary, size: 20),
+            const Icon(Icons.file_present_rounded, color: AppColors.primary, size: 20),
           ],
         ),
       );
@@ -370,7 +600,7 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
         ),
         child: Row(
           children: [
-            Icon(Icons.play_circle_fill, color: AppColors.primary, size: 40),
+            const Icon(Icons.mic, color: AppColors.primary, size: 36),
             const SizedBox(width: AppSize.spacingM),
             Expanded(
               child: Column(
@@ -381,7 +611,6 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                     style: CustomTextStyle.size14W500(color: AppColors.white100),
                   ),
                   const SizedBox(height: 4),
-                  // Mock waveform visualizer
                   Row(
                     children: List.generate(15, (i) {
                       final h = (i % 3 == 0) ? 12.0 : (i % 2 == 0 ? 18.0 : 8.0);
@@ -399,17 +628,14 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                 ],
               ),
             ),
-            Text(
-              '0:12',
-              style: CustomTextStyle.size12W500(color: AppColors.grey400),
-            ),
           ],
         ),
       );
     }
 
-    // Default to text note or fallback
+    // Default to text proof note
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(AppSize.paddingM),
       decoration: BoxDecoration(
         color: AppColors.grey900,
@@ -417,9 +643,12 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
         border: Border.all(color: AppColors.grey800),
       ),
       child: Text(
-        'Declared with text proof: "Completed the logged task and discussed outcomes with validator."',
+        action.textProof != null && action.textProof!.isNotEmpty
+            ? action.textProof!
+            : 'Text proof submitted by user.',
         style: CustomTextStyle.size14W400(color: AppColors.grey300),
       ),
     );
   }
 }
+

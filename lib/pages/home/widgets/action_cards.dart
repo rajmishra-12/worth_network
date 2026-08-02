@@ -12,6 +12,7 @@ class ActionCard extends StatelessWidget {
   final VoidCallback onLikeTap;
   final VoidCallback onCommentTap;
   final VoidCallback onUserTap;
+  final VoidCallback? onDeleteTap;
 
   const ActionCard({
     super.key,
@@ -19,7 +20,44 @@ class ActionCard extends StatelessWidget {
     required this.onLikeTap,
     required this.onCommentTap,
     required this.onUserTap,
+    this.onDeleteTap,
   });
+
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.grey900,
+        title: Text(
+          'Delete Action?',
+          style: CustomTextStyle.size18W600(color: AppColors.white100),
+        ),
+        content: Text(
+          'Are you sure you want to delete this post? This action cannot be undone.',
+          style: CustomTextStyle.size14W400(color: AppColors.grey300),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(
+              'Cancel',
+              style: CustomTextStyle.size14W500(color: AppColors.grey400),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              if (onDeleteTap != null) onDeleteTap!();
+            },
+            child: Text(
+              'Delete',
+              style: CustomTextStyle.size14W600(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,11 +93,9 @@ class ActionCard extends StatelessWidget {
                     child: action.userAvatar == null
                         ? Text(
                             action.userName[0],
-                            style:CustomTextStyle.size14W500(
-                               color: AppColors.white100,
-                            )
-                            
-                           
+                            style: CustomTextStyle.size14W500(
+                              color: AppColors.white100,
+                            ),
                           )
                         : null,
                   ),
@@ -73,18 +109,18 @@ class ActionCard extends StatelessWidget {
                       children: [
                         Text(
                           action.userName,
-                           style:CustomTextStyle.size14W600(
-                               color: AppColors.white100,
-                            )
+                          style: CustomTextStyle.size14W600(
+                            color: AppColors.white100,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Row(
                           children: [
                             Text(
                               _formatTimeAgo(action.createdAt),
-                             style:CustomTextStyle.size14W500(
-                               color: AppColors.white100,
-                            )
+                              style: CustomTextStyle.size14W500(
+                                color: AppColors.white100,
+                              ),
                             ),
                             const SizedBox(width: AppSize.spacingS),
                             ValidationBadge(status: action.validationStatus),
@@ -113,16 +149,45 @@ class ActionCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         '${action.score}',
-                        style:CustomTextStyle.size14W500(
-                               color: AppColors.white100,
-                            )
+                        style: CustomTextStyle.size14W500(
+                          color: AppColors.white100,
+                        ),
                       ),
                     ],
                   ),
                 ),
+                if (onDeleteTap != null) ...[
+                  const SizedBox(width: 4),
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert, color: AppColors.grey400, size: 20),
+                    color: AppColors.grey900,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSize.radiusS),
+                      side: const BorderSide(color: AppColors.grey800),
+                    ),
+                    onSelected: (value) {
+                      if (value == 'delete') {
+                        _showDeleteConfirmation(context);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.delete_outline, color: AppColors.error, size: 18),
+                            const SizedBox(width: 8),
+                            Text('Delete', style: CustomTextStyle.size14W500(color: AppColors.error)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
+
           // Action Title
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSize.paddingM),

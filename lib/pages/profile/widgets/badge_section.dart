@@ -14,11 +14,9 @@ class BadgesSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final earnedBadges = badges.where((b) => b.isEarned).toList();
-    final lockedBadges = badges.where((b) => !b.isEarned).toList();
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: AppSize.paddingM),
-      padding: const EdgeInsets.symmetric(horizontal: AppSize.paddingM),
+      margin: const EdgeInsets.symmetric(horizontal: AppSize.paddingM, vertical: AppSize.paddingS),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -27,17 +25,17 @@ class BadgesSection extends StatelessWidget {
             children: [
               Text(
                 'Badges',
-                style: CustomTextStyle.size16W600(color: AppColors.white100),
+                style: CustomTextStyle.size15W600(color: AppColors.white100),
               ),
               Text(
                 '${earnedBadges.length}/${badges.length}',
-                style: CustomTextStyle.size14W500(color: AppColors.grey400),
+                style: CustomTextStyle.size13W500(color: AppColors.grey400),
               ),
             ],
           ),
-          const SizedBox(height: AppSize.spacingM),
+          const SizedBox(height: AppSize.spacingS),
           SizedBox(
-            height: 80,
+            height: 75,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: badges.length,
@@ -66,12 +64,10 @@ class _BadgeItem extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            width: 50,
-            height: 50,
+            width: 46,
+            height: 46,
             decoration: BoxDecoration(
-              gradient: badge.isEarned
-                  ? AppColors.primaryGradient
-                  : null,
+              gradient: badge.isEarned ? AppColors.primaryGradient : null,
               color: badge.isEarned ? null : AppColors.grey800,
               shape: BoxShape.circle,
               border: Border.all(
@@ -81,7 +77,7 @@ class _BadgeItem extends StatelessWidget {
             ),
             child: Icon(
               _getBadgeIcon(badge.name),
-              size: 28,
+              size: 24,
               color: badge.isEarned ? AppColors.black100 : AppColors.grey600,
             ),
           ),
@@ -97,22 +93,19 @@ class _BadgeItem extends StatelessWidget {
     );
   }
 
+
+
   IconData _getBadgeIcon(String badgeName) {
-    switch (badgeName.toLowerCase()) {
-      case 'first action':
-        return Icons.rocket_launch;
-      case '5 actions':
-        return Icons.five_k;
-      case '10 actions':
-        return Icons.ten_k;
-      case 'consistency':
-        return Icons.calendar_today;
-      case 'helper':
-        return Icons.favorite;
-      case 'leader':
-        return Icons.emoji_events;
-      default:
-        return Icons.emoji_events;
-    }
+    final nameLower = badgeName.toLowerCase();
+    if (nameLower.contains('first action')) return Icons.rocket_launch;
+    if (nameLower.contains('rising star')) return Icons.star_rounded;
+    if (nameLower.contains('trusted validator')) return Icons.verified_user_outlined;
+    if (nameLower.contains('certified impact')) return Icons.diamond_outlined;
+    if (nameLower.contains('community contributor') || nameLower.contains('5 actions')) return Icons.groups_outlined;
+    if (nameLower.contains('consistency champion') || nameLower.contains('consistency')) return Icons.bolt;
+    if (nameLower.contains('reputation pioneer')) return Icons.workspace_premium;
+    if (nameLower.contains('master validator')) return Icons.shield;
+
+    return Icons.military_tech_rounded;
   }
 }

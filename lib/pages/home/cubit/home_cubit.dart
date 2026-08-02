@@ -1,110 +1,83 @@
-// lib/pages/dashboard/home/cubit/home_cubit.dart
+import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:worth_network/core/model/home/action_model.dart';
+import 'package:worth_network/core/repo/action_repo.dart';
 
 part 'home_state.dart';
 
 class HomeCubit extends Cubit<HomeState> {
-  HomeCubit() : super(const HomeState());
+  final ActionRepository _repository;
+  StreamSubscription<List<ActionModel>>? _feedSubscription;
+
+  HomeCubit({ActionRepository? repository})
+      : _repository = repository ?? ActionRepository(),
+        super(const HomeState()) {
+    subscribeToFeed();
+  }
+
+  void subscribeToFeed() {
+    emit(state.copyWith(isLoading: true));
+    _feedSubscription?.cancel();
+    _feedSubscription = _repository.getFeedStream().listen((actions) {
+      emit(state.copyWith(actions: actions, isLoading: false));
+    }, onError: (error) {
+      print('Feed stream error: $error');
+      emit(state.copyWith(isLoading: false));
+    });
+  }
 
   Future<void> loadFeed() async {
-    emit(state.copyWith(isLoading: true));
-    // TODO: Replace with actual API call
-    await Future.delayed(const Duration(seconds: 1));
-    
-    final mockActions = [
-      ActionModel(
-        id: '1',
-        userId: 'user1',
-        userName: 'Sarah Johnson',
-        userAvatar: 'https://i.pravatar.cc/150?img=1',
-        title: 'Helped elderly neighbor with groceries',
-        description: 'Carried groceries up 3 flights of stairs and helped organize pantry.',
-        category: 'Support',
-        proofType: 'photo',
-        proofUrl: 'https://picsum.photos/400/300?random=1',
-        validationStatus: ValidationStatus.confirmed,
-        score: 85,
-        likesCount: 24,
-        commentsCount: 5,
-        createdAt: DateTime.now().subtract(const Duration(hours: 3)),
-      ),
-      ActionModel(
-        id: '2',
-        userId: 'user2',
-        userName: 'Michael Chen',
-        userAvatar: 'https://i.pravatar.cc/150?img=2',
-        title: 'Completed 10km charity run',
-        description: 'Raised 500 for local animal shelter.',
-        category: 'Health',
-        proofType: 'photo',
-        proofUrl: 'https://picsum.photos/400/300?random=2',
-        validationStatus: ValidationStatus.certified,
-        score: 92,
-        likesCount: 42,
-        commentsCount: 12,
-        createdAt: DateTime.now().subtract(const Duration(hours: 8)),
-      ),
-      ActionModel(
-        id: '3',
-        userId: 'user3',
-        userName: 'Emma Watson',
-        userAvatar: 'https://i.pravatar.cc/150?img=3',
-        title: 'Mentored junior developer',
-        description: 'Weekly code reviews and career guidance for 2 months.',
-        category: 'Work',
-        proofType: 'document',
-        proofUrl: null,
-        validationStatus: ValidationStatus.confirmed,
-        score: 78,
-        likesCount: 15,
-        commentsCount: 3,
-        createdAt: DateTime.now().subtract(const Duration(days: 1)),
-      ),
-    ];
-    
-    emit(state.copyWith(actions: mockActions, isLoading: false));
+    subscribeToFeed();
   }
 
   Future<void> likeAction(String actionId) async {
-    // TODO: Implement like functionality
-    final updatedActions = state.actions.map((action) {
-      if (action.id == actionId) {
-        return action.copyWith(
-          likesCount: action.likesCount + 1,
-          isLikedByUser: !action.isLikedByUser,
-        );
+    final currentActions = List<ActionModel>.from(state.actions);
+    final index = currentActions.indexWhere((a) => a.id == actionId);
+    if (index == -1) return;
+
+    final oldAction = currentActions[index];
+    final wasLiked = oldAction.isLikedByUser;
+    final newIsLiked = !wasLiked;
+    final newLikesCount = (wasLiked ? oldAction.likesCount - 1 : oldAction.likesCount + 1).clamp(0, 999999);
+
+    final updatedAction = oldAction.copyWith(
+      isLikedByUser: newIsLiked,
+      likesCount: newLikesCount,
+    );
+
+    // 1. Instant 0-ms local optimistic state update (UI heart flips immediately!)
+    currentActions[index] = updatedAction;
+    emit(state.copyWith(actions: currentActions));
+
+    // 2. Fire background network payload without blocking UI thread
+    try {
+      await _repository.toggleLike(actionId, isCurrentlyLiked: wasLiked);
+    } catch (e) {
+      print('Error toggling like in background: $e');
+      // Revert local state if background update fails
+      final rollbackActions = List<ActionModel>.from(state.actions);
+      final rbIndex = rollbackActions.indexWhere((a) => a.id == actionId);
+      if (rbIndex != -1) {
+        rollbackActions[rbIndex] = oldAction;
+        emit(state.copyWith(actions: rollbackActions));
       }
-      return action;
-    }).toList();
-    emit(state.copyWith(actions: updatedActions));
+    }
   }
 
-  void addNewAction({
-  required String title,
-  required String description,
-  required String category,
-}) {
-  final newAction = ActionModel(
-    id: DateTime.now().millisecondsSinceEpoch.toString(),
-    userId: 'currentUser',
-    userName: 'You',
-    userAvatar: 'https://i.pravatar.cc/150?img=10',
-    title: title,
-    description: description,
-    category: category,
-    proofType: 'text',
-    proofUrl: null,
-    validationStatus: ValidationStatus.confirmed,
-    score: 50,
-    likesCount: 0,
-    commentsCount: 0,
-    createdAt: DateTime.now(),
-  );
 
-  final updatedList = [newAction, ...state.actions];
+  Future<void> deleteAction(String actionId) async {
+    try {
+      await _repository.deleteAction(actionId);
+    } catch (e) {
+      print('Error deleting action: $e');
+    }
+  }
 
-  emit(state.copyWith(actions: updatedList));
-}
+  @override
+  Future<void> close() {
+
+    _feedSubscription?.cancel();
+    return super.close();
+  }
 }

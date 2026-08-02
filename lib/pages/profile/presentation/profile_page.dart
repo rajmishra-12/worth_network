@@ -90,78 +90,74 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           }
 
           return SafeArea(
-            child: CustomScrollView(
-              slivers: [
-                // Top Action bar: Settings & Logout
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: AppSize.paddingM, top: AppSize.paddingS),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.settings, color: AppColors.white100),
-                          onPressed: () {
-                            context.push('/settings');
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.logout, color: AppColors.error),
-                          onPressed: () {
-                            _showLogoutDialog(context);
-                          },
-                        ),
+            child: NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) {
+                return [
+                  // Top Action bar: Settings & Logout
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: AppSize.paddingM, top: AppSize.paddingS),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.settings, color: AppColors.white100),
+                            onPressed: () => context.push('/settings'),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.logout, color: AppColors.error),
+                            onPressed: () => _showLogoutDialog(context),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Spacious Profile Header
+                  SliverToBoxAdapter(
+                    child: ProfileHeader(profile: state.profile!),
+                  ),
+
+                  // Spacious Stats Card
+                  SliverToBoxAdapter(
+                    child: StatsCard(
+                      totalActions: state.profile!.totalActions,
+                      validatedPercentage: state.profile!.validatedPercentage,
+                      score: state.profile!.score,
+                      level: state.profile!.level,
+                      xp: state.profile!.xp,
+                      nextLevelXp: state.profile!.nextLevelXp,
+                    ),
+                  ),
+
+                  // Badges Section
+                  SliverToBoxAdapter(
+                    child: BadgesSection(badges: state.profile!.badges),
+                  ),
+
+                  // Pinned Tab Bar
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _TabBarDelegate(
+                      tabController: _tabController,
+                      tabs: const [
+                        Tab(text: 'My Actions'),
+                        Tab(text: 'History'),
                       ],
                     ),
                   ),
-                ),
-                // Profile Header
-                SliverToBoxAdapter(
-                  child: ProfileHeader(profile: state.profile!),
-                ),
-                
-                // Stats Cards
-                SliverToBoxAdapter(
-                  child: StatsCard(
-                    totalActions: state.profile!.totalActions,
-                    validatedPercentage: state.profile!.validatedPercentage,
-                    score: state.profile!.score,
-                    level: state.profile!.level,
-                    xp: state.profile!.xp,
-                    nextLevelXp: state.profile!.nextLevelXp,
-                  ),
-                ),
-                
-                // Badges Section
-                SliverToBoxAdapter(
-                  child: BadgesSection(badges: state.profile!.badges),
-                ),
-                
-                // Tab Bar
-                SliverPersistentHeader(
-                  pinned: true,
-                  delegate: _TabBarDelegate(
-                    tabController: _tabController,
-                    tabs: const [
-                      Tab(text: 'My Actions'),
-                      Tab(text: 'History'),
-                    ],
-                  ),
-                ),
-                
-                // Tab Bar Views
-                SliverFillRemaining(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: const [
-                      MyActionsTab(),
-                      ActionHistoryTab(),
-                    ],
-                  ),
-                ),
-              ],
+                ];
+              },
+              body: TabBarView(
+                controller: _tabController,
+                children: const [
+                  MyActionsTab(),
+                  ActionHistoryTab(),
+                ],
+              ),
             ),
           );
+
         },
       ),
     );

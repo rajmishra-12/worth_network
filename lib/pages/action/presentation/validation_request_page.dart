@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:worth_network/core/model/home/action_model.dart';
+import 'package:worth_network/core/repo/action_repo.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
+
 
 class ValidationRequestScreen extends StatefulWidget {
   final ActionModel action;
@@ -30,21 +32,53 @@ class _ValidationRequestScreenState extends State<ValidationRequestScreen> {
   Future<void> _submitValidation() async {
     setState(() => _isSubmitting = true);
 
-    // Simulate validation request api submit
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      String decision = 'confirmed';
+      if (_selectedDecision == 0) {
+        decision = _confidenceScore >= 9.0 ? 'certified' : 'confirmed';
+      } else if (_selectedDecision == 1) {
+        decision = 'confirmed';
+      } else {
+        decision = 'rejected';
+      }
 
-    setState(() => _isSubmitting = false);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Validation submitted successfully! Thank you.'),
-          backgroundColor: AppColors.success,
-        ),
+      final repo = ActionRepository();
+      await repo.submitValidation(
+        actionId: widget.action.id,
+        decision: decision,
+        confidence: _confidenceScore,
+        comment: _commentController.text,
       );
-      context.pop();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              decision == 'rejected'
+                  ? 'Action marked as rejected.'
+                  : 'Validation submitted successfully! Reputation scores updated.',
+            ),
+            backgroundColor: decision == 'rejected' ? AppColors.error : AppColors.success,
+          ),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to submit validation: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

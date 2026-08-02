@@ -11,6 +11,8 @@ import 'package:worth_network/pages/action/presentation/action_details_page.dart
 import 'package:worth_network/pages/action/presentation/validation_request_page.dart';
 import 'package:worth_network/pages/home/presentation/notifications_page.dart';
 import 'package:worth_network/pages/profile/presentation/settings_page.dart';
+import 'package:worth_network/pages/profile/presentation/edit_profile_page.dart';
+import 'package:worth_network/pages/profile/presentation/user_detail_page.dart';
 import 'package:worth_network/pages/authentication/presentation/forget_password_page.dart';
 import 'package:worth_network/core/model/home/action_model.dart';
 
@@ -84,7 +86,26 @@ class Pages {
         name: 'settings',
         builder: (context, state) => const SettingsScreen(),
       ),
+      GoRoute(
+        path: '/edit-profile',
+        name: 'edit-profile',
+        builder: (context, state) => const EditProfileScreen(),
+      ),
+      GoRoute(
+        path: '/user-detail',
+        name: 'user-detail',
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>;
+          return UserDetailScreen(
+            userId: args['userId'],
+            initialName: args['userName'],
+            initialAvatar: args['userAvatar'],
+          );
+        },
+      ),
     ],
   );
 }
+
+
 

@@ -25,63 +25,48 @@ class StatsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: AppSize.paddingM),
+      margin: const EdgeInsets.symmetric(
+        horizontal: AppSize.paddingM,
+        vertical: AppSize.paddingS,
+      ),
       padding: const EdgeInsets.all(AppSize.paddingM),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.grey900,
-            AppColors.grey800.withValues(alpha: 0.5),
-          ],
-        ),
+        color: AppColors.grey900,
         borderRadius: BorderRadius.circular(AppSize.radiusL),
         border: Border.all(color: AppColors.grey800),
       ),
       child: Column(
         children: [
-          // Main Stats Row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _StatItem(
-                value: totalActions.toString(),
+                value: '$totalActions',
                 label: 'Actions',
                 icon: Icons.assignment_turned_in_outlined,
               ),
-              Container(
-                width: 1,
-                height: 40,
-                color: AppColors.grey800,
-              ),
+              Container(width: 1, height: 36, color: AppColors.grey800),
               _StatItem(
                 value: '${validatedPercentage.toInt()}%',
                 label: 'Validated',
                 icon: Icons.verified_outlined,
               ),
-              Container(
-                width: 1,
-                height: 40,
-                color: AppColors.grey800,
-              ),
+              Container(width: 1, height: 36, color: AppColors.grey800),
               _StatItem(
-                value: score.toString(),
+                value: '$score',
                 label: 'Worth',
                 icon: Icons.star_outline,
                 iconColor: AppColors.accent,
               ),
             ],
           ),
-          const SizedBox(height: AppSize.spacingL),
-          
-          // XP Progress
+          const SizedBox(height: AppSize.spacingM),
           Row(
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: AppSize.paddingS,
-                  vertical: AppSize.paddingXS,
+                  horizontal: 10,
+                  vertical: 5,
                 ),
                 decoration: BoxDecoration(
                   gradient: AppColors.primaryGradient,
@@ -89,11 +74,7 @@ class StatsCard extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.bolt,
-                      size: 16,
-                      color: AppColors.black100,
-                    ),
+                    const Icon(Icons.bolt, size: 16, color: AppColors.black100),
                     const SizedBox(width: 4),
                     Text(
                       'LVL $level',
@@ -120,17 +101,20 @@ class StatsCard extends StatelessWidget {
                         ),
                         Text(
                           '$xp / $nextLevelXp',
-                          style: CustomTextStyle.size12W500(
+                          style: CustomTextStyle.size12W600(
                             color: AppColors.white100,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(AppSize.radiusS),
                       child: LinearProgressIndicator(
-                        value: xp / nextLevelXp,
+                        value: (xp / (nextLevelXp > 0 ? nextLevelXp : 1)).clamp(
+                          0.0,
+                          1.0,
+                        ),
                         backgroundColor: AppColors.grey800,
                         valueColor: const AlwaysStoppedAnimation<Color>(
                           AppColors.primary,
@@ -167,23 +151,20 @@ class _StatItem extends StatelessWidget {
     return Column(
       children: [
         Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 18,
-              color: iconColor ?? AppColors.primary,
-            ),
+            Icon(icon, size: 16, color: iconColor ?? AppColors.primary),
             const SizedBox(width: 4),
             Text(
               value,
-              style: CustomTextStyle.size18W600(color: AppColors.white100),
+              style: CustomTextStyle.size16W600(color: AppColors.white100),
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         Text(
           label,
-          style: CustomTextStyle.size12W400(color: AppColors.grey500),
+          style: CustomTextStyle.size12W400(color: AppColors.grey400),
         ),
       ],
     );

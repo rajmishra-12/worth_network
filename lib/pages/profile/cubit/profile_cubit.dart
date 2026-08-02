@@ -29,49 +29,11 @@ class ProfileCubit extends Cubit<ProfileState> {
         if (doc.exists) {
           final data = doc.data()!;
           
-          // Map badges from Firestore list
-          final List<BadgeModel> badgesList = [];
-          if (data['badges'] != null) {
-            final list = data['badges'] as List;
-            for (var b in list) {
-              if (b is Map) {
-                badgesList.add(BadgeModel(
-                  name: b['name'] ?? '',
-                  description: b['description'] ?? '',
-                  isEarned: b['isEarned'] ?? false,
-                ));
-              }
-            }
-          }
-
-          // Fallback to defaults if badges are empty
-          if (badgesList.isEmpty) {
-            badgesList.addAll([
-              const BadgeModel(name: 'First Action', description: 'Completed first action', isEarned: true),
-              const BadgeModel(name: '5 Actions', description: 'Completed 5 actions', isEarned: false),
-              const BadgeModel(name: 'Consistency', description: '7-day streak', isEarned: false),
-            ]);
-          }
-
-          final avatarUrlVal = data['avatarUrl'] as String?;
-          final profile = ProfileModel(
-            id: currentUser.uid,
-            name: data['name'] ?? currentUser.displayName ?? 'User',
-            avatarUrl: (avatarUrlVal != null && avatarUrlVal.isNotEmpty)
-                ? avatarUrlVal
-                : 'https://i.pravatar.cc/150?img=10',
-            bio: data['bio'] ?? 'Building worth through real actions.',
-            score: data['score'] ?? 0,
-            level: data['level'] ?? 1,
-            xp: data['xp'] ?? 0,
-            nextLevelXp: data['nextLevelXp'] ?? 100,
-            totalActions: data['totalActions'] ?? 0,
-            validatedPercentage: (data['validatedPercentage'] as num?)?.toDouble() ?? 0.0,
-            badges: badgesList,
-          );
-
-          // 2. Fetch user's actions from Firestore
+          // 2. Fetch user's published actions & validations performed for others
           final List<ActionModel> myActions = [];
+          int validatedForOthersCount = 0;
+          bool hasCertifiedAction = false;
+
           try {
             final actionsSnapshot = await FirebaseFirestore.instance
                 .collection('actions')
@@ -80,16 +42,19 @@ class ProfileCubit extends Cubit<ProfileState> {
 
             for (var doc in actionsSnapshot.docs) {
               final actionData = doc.data();
-              // Parse ValidationStatus
               ValidationStatus status = ValidationStatus.declared;
               final statusStr = actionData['validationStatus'] ?? 'declared';
               if (statusStr == 'confirmed') status = ValidationStatus.confirmed;
-              if (statusStr == 'certified') status = ValidationStatus.certified;
+              if (statusStr == 'certified') {
+                status = ValidationStatus.certified;
+                hasCertifiedAction = true;
+              }
+              if (statusStr == 'rejected') status = ValidationStatus.rejected;
 
               myActions.add(ActionModel(
                 id: doc.id,
                 userId: currentUser.uid,
-                userName: profile.name,
+                userName: data['name'] ?? currentUser.displayName ?? 'User',
                 title: actionData['title'] ?? '',
                 description: actionData['description'] ?? '',
                 category: actionData['category'] ?? 'Support',
@@ -101,10 +66,88 @@ class ProfileCubit extends Cubit<ProfileState> {
                 isLikedByUser: false,
               ));
             }
+
+            // Fetch validations completed for others
+            final validationsSnapshot = await FirebaseFirestore.instance
+                .collection('actions')
+                .where('validatorId', isEqualTo: currentUser.uid)
+                .get();
+
+            validatedForOthersCount = validationsSnapshot.docs.where((d) {
+              final st = d.data()['validationStatus'];
+              return st == 'confirmed' || st == 'certified' || st == 'rejected';
+            }).length;
+
           } catch (e, stack) {
-            print("Failed to fetch user actions: $e");
+            print("Failed to fetch user actions or validations: $e");
             print(stack);
           }
+
+          final userScore = data['score'] ?? 0;
+          final userLevel = data['level'] ?? 1;
+          final totalActionsCount = myActions.length;
+
+          // 3. Dynamically evaluate all 8 badges
+          final List<BadgeModel> dynamicBadges = [
+            BadgeModel(
+              name: 'First Action',
+              description: 'Published your first real action on Worth Network',
+              isEarned: totalActionsCount >= 1,
+            ),
+            BadgeModel(
+              name: 'Rising Star',
+              description: 'Earned 50+ Worth Score through validated actions',
+              isEarned: userScore >= 50,
+            ),
+            BadgeModel(
+              name: 'Trusted Validator',
+              description: 'Evaluated and validated proof evidence for peer actions',
+              isEarned: validatedForOthersCount >= 1,
+            ),
+            BadgeModel(
+              name: 'Certified Impact',
+              description: 'Achieved top-tier Certified status with strong evidence',
+              isEarned: hasCertifiedAction,
+            ),
+            BadgeModel(
+              name: 'Community Contributor',
+              description: 'Successfully posted 5 or more real actions',
+              isEarned: totalActionsCount >= 5,
+            ),
+            BadgeModel(
+              name: 'Consistency Champion',
+              description: 'Reached Level 2+ by consistently completing actions',
+              isEarned: userLevel >= 2 || userScore >= 150,
+            ),
+            BadgeModel(
+              name: 'Reputation Pioneer',
+              description: 'Built a high credibility profile with 300+ Worth Score',
+              isEarned: userScore >= 300 || userLevel >= 3,
+            ),
+            BadgeModel(
+              name: 'Master Validator',
+              description: 'Verified 5 or more proof submissions for community members',
+              isEarned: validatedForOthersCount >= 5,
+            ),
+          ];
+
+          final avatarUrlVal = data['avatarUrl'] as String?;
+          final profile = ProfileModel(
+            id: currentUser.uid,
+            name: data['name'] ?? currentUser.displayName ?? 'User',
+            avatarUrl: (avatarUrlVal != null && avatarUrlVal.isNotEmpty)
+                ? avatarUrlVal
+                : 'https://i.pravatar.cc/150?img=10',
+            bio: data['bio'] ?? 'Building worth through real actions.',
+            score: userScore,
+            level: userLevel,
+            xp: data['xp'] ?? 0,
+            nextLevelXp: data['nextLevelXp'] ?? 100,
+            totalActions: totalActionsCount,
+            validatedPercentage: (data['validatedPercentage'] as num?)?.toDouble() ?? 0.0,
+            badges: dynamicBadges,
+          );
+
 
           // Fallback to default action if list is empty
           if (myActions.isEmpty) {

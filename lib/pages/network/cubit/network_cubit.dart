@@ -1,6 +1,5 @@
-// lib/pages/dashboard/network/cubit/network_cubit.dart
 import 'package:bloc/bloc.dart';
-import 'package:equatable/equatable.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:equatable/equatable.dart';
 import 'package:worth_network/core/model/user/user_model.dart';
 
@@ -22,11 +21,42 @@ class NetworkCubit extends Cubit<NetworkState> {
 
   Future<void> loadUsers() async {
     emit(state.copyWith(isLoading: true));
-    
-    // TODO: Replace with actual API call
-    await Future.delayed(const Duration(seconds: 1));
-    
-    allUsers = [
+
+    try {
+      final snapshot = await FirebaseFirestore.instance.collection('users').get();
+      final List<UserModel> fetchedUsers = [];
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        fetchedUsers.add(UserModel(
+          id: doc.id,
+          name: data['name'] ?? 'User',
+          avatarUrl: data['avatarUrl'] ?? 'https://i.pravatar.cc/150?img=1',
+          score: data['score'] ?? 0,
+          level: data['level'] ?? 1,
+          category: data['category'] ?? 'Support',
+          location: data['location'] ?? 'Worldwide',
+          isOnline: true,
+          verified: (data['score'] ?? 0) > 100,
+          actionsCount: data['totalActions'] ?? 0,
+        ));
+      }
+
+      if (fetchedUsers.isNotEmpty) {
+        allUsers = fetchedUsers;
+      } else {
+        allUsers = _getFallbackUsers();
+      }
+    } catch (e) {
+      print("Failed to fetch users from Firestore: $e");
+      allUsers = _getFallbackUsers();
+    }
+
+    _applyFilters();
+  }
+
+  List<UserModel> _getFallbackUsers() {
+    return const [
       UserModel(
         id: '1',
         name: 'Sarah Johnson',
@@ -51,58 +81,9 @@ class NetworkCubit extends Cubit<NetworkState> {
         verified: true,
         actionsCount: 28,
       ),
-      UserModel(
-        id: '3',
-        name: 'Emma Watson',
-        avatarUrl: 'https://i.pravatar.cc/150?img=3',
-        score: 3120,
-        level: 9,
-        category: 'Health',
-        location: 'Los Angeles, CA',
-        isOnline: true,
-        verified: true,
-        actionsCount: 67,
-      ),
-      UserModel(
-        id: '4',
-        name: 'James Rodriguez',
-        avatarUrl: 'https://i.pravatar.cc/150?img=4',
-        score: 920,
-        level: 3,
-        category: 'Support',
-        location: 'Miami, FL',
-        isOnline: false,
-        verified: false,
-        actionsCount: 15,
-      ),
-      UserModel(
-        id: '5',
-        name: 'Olivia Martinez',
-        avatarUrl: 'https://i.pravatar.cc/150?img=5',
-        score: 2780,
-        level: 8,
-        category: 'Work',
-        location: 'Austin, TX',
-        isOnline: true,
-        verified: true,
-        actionsCount: 53,
-      ),
-      UserModel(
-        id: '6',
-        name: 'Liam Thompson',
-        avatarUrl: 'https://i.pravatar.cc/150?img=6',
-        score: 450,
-        level: 2,
-        category: 'Health',
-        location: 'Seattle, WA',
-        isOnline: false,
-        verified: false,
-        actionsCount: 8,
-      ),
     ];
-    
-    _applyFilters();
   }
+
 
   void searchUsers(String query) {
     emit(state.copyWith(searchQuery: query));

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worth_network/core/model/home/action_model.dart';
+import 'package:worth_network/core/repo/action_repo.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
@@ -13,30 +14,9 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  final List<Map<String, dynamic>> _notifications = [
-    {
-      'id': '1',
-      'type': 'validation_requested',
-      'title': 'Validation Request',
-      'description': 'Sarah Johnson requested validation for "Helped elderly neighbor with groceries"',
-      'time': '10m ago',
-      'action': ActionModel(
-        id: '1',
-        userId: 'user1',
-        userName: 'Sarah Johnson',
-        userAvatar: 'https://i.pravatar.cc/150?img=1',
-        title: 'Helped elderly neighbor with groceries',
-        description: 'Carried groceries up 3 flights of stairs and helped organize pantry.',
-        category: 'Support',
-        proofType: 'photo',
-        proofUrl: 'https://picsum.photos/400/300?random=1',
-        validationStatus: ValidationStatus.declared,
-        score: 85,
-        likesCount: 24,
-        commentsCount: 5,
-        createdAt: DateTime.now().subtract(const Duration(hours: 3)),
-      ),
-    },
+  final ActionRepository _actionRepo = ActionRepository();
+
+  final List<Map<String, dynamic>> _defaultNotifications = [
     {
       'id': '2',
       'type': 'approved',
@@ -58,20 +38,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       'description': 'You have advanced to Level 7. Keep building your reputation!',
       'time': '3d ago',
     },
-    {
-      'id': '5',
-      'type': 'rejected',
-      'title': 'Validation Rejected',
-      'description': 'Your action "Completed 10km charity run" was rejected due to lack of proof.',
-      'time': '5d ago',
-    },
   ];
-
-  void _clearAll() {
-    setState(() {
-      _notifications.clear();
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,30 +55,38 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           'Notifications',
           style: CustomTextStyle.size18W600(color: AppColors.white100),
         ),
-        actions: [
-          if (_notifications.isNotEmpty)
-            TextButton(
-              onPressed: _clearAll,
-              child: Text(
-                'Clear All',
-                style: CustomTextStyle.size14W600(color: AppColors.primary),
-              ),
-            ),
-        ],
       ),
-      body: _notifications.isEmpty
-          ? _buildEmptyState()
-          : ListView.separated(
-              padding: const EdgeInsets.all(AppSize.paddingM),
-              itemCount: _notifications.length,
-              separatorBuilder: (context, index) => const SizedBox(height: AppSize.spacingM),
-              itemBuilder: (context, index) {
-                final item = _notifications[index];
-                return _buildNotificationCard(item);
-              },
-            ),
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: _actionRepo.getUserNotificationsStream(),
+        builder: (context, snapshot) {
+          final liveNotifications = snapshot.data ?? [];
+
+          final List<Map<String, dynamic>> displayNotifications = List.from(liveNotifications);
+
+          // If no live notifications exist, show clean empty state or default items
+          if (displayNotifications.isEmpty) {
+            displayNotifications.addAll(_defaultNotifications);
+          }
+
+          if (displayNotifications.isEmpty) {
+            return _buildEmptyState();
+          }
+
+          return ListView.separated(
+            padding: const EdgeInsets.all(AppSize.paddingM),
+            itemCount: displayNotifications.length,
+            separatorBuilder: (context, index) => const SizedBox(height: AppSize.spacingM),
+            itemBuilder: (context, index) {
+              final item = displayNotifications[index];
+              return _buildNotificationCard(item);
+            },
+          );
+        },
+      ),
     );
   }
+
+
 
   Widget _buildEmptyState() {
     return Center(

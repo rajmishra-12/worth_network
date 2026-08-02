@@ -1,4 +1,3 @@
-// lib/pages/dashboard/action/cubit/add_action_state.dart
 part of 'add_action_cubit.dart';
 
 class AddActionState extends Equatable {
@@ -7,6 +6,9 @@ class AddActionState extends Equatable {
   final String category;
   final DateTime date;
   final String? personInvolved;
+  final Map<String, dynamic>? selectedValidator;
+  final List<Map<String, dynamic>> searchResults;
+  final bool isSearchingUsers;
   final EvidenceType evidenceType;
   final File? evidenceFile;
   final String? textProof;
@@ -15,13 +17,15 @@ class AddActionState extends Equatable {
   final String? errorMessage;
   final bool shouldRefreshHome;
 
- 
   AddActionState({
     this.title = '',
     this.description = '',
     this.category = '',
     DateTime? date,
     this.personInvolved,
+    this.selectedValidator,
+    this.searchResults = const [],
+    this.isSearchingUsers = false,
     this.evidenceType = EvidenceType.none,
     this.evidenceFile,
     this.textProof,
@@ -29,7 +33,7 @@ class AddActionState extends Equatable {
     this.isSuccess = false,
     this.errorMessage,
     this.shouldRefreshHome = false,
-  }) : date = date ?? DateTime.now();  
+  }) : date = date ?? DateTime.now();
 
   AddActionState copyWith({
     String? title,
@@ -37,6 +41,10 @@ class AddActionState extends Equatable {
     String? category,
     DateTime? date,
     String? personInvolved,
+    Map<String, dynamic>? selectedValidator,
+    bool clearValidator = false,
+    List<Map<String, dynamic>>? searchResults,
+    bool? isSearchingUsers,
     EvidenceType? evidenceType,
     File? evidenceFile,
     String? textProof,
@@ -51,6 +59,9 @@ class AddActionState extends Equatable {
       category: category ?? this.category,
       date: date ?? this.date,
       personInvolved: personInvolved ?? this.personInvolved,
+      selectedValidator: clearValidator ? null : (selectedValidator ?? this.selectedValidator),
+      searchResults: searchResults ?? this.searchResults,
+      isSearchingUsers: isSearchingUsers ?? this.isSearchingUsers,
       evidenceType: evidenceType ?? this.evidenceType,
       evidenceFile: evidenceFile ?? this.evidenceFile,
       textProof: textProof ?? this.textProof,
@@ -63,16 +74,20 @@ class AddActionState extends Equatable {
 
   @override
   List<Object?> get props => [
-    title,
-    description,
-    category,
-    date,
-    personInvolved,
-    evidenceType,
-    evidenceFile,
-    textProof,
-    isSubmitting,
-    isSuccess,
-    errorMessage,
-  ];
+        title,
+        description,
+        category,
+        date,
+        personInvolved,
+        selectedValidator,
+        searchResults,
+        isSearchingUsers,
+        evidenceType,
+        evidenceFile,
+        textProof,
+        isSubmitting,
+        isSuccess,
+        errorMessage,
+        shouldRefreshHome,
+      ];
 }

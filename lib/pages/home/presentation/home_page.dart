@@ -7,10 +7,12 @@ import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
 import 'package:worth_network/core/utils/app_localizations.dart';
+import 'package:worth_network/core/repo/action_repo.dart';
 import 'package:worth_network/pages/dashboard/cubit/dashboard_cubit.dart';
 import 'package:worth_network/pages/home/cubit/home_cubit.dart';
 import 'package:worth_network/pages/home/widgets/action_cards.dart';
 import 'package:worth_network/pages/home/widgets/empty_feed_widget.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -41,16 +43,12 @@ class _HomeScreenState extends State<HomeScreen> {
               child: CustomScrollView(
                 slivers: [
                   // Top Bar
-                  SliverToBoxAdapter(
-                    child: _buildTopBar(context, loc),
-                  ),
+                  SliverToBoxAdapter(child: _buildTopBar(context, loc)),
                   // Feed Content
                   BlocBuilder<HomeCubit, HomeState>(
                     builder: (context, state) {
                       if (state.isLoading) {
-                        return const SliverFillRemaining(
-                          child: FeedShimmer(),
-                        );
+                        return const SliverFillRemaining(child: FeedShimmer());
                       }
 
                       if (state.actions.isEmpty) {
@@ -64,25 +62,36 @@ class _HomeScreenState extends State<HomeScreen> {
                       }
 
                       return SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final action = state.actions[index];
-                            return ActionCard(
-                              action: action,
-                              onLikeTap: () {
-                                context.read<HomeCubit>().likeAction(action.id);
-                              },
-                              onCommentTap: () {
-                                context.push('/action-details', extra: action);
-                              },
-                              onUserTap: () {
-                                // Navigate to user profile
-                              },
-                            );
-                          },
-                          childCount: state.actions.length,
-                        ),
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final action = state.actions[index];
+                          final currentUserId = ActionRepository().currentUserId;
+                          final isOwner = action.userId == currentUserId || action.userId == 'currentUser';
+
+                          return ActionCard(
+                            action: action,
+                            onLikeTap: () {
+                              context.read<HomeCubit>().likeAction(action.id);
+                            },
+                            onCommentTap: () {
+                              context.push('/action-details', extra: action);
+                            },
+                            onUserTap: () {
+                              context.push('/user-detail', extra: {
+                                'userId': action.userId,
+                                'userName': action.userName,
+                                'userAvatar': action.userAvatar,
+                              });
+                            },
+
+                            onDeleteTap: isOwner
+                                ? () {
+                                    context.read<HomeCubit>().deleteAction(action.id);
+                                  }
+                                : null,
+                          );
+                        }, childCount: state.actions.length),
                       );
+
                     },
                   ),
                   // Bottom padding
@@ -95,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           floatingActionButton: FloatingActionButton(
             onPressed: () {
-              context.read<DashboardCubit>().changeTab(1);
+              context.read<DashboardCubit>().changeTab(2);
             },
             backgroundColor: AppColors.primary,
             child: const Icon(Icons.add, color: AppColors.black100),
@@ -138,9 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: AppSize.spacingS),
               Text(
                 loc.translate('app_title'),
-                style: CustomTextStyle.size14W500(
-                  color: AppColors.white100,
-                ),
+                style: CustomTextStyle.size14W500(color: AppColors.white100),
               ),
             ],
           ),
@@ -149,40 +156,64 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               const LanguageToggleButton(),
               const SizedBox(width: AppSize.spacingS),
-              GestureDetector(
-                onTap: () {
-                  context.push('/notifications');
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(AppSize.paddingS),
-                  decoration: BoxDecoration(
-                    color: AppColors.grey,
-                    borderRadius: BorderRadius.circular(AppSize.radiusM),
-                  ),
-                  child: Stack(
-                    children: [
-                      const Icon(
-                        Icons.notifications_none_outlined,
-                        color: AppColors.white100,
-                        size: 22,
-                      ),
-                      if (context.watch<HomeCubit>().state.unreadCount > 0)
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          child: Container(
-                            width: 10,
-                            height: 10,
-                            decoration: const BoxDecoration(
-                              color: AppColors.accent,
-                              shape: BoxShape.circle,
-                            ),
+              StreamBuilder<List<Map<String, dynamic>>>(
+                stream: ActionRepository().getUserNotificationsStream(),
+                builder: (context, snapshot) {
+                  final notifications = snapshot.data ?? [];
+                  final count = notifications.length;
+
+                  return GestureDetector(
+                    onTap: () {
+                      context.push('/notifications');
+                    },
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(AppSize.paddingS),
+                          decoration: BoxDecoration(
+                            color: AppColors.grey900,
+                            borderRadius: BorderRadius.circular(AppSize.radiusM),
+                            border: Border.all(color: AppColors.grey800),
+                          ),
+                          child: const Icon(
+                            Icons.notifications_none_outlined,
+                            color: AppColors.white100,
+                            size: 22,
                           ),
                         ),
-                    ],
-                  ),
-                ),
+                        if (count > 0)
+                          Positioned(
+                            right: -3,
+                            top: -3,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.error,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: AppColors.background, width: 1.5),
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 18,
+                                minHeight: 18,
+                              ),
+                              child: Text(
+                                count > 99 ? '99+' : '$count',
+                                style: const TextStyle(
+                                  color: AppColors.white100,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
               ),
+
             ],
           ),
         ],
