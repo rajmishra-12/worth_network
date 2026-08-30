@@ -169,9 +169,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: loc.translate('privacy_policy_desc'),
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Privacy Policy coming soon!'),
-                      duration: Duration(seconds: 1),
+                    SnackBar(
+                      content: Text(loc.translate('privacy_policy_coming_soon')),
+                      duration: const Duration(seconds: 2),
                     ),
                   );
                 },

@@ -33,62 +33,67 @@ class CustomSearchBar extends StatelessWidget {
             AppSize.paddingM,
             AppSize.paddingS,
           ),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.grey900,
-              borderRadius: BorderRadius.circular(AppSize.radiusL),
-              border: Border.all(
-                color: AppColors.grey800,
-                width: 1,
-              ),
-            ),
-            child: TextField(
-              controller: controller,
-              focusNode: focusNode,
-              style: CustomTextStyle.size16W500(color: AppColors.white100),
-              decoration: InputDecoration(
-                hintText: loc.translate('search_users_placeholder'),
-                hintStyle: CustomTextStyle.size16W400(color: AppColors.grey500),
-                prefixIcon: Icon(
-                  Icons.search_outlined,
-                  color: focusNode.hasFocus ? AppColors.primary : AppColors.grey500,
-                  size: 22,
-                ),
-                suffixIcon: controller.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(
-                          Icons.close_rounded,
-                          color: AppColors.grey500,
-                          size: 20,
-                        ),
-                        onPressed: () {
-                          controller.clear();
-                          onClear();
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
+          child: ValueListenableBuilder<TextEditingValue>(
+            valueListenable: controller,
+            builder: (context, textValue, child) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: AppColors.grey900,
                   borderRadius: BorderRadius.circular(AppSize.radiusL),
-                  borderSide: BorderSide.none,
+                  border: Border.all(
+                    color: focusNode.hasFocus ? AppColors.primary : AppColors.grey800,
+                    width: 1,
+                  ),
                 ),
-                filled: true,
-                fillColor: Colors.transparent,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: AppSize.paddingM,
-                  vertical: AppSize.paddingM,
+                child: TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  style: CustomTextStyle.size16W500(color: AppColors.white100),
+                  decoration: InputDecoration(
+                    hintText: loc.translate('search_users_placeholder'),
+                    hintStyle: CustomTextStyle.size16W400(color: AppColors.grey500),
+                    prefixIcon: Icon(
+                      Icons.search_outlined,
+                      color: focusNode.hasFocus ? AppColors.primary : AppColors.grey500,
+                      size: 22,
+                    ),
+                    suffixIcon: textValue.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              color: AppColors.grey500,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              controller.clear();
+                              onClear();
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSize.radiusL),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: Colors.transparent,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppSize.paddingM,
+                      vertical: AppSize.paddingM,
+                    ),
+                  ),
+                  onChanged: (value) {
+                    if (value.isEmpty) {
+                      onClear();
+                    } else {
+                      onSearch(value);
+                    }
+                  },
+                  inputFormatters: [
+                    LengthLimitingTextInputFormatter(50),
+                  ],
                 ),
-              ),
-              onChanged: (value) {
-                if (value.isEmpty) {
-                  onClear();
-                } else {
-                  onSearch(value);
-                }
-              },
-              inputFormatters: [
-                LengthLimitingTextInputFormatter(50),
-              ],
-            ),
+              );
+            },
           ),
         );
       },

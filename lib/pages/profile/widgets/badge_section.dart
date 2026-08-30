@@ -39,7 +39,7 @@ class BadgesSection extends StatelessWidget {
               ),
               const SizedBox(height: AppSize.spacingS),
               SizedBox(
-                height: 75,
+                height: 95,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: badges.length,
@@ -67,34 +67,49 @@ class _BadgeItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Tooltip(
       message: '${badge.name}\n${badge.description}',
-      child: Column(
-        children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              gradient: badge.isEarned ? AppColors.primaryGradient : null,
-              color: badge.isEarned ? null : AppColors.grey800,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: badge.isEarned ? Colors.transparent : AppColors.grey700,
-                width: 2,
+      child: SizedBox(
+        width: 72,
+        child: Column(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                gradient: badge.isEarned ? AppColors.primaryGradient : null,
+                color: badge.isEarned ? null : AppColors.grey900,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: badge.isEarned ? AppColors.primary : AppColors.grey800,
+                  width: 1.5,
+                ),
+                boxShadow: badge.isEarned
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          blurRadius: 10,
+                          spreadRadius: 1,
+                        )
+                      ]
+                    : null,
+              ),
+              child: Icon(
+                _getBadgeIcon(badge.name),
+                size: 22,
+                color: badge.isEarned ? AppColors.black100 : AppColors.grey600,
               ),
             ),
-            child: Icon(
-              _getBadgeIcon(badge.name),
-              size: 24,
-              color: badge.isEarned ? AppColors.black100 : AppColors.grey600,
+            const SizedBox(height: 6),
+            Text(
+              badge.name,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: CustomTextStyle.size10W500(
+                color: badge.isEarned ? AppColors.primary : AppColors.grey500,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            badge.name,
-            style: CustomTextStyle.size10W500(
-              color: badge.isEarned ? AppColors.primary : AppColors.grey600,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

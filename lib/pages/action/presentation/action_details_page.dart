@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
 import 'package:worth_network/core/model/home/action_model.dart';
 import 'package:worth_network/core/repo/action_repo.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
+import 'package:worth_network/core/utils/app_localizations.dart';
 import 'package:worth_network/pages/home/widgets/empty_feed_widget.dart';
 import 'package:worth_network/pages/home/widgets/proof_card.dart';
 
@@ -49,67 +52,76 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<ActionModel?>(
-      stream: _actionRepo.getActionStream(widget.action.id),
-      builder: (context, snapshot) {
-        final action = snapshot.data ?? widget.action;
-        final isOwner = action.userId == _actionRepo.currentUserId || action.userId == 'currentUser';
-        final isValidator = action.validatorId != null &&
-            action.validatorId == _actionRepo.currentUserId;
+    return BlocBuilder<LocaleCubit, String>(
+      builder: (context, localeCode) {
+        final loc = AppLocalizations(localeCode);
+        return StreamBuilder<ActionModel?>(
+          stream: _actionRepo.getActionStream(widget.action.id),
+          builder: (context, snapshot) {
+            final action = snapshot.data ?? widget.action;
+            final isOwner = action.userId == _actionRepo.currentUserId || action.userId == 'currentUser';
+            final isValidator = action.validatorId != null &&
+                action.validatorId == _actionRepo.currentUserId;
 
 
-        return Scaffold(
-          backgroundColor: AppColors.background,
-          appBar: AppBar(
-            backgroundColor: AppColors.background,
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: AppColors.white100),
-              onPressed: () => context.pop(),
-            ),
-            title: Text(
-              'Action Details',
-              style: CustomTextStyle.size18W600(color: AppColors.white100),
-            ),
-            actions: [
-              if (isOwner)
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: AppColors.error),
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (dialogContext) => AlertDialog(
-                        backgroundColor: AppColors.grey900,
-                        title: Text(
-                          'Delete Action?',
-                          style: CustomTextStyle.size18W600(color: AppColors.white100),
-                        ),
-                        content: Text(
-                          'Are you sure you want to delete this action? This cannot be undone.',
-                          style: CustomTextStyle.size14W400(color: AppColors.grey300),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(dialogContext),
-                            child: Text('Cancel', style: CustomTextStyle.size14W500(color: AppColors.grey400)),
-                          ),
-                          TextButton(
-                            onPressed: () async {
-                              Navigator.pop(dialogContext);
-                              await _actionRepo.deleteAction(action.id);
-                              if (context.mounted) {
-                                context.pop();
-                              }
-                            },
-                            child: Text('Delete', style: CustomTextStyle.size14W600(color: AppColors.error)),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+            return Scaffold(
+              backgroundColor: AppColors.background,
+              appBar: AppBar(
+                backgroundColor: AppColors.background,
+                elevation: 0,
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: AppColors.white100),
+                  onPressed: () => context.pop(),
                 ),
-            ],
-          ),
+                title: Text(
+                  loc.translate('action_details_title'),
+                  style: CustomTextStyle.size18W600(color: AppColors.white100),
+                ),
+                actions: [
+                  if (isOwner)
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (dialogContext) => AlertDialog(
+                            backgroundColor: AppColors.grey900,
+                            title: Text(
+                              loc.translate('delete_action_title'),
+                              style: CustomTextStyle.size18W600(color: AppColors.white100),
+                            ),
+                            content: Text(
+                              loc.translate('delete_action_desc'),
+                              style: CustomTextStyle.size14W400(color: AppColors.grey300),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(dialogContext),
+                                child: Text(
+                                  loc.translate('cancel'),
+                                  style: CustomTextStyle.size14W500(color: AppColors.grey400),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () async {
+                                  Navigator.pop(dialogContext);
+                                  await _actionRepo.deleteAction(action.id);
+                                  if (context.mounted) {
+                                    context.pop();
+                                  }
+                                },
+                                child: Text(
+                                  loc.translate('delete_btn'),
+                                  style: CustomTextStyle.size14W600(color: AppColors.error),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                ],
+              ),
 
           body: Column(
             children: [
@@ -529,6 +541,8 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
     );
   },
 );
+      },
+    );
   }
 
 

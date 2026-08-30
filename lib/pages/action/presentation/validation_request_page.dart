@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
 import 'package:worth_network/core/model/home/action_model.dart';
 import 'package:worth_network/core/repo/action_repo.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
+import 'package:worth_network/core/utils/app_localizations.dart';
 
 
 class ValidationRequestScreen extends StatefulWidget {
@@ -23,6 +26,8 @@ class _ValidationRequestScreenState extends State<ValidationRequestScreen> {
   final TextEditingController _commentController = TextEditingController();
   bool _isSubmitting = false;
 
+  final ActionRepository _actionRepo = ActionRepository();
+
   @override
   void dispose() {
     _commentController.dispose();
@@ -30,38 +35,40 @@ class _ValidationRequestScreenState extends State<ValidationRequestScreen> {
   }
 
   Future<void> _submitValidation() async {
-    setState(() => _isSubmitting = true);
+    setState(() {
+      _isSubmitting = true;
+    });
 
     try {
       String decision = 'confirmed';
       if (_selectedDecision == 0) {
-        decision = _confidenceScore >= 9.0 ? 'certified' : 'confirmed';
+        decision = _confidenceScore >= 8.0 ? 'certified' : 'confirmed';
       } else if (_selectedDecision == 1) {
         decision = 'confirmed';
       } else {
         decision = 'rejected';
       }
 
-      final repo = ActionRepository();
-      await repo.submitValidation(
+      await _actionRepo.submitValidationDecision(
         actionId: widget.action.id,
         decision: decision,
         confidence: _confidenceScore,
-        comment: _commentController.text,
+        comment: _commentController.text.trim(),
       );
 
       if (mounted) {
+        context.pop();
+        final isApproved = decision != 'rejected';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              decision == 'rejected'
-                  ? 'Action marked as rejected.'
-                  : 'Validation submitted successfully! Reputation scores updated.',
+              isApproved
+                  ? 'Validation submitted successfully! Score awarded.'
+                  : 'Validation submitted. Action marked as rejected.',
             ),
-            backgroundColor: decision == 'rejected' ? AppColors.error : AppColors.success,
+            backgroundColor: isApproved ? AppColors.success : AppColors.error,
           ),
         );
-        context.pop();
       }
     } catch (e) {
       if (mounted) {
@@ -74,7 +81,9 @@ class _ValidationRequestScreenState extends State<ValidationRequestScreen> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isSubmitting = false);
+        setState(() {
+          _isSubmitting = false;
+        });
       }
     }
   }
@@ -83,250 +92,259 @@ class _ValidationRequestScreenState extends State<ValidationRequestScreen> {
   @override
   Widget build(BuildContext context) {
     final action = widget.action;
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: AppColors.white100),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          'Validate Action',
-          style: CustomTextStyle.size18W600(color: AppColors.white100),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSize.paddingM),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Request Header Information
-            Container(
-              padding: const EdgeInsets.all(AppSize.paddingM),
-              decoration: BoxDecoration(
-                color: AppColors.grey900,
-                borderRadius: BorderRadius.circular(AppSize.radiusM),
-                border: Border.all(color: AppColors.grey800),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+    return BlocBuilder<LocaleCubit, String>(
+      builder: (context, localeCode) {
+        final loc = AppLocalizations(localeCode);
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            backgroundColor: AppColors.background,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.close, color: AppColors.white100),
+              onPressed: () => context.pop(),
+            ),
+            title: Text(
+              loc.translate('validate_action_title'),
+              style: CustomTextStyle.size18W600(color: AppColors.white100),
+            ),
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSize.paddingM),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Request Header Information
+                Container(
+                  padding: const EdgeInsets.all(AppSize.paddingM),
+                  decoration: BoxDecoration(
+                    color: AppColors.grey900,
+                    borderRadius: BorderRadius.circular(AppSize.radiusM),
+                    border: Border.all(color: AppColors.grey800),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundColor: AppColors.grey800,
-                        backgroundImage: action.userAvatar != null
-                            ? NetworkImage(action.userAvatar!)
-                            : null,
-                        child: action.userAvatar == null
-                            ? Text(action.userName[0], style: const TextStyle(color: AppColors.white100, fontSize: 12))
-                            : null,
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 16,
+                            backgroundColor: AppColors.grey800,
+                            backgroundImage: action.userAvatar != null && action.userAvatar!.isNotEmpty
+                                ? NetworkImage(action.userAvatar!)
+                                : null,
+                            child: action.userAvatar == null || action.userAvatar!.isEmpty
+                                ? Text(
+                                    action.userName.isNotEmpty ? action.userName[0].toUpperCase() : 'U',
+                                    style: const TextStyle(color: AppColors.white100),
+                                  )
+                                : null,
+                          ),
+                          const SizedBox(width: AppSize.spacingS),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  action.userName,
+                                  style: CustomTextStyle.size14W600(color: AppColors.white100),
+                                ),
+                                Text(
+                                  DateFormat('MMM dd, yyyy').format(action.createdAt),
+                                  style: CustomTextStyle.size12W400(color: AppColors.grey400),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(AppSize.radiusS),
+                            ),
+                            child: Text(
+                              action.category,
+                              style: CustomTextStyle.size12W500(color: AppColors.primary),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: AppSize.spacingS),
+                      const SizedBox(height: AppSize.spacingM),
                       Text(
-                        '${action.userName} requests validation',
-                        style: CustomTextStyle.size13W500(color: AppColors.grey400),
+                        action.title,
+                        style: CustomTextStyle.size16W600(color: AppColors.white100),
+                      ),
+                      const SizedBox(height: AppSize.spacingS),
+                      Text(
+                        action.description,
+                        style: CustomTextStyle.size14W400(color: AppColors.grey300),
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppSize.spacingM),
-                  Text(
-                    action.title,
-                    style: CustomTextStyle.size16W600(color: AppColors.white100),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    action.description,
-                    style: CustomTextStyle.size13W400(color: AppColors.grey300),
-                  ),
-                  const SizedBox(height: AppSize.spacingM),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(AppSize.radiusS),
-                        ),
-                        child: Text(
-                          action.category,
-                          style: CustomTextStyle.size12W500(color: AppColors.primary),
-                        ),
-                      ),
-                      Text(
-                        DateFormat('MMM dd, yyyy').format(action.createdAt),
-                        style: CustomTextStyle.size12W400(color: AppColors.grey500),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSize.spacingXL),
-
-            // Proof Visualizer
-            Text(
-              'Submitted Proof / Evidence',
-              style: CustomTextStyle.size15W600(color: AppColors.white100),
-            ),
-            const SizedBox(height: AppSize.spacingS),
-            _buildProofSection(action),
-            const SizedBox(height: AppSize.spacingXL),
-
-            // Validation Decisions: Yes, Partially, No
-            Text(
-              'Your Assessment',
-              style: CustomTextStyle.size15W600(color: AppColors.white100),
-            ),
-            const SizedBox(height: AppSize.spacingS),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildDecisionButton(
-                    index: 0,
-                    label: 'Yes',
-                    icon: Icons.check_circle_outline,
-                    activeColor: AppColors.success,
-                  ),
                 ),
-                const SizedBox(width: AppSize.spacingS),
-                Expanded(
-                  child: _buildDecisionButton(
-                    index: 1,
-                    label: 'Partially',
-                    icon: Icons.hourglass_bottom_outlined,
-                    activeColor: AppColors.warning,
-                  ),
-                ),
-                const SizedBox(width: AppSize.spacingS),
-                Expanded(
-                  child: _buildDecisionButton(
-                    index: 2,
-                    label: 'No',
-                    icon: Icons.cancel_outlined,
-                    activeColor: AppColors.error,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSize.spacingXL),
+                const SizedBox(height: AppSize.spacingL),
 
-            // Impact / Confidence Level Slider
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
+                // Proof Visualizer
                 Text(
-                  'Impact Weight',
+                  loc.translate('submitted_proof_title'),
                   style: CustomTextStyle.size15W600(color: AppColors.white100),
                 ),
+                const SizedBox(height: AppSize.spacingS),
+                _buildProofSection(action),
+                const SizedBox(height: AppSize.spacingXL),
+
+                // Validation Decisions: Yes, Partially, No
                 Text(
-                  '${_confidenceScore.toInt()} / 10',
-                  style: CustomTextStyle.size15W600(color: AppColors.primary),
+                  loc.translate('your_assessment_title'),
+                  style: CustomTextStyle.size15W600(color: AppColors.white100),
                 ),
-              ],
-            ),
-            Text(
-              'Assess the significance and confidence of this action',
-              style: CustomTextStyle.size12W400(color: AppColors.grey400),
-            ),
-            const SizedBox(height: AppSize.spacingS),
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                activeTrackColor: AppColors.primary,
-                inactiveTrackColor: AppColors.grey800,
-                thumbColor: AppColors.primary,
-                overlayColor: AppColors.primary.withValues(alpha: 0.2),
-                valueIndicatorColor: AppColors.grey900,
-                valueIndicatorTextStyle: const TextStyle(color: AppColors.primary),
-              ),
-              child: Slider(
-                value: _confidenceScore,
-                min: 1.0,
-                max: 10.0,
-                divisions: 9,
-                label: _confidenceScore.toInt().toString(),
-                onChanged: (val) {
-                  setState(() {
-                    _confidenceScore = val;
-                  });
-                },
-              ),
-            ),
-            const SizedBox(height: AppSize.spacingL),
+                const SizedBox(height: AppSize.spacingS),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildDecisionButton(
+                        index: 0,
+                        label: loc.translate('assessment_yes'),
+                        icon: Icons.check_circle_outline,
+                        activeColor: AppColors.success,
+                      ),
+                    ),
+                    const SizedBox(width: AppSize.spacingS),
+                    Expanded(
+                      child: _buildDecisionButton(
+                        index: 1,
+                        label: loc.translate('assessment_partially'),
+                        icon: Icons.hourglass_bottom_outlined,
+                        activeColor: AppColors.warning,
+                      ),
+                    ),
+                    const SizedBox(width: AppSize.spacingS),
+                    Expanded(
+                      child: _buildDecisionButton(
+                        index: 2,
+                        label: loc.translate('assessment_no'),
+                        icon: Icons.cancel_outlined,
+                        activeColor: AppColors.error,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSize.spacingXL),
 
-            // Comments
-            Text(
-              'Validator Notes / Feedback',
-              style: CustomTextStyle.size15W600(color: AppColors.white100),
-            ),
-            const SizedBox(height: AppSize.spacingS),
-            TextFormField(
-              controller: _commentController,
-              maxLines: 4,
-              style: CustomTextStyle.size14W400(color: AppColors.white100),
-              decoration: InputDecoration(
-                hintText: 'Enter details about your validation check (optional)',
-                hintStyle: CustomTextStyle.size14W400(color: AppColors.grey500),
-                filled: true,
-                fillColor: AppColors.grey900,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSize.radiusM),
-                  borderSide: const BorderSide(color: AppColors.grey800),
+                // Impact / Confidence Level Slider
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      loc.translate('impact_weight_title'),
+                      style: CustomTextStyle.size15W600(color: AppColors.white100),
+                    ),
+                    Text(
+                      '${_confidenceScore.toInt()} / 10',
+                      style: CustomTextStyle.size15W600(color: AppColors.primary),
+                    ),
+                  ],
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSize.radiusM),
-                  borderSide: const BorderSide(color: AppColors.primary),
+                Text(
+                  loc.translate('impact_weight_desc'),
+                  style: CustomTextStyle.size12W400(color: AppColors.grey400),
                 ),
-                contentPadding: const EdgeInsets.all(AppSize.paddingM),
-              ),
-            ),
-            const SizedBox(height: 40),
+                const SizedBox(height: AppSize.spacingS),
+                SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    activeTrackColor: AppColors.primary,
+                    inactiveTrackColor: AppColors.grey800,
+                    thumbColor: AppColors.primary,
+                    overlayColor: AppColors.primary.withValues(alpha: 0.2),
+                    valueIndicatorColor: AppColors.grey900,
+                    valueIndicatorTextStyle: const TextStyle(color: AppColors.primary),
+                  ),
+                  child: Slider(
+                    value: _confidenceScore,
+                    min: 1.0,
+                    max: 10.0,
+                    divisions: 9,
+                    label: _confidenceScore.toInt().toString(),
+                    onChanged: (val) {
+                      setState(() {
+                        _confidenceScore = val;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(height: AppSize.spacingL),
 
-            ElevatedButton(
-              onPressed: _isSubmitting ? null : _submitValidation,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.7),
-                foregroundColor: AppColors.black100,
-                disabledForegroundColor: AppColors.black100,
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppSize.radiusM),
+                // Comments
+                Text(
+                  loc.translate('validator_notes_title'),
+                  style: CustomTextStyle.size15W600(color: AppColors.white100),
                 ),
-                elevation: 0,
-              ),
-              child: _isSubmitting
-                  ? Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: AppColors.black100,
-                            strokeWidth: 2.5,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Submitting...',
+                const SizedBox(height: AppSize.spacingS),
+                TextFormField(
+                  controller: _commentController,
+                  maxLines: 4,
+                  style: CustomTextStyle.size14W400(color: AppColors.white100),
+                  decoration: InputDecoration(
+                    hintText: loc.translate('validator_notes_hint'),
+                    hintStyle: CustomTextStyle.size14W400(color: AppColors.grey500),
+                    filled: true,
+                    fillColor: AppColors.grey900,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSize.radiusM),
+                      borderSide: const BorderSide(color: AppColors.grey800),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSize.radiusM),
+                      borderSide: const BorderSide(color: AppColors.primary),
+                    ),
+                    contentPadding: const EdgeInsets.all(AppSize.paddingM),
+                  ),
+                ),
+                const SizedBox(height: 40),
+
+                ElevatedButton(
+                  onPressed: _isSubmitting ? null : _submitValidation,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.7),
+                    foregroundColor: AppColors.black100,
+                    disabledForegroundColor: AppColors.black100,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSize.radiusM),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: _isSubmitting
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: AppColors.black100,
+                                strokeWidth: 2.5,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              loc.translate('submitting_text'),
+                              style: CustomTextStyle.size16W600(color: AppColors.black100),
+                            ),
+                          ],
+                        )
+                      : Text(
+                          loc.translate('submit_action'),
                           style: CustomTextStyle.size16W600(color: AppColors.black100),
                         ),
-                      ],
-                    )
-                  : Text(
-                      'Submit Validation',
-                      style: CustomTextStyle.size16W600(color: AppColors.black100),
-                    ),
+                ),
+                const SizedBox(height: AppSize.spacingXL),
+              ],
             ),
-            const SizedBox(height: AppSize.paddingXL),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

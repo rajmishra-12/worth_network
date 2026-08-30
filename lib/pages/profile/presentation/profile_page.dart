@@ -96,20 +96,80 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 child: NestedScrollView(
                   headerSliverBuilder: (context, innerBoxIsScrolled) {
                     return [
-                      // Top Action bar: Settings & Logout
+                      // Sleek Top App Bar: Title + Glassmorphic Settings & Logout
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const EdgeInsets.only(right: AppSize.paddingM, top: AppSize.paddingS),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSize.paddingM,
+                            vertical: AppSize.paddingS,
+                          ),
                           child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              IconButton(
-                                icon: const Icon(Icons.settings, color: AppColors.white100),
-                                onPressed: () => context.push('/settings'),
+                              Row(
+                                children: [
+                                  Text(
+                                    loc.translate('profile_tab'),
+                                    style: CustomTextStyle.size20W600(
+                                      color: AppColors.white100,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(AppSize.radiusS),
+                                      border: Border.all(
+                                        color: AppColors.primary.withValues(alpha: 0.3),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'REP ENGINE',
+                                      style: CustomTextStyle.size10W600(
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.logout, color: AppColors.error),
-                                onPressed: () => _showLogoutDialog(context, loc),
+                              Row(
+                                children: [
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: AppColors.grey900,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: AppColors.grey800),
+                                    ),
+                                    child: IconButton(
+                                      icon: const Icon(
+                                        Icons.settings_outlined,
+                                        size: 20,
+                                        color: AppColors.white100,
+                                      ),
+                                      onPressed: () => context.push('/settings'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: AppColors.grey900,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: AppColors.grey800),
+                                    ),
+                                    child: IconButton(
+                                      icon: const Icon(
+                                        Icons.logout_rounded,
+                                        size: 20,
+                                        color: AppColors.error,
+                                      ),
+                                      onPressed: () => _showLogoutDialog(context, loc),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -186,6 +246,8 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
         tabs: tabs,
         indicatorColor: AppColors.primary,
         indicatorWeight: 3,
+        dividerColor: Colors.transparent,
+        dividerHeight: 0,
         labelColor: AppColors.primary,
         unselectedLabelColor: AppColors.grey500,
         labelStyle: CustomTextStyle.size15W600(),
@@ -226,33 +288,38 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: AppColors.grey500,
+    return BlocBuilder<LocaleCubit, String>(
+      builder: (context, localeCode) {
+        final loc = AppLocalizations(localeCode);
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 64,
+                color: AppColors.grey500,
+              ),
+              const SizedBox(height: AppSize.spacingM),
+              Text(
+                'Failed to load profile',
+                style: CustomTextStyle.size16W500(color: AppColors.grey400),
+              ),
+              const SizedBox(height: AppSize.spacingL),
+              ElevatedButton(
+                onPressed: () {
+                  context.read<ProfileCubit>().loadProfile();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.black100,
+                ),
+                child: Text(loc.translate('retry_btn')),
+              ),
+            ],
           ),
-          const SizedBox(height: AppSize.spacingM),
-          Text(
-            'Failed to load profile',
-            style: CustomTextStyle.size16W500(color: AppColors.grey400),
-          ),
-          const SizedBox(height: AppSize.spacingL),
-          ElevatedButton(
-            onPressed: () {
-              context.read<ProfileCubit>().loadProfile();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.black100,
-            ),
-            child: const Text('Retry'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

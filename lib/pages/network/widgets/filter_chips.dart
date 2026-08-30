@@ -37,15 +37,6 @@ class FilterChips extends StatelessWidget {
                   const SizedBox(width: AppSize.spacingS),
                   _buildFilterChip(
                     context: context,
-                    label: loc.translate('filter_near_you'),
-                    isSelected: state.selectedFilter == UserFilter.local,
-                    onSelected: () {
-                      context.read<NetworkCubit>().setFilter(UserFilter.local);
-                    },
-                  ),
-                  const SizedBox(width: AppSize.spacingS),
-                  _buildFilterChip(
-                    context: context,
                     label: loc.translate('category_support'),
                     isSelected: state.selectedFilter == UserFilter.support,
                     onSelected: () {
@@ -70,6 +61,48 @@ class FilterChips extends StatelessWidget {
                     isSelected: state.selectedFilter == UserFilter.health,
                     onSelected: () {
                       context.read<NetworkCubit>().setFilter(UserFilter.health);
+                    },
+                  ),
+                  const SizedBox(width: AppSize.spacingS),
+                  _buildFilterChip(
+                    context: context,
+                    label: loc.translate('category_community'),
+                    isSelected: state.selectedFilter == UserFilter.community,
+                    onSelected: () {
+                      context.read<NetworkCubit>().setFilter(
+                        UserFilter.community,
+                      );
+                    },
+                  ),
+                  const SizedBox(width: AppSize.spacingS),
+                  _buildFilterChip(
+                    context: context,
+                    label: loc.translate('category_education'),
+                    isSelected: state.selectedFilter == UserFilter.education,
+                    onSelected: () {
+                      context.read<NetworkCubit>().setFilter(
+                        UserFilter.education,
+                      );
+                    },
+                  ),
+                  const SizedBox(width: AppSize.spacingS),
+                  _buildFilterChip(
+                    context: context,
+                    label: loc.translate('category_environment'),
+                    isSelected: state.selectedFilter == UserFilter.environment,
+                    onSelected: () {
+                      context.read<NetworkCubit>().setFilter(
+                        UserFilter.environment,
+                      );
+                    },
+                  ),
+                  const SizedBox(width: AppSize.spacingS),
+                  _buildFilterChip(
+                    context: context,
+                    label: loc.translate('category_other'),
+                    isSelected: state.selectedFilter == UserFilter.other,
+                    onSelected: () {
+                      context.read<NetworkCubit>().setFilter(UserFilter.other);
                     },
                   ),
                   const SizedBox(width: AppSize.spacingS),

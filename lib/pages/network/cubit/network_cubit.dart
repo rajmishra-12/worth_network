@@ -7,10 +7,13 @@ part 'network_state.dart';
 
 enum UserFilter {
   all,
-  local,
   support,
   work,
   health,
+  community,
+  education,
+  environment,
+  other,
   topRated,
 }
 
@@ -23,67 +26,37 @@ class NetworkCubit extends Cubit<NetworkState> {
     emit(state.copyWith(isLoading: true));
 
     try {
-      final snapshot = await FirebaseFirestore.instance.collection('users').get();
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .get();
       final List<UserModel> fetchedUsers = [];
 
       for (var doc in snapshot.docs) {
         final data = doc.data();
-        fetchedUsers.add(UserModel(
-          id: doc.id,
-          name: data['name'] ?? 'User',
-          avatarUrl: data['avatarUrl'] ?? 'https://i.pravatar.cc/150?img=1',
-          score: data['score'] ?? 0,
-          level: data['level'] ?? 1,
-          category: data['category'] ?? 'Support',
-          location: data['location'] ?? 'Worldwide',
-          isOnline: true,
-          verified: (data['score'] ?? 0) > 100,
-          actionsCount: data['totalActions'] ?? 0,
-        ));
+        fetchedUsers.add(
+          UserModel(
+            id: doc.id,
+            name: data['name'] ?? 'User',
+            avatarUrl: data['avatarUrl'] ?? '',
+            score: data['score'] ?? 0,
+            level: data['level'] ?? 1,
+            category: data['category'] ?? 'Support',
+            location: data['location'] ?? 'Worldwide',
+            isOnline: true,
+            verified: (data['score'] ?? 0) > 100,
+            actionsCount: data['totalActions'] ?? 0,
+          ),
+        );
       }
 
-      if (fetchedUsers.isNotEmpty) {
-        allUsers = fetchedUsers;
-      } else {
-        allUsers = _getFallbackUsers();
-      }
+      allUsers = fetchedUsers;
     } catch (e) {
       print("Failed to fetch users from Firestore: $e");
-      allUsers = _getFallbackUsers();
+      allUsers = [];
     }
 
     _applyFilters();
   }
-
-  List<UserModel> _getFallbackUsers() {
-    return const [
-      UserModel(
-        id: '1',
-        name: 'Sarah Johnson',
-        avatarUrl: 'https://i.pravatar.cc/150?img=1',
-        score: 2450,
-        level: 7,
-        category: 'Support',
-        location: 'New York, NY',
-        isOnline: true,
-        verified: true,
-        actionsCount: 42,
-      ),
-      UserModel(
-        id: '2',
-        name: 'Michael Chen',
-        avatarUrl: 'https://i.pravatar.cc/150?img=2',
-        score: 1890,
-        level: 5,
-        category: 'Work',
-        location: 'San Francisco, CA',
-        isOnline: false,
-        verified: true,
-        actionsCount: 28,
-      ),
-    ];
-  }
-
 
   void searchUsers(String query) {
     emit(state.copyWith(searchQuery: query));
@@ -102,41 +75,63 @@ class NetworkCubit extends Cubit<NetworkState> {
 
   void _applyFilters() {
     List<UserModel> filtered = List.from(allUsers);
-    
-    // Apply search filter
-    if (state.searchQuery.isNotEmpty) {
+
+    // Apply search filter (dynamic multi-field match)
+    if (state.searchQuery.trim().isNotEmpty) {
+      final query = state.searchQuery.trim().toLowerCase();
       filtered = filtered.where((user) {
-        return user.name.toLowerCase().contains(
-          state.searchQuery.toLowerCase(),
-        );
+        final matchesName = user.name.toLowerCase().contains(query);
+        final matchesLocation = user.location.toLowerCase().contains(query);
+        final matchesCategory = user.category.toLowerCase().contains(query);
+        return matchesName || matchesLocation || matchesCategory;
       }).toList();
     }
-    
+
     // Apply category filter
     switch (state.selectedFilter) {
-      case UserFilter.local:
-        // TODO: Implement location-based filtering
-        break;
       case UserFilter.support:
-        filtered = filtered.where((user) => user.category == 'Support').toList();
+        filtered = filtered
+            .where((user) => user.category.toLowerCase() == 'support')
+            .toList();
         break;
       case UserFilter.work:
-        filtered = filtered.where((user) => user.category == 'Work').toList();
+        filtered = filtered
+            .where((user) => user.category.toLowerCase() == 'work')
+            .toList();
         break;
       case UserFilter.health:
-        filtered = filtered.where((user) => user.category == 'Health').toList();
+        filtered = filtered
+            .where((user) => user.category.toLowerCase() == 'health')
+            .toList();
+        break;
+      case UserFilter.community:
+        filtered = filtered
+            .where((user) => user.category.toLowerCase() == 'community')
+            .toList();
+        break;
+      case UserFilter.education:
+        filtered = filtered
+            .where((user) => user.category.toLowerCase() == 'education')
+            .toList();
+        break;
+      case UserFilter.environment:
+        filtered = filtered
+            .where((user) => user.category.toLowerCase() == 'environment')
+            .toList();
+        break;
+      case UserFilter.other:
+        filtered = filtered
+            .where((user) => user.category.toLowerCase() == 'other')
+            .toList();
         break;
       case UserFilter.topRated:
         filtered.sort((a, b) => b.score.compareTo(a.score));
-        filtered = filtered.take(5).toList();
+        filtered = filtered.take(10).toList();
         break;
       case UserFilter.all:
         break;
     }
-    
-    emit(state.copyWith(
-      filteredUsers: filtered,
-      isLoading: false,
-    ));
+
+    emit(state.copyWith(filteredUsers: filtered, isLoading: false));
   }
 }
