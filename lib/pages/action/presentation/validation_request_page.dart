@@ -286,12 +286,13 @@ class _ValidationRequestScreenState extends State<ValidationRequestScreen> {
             ),
             const SizedBox(height: 40),
 
-            // Submit Button
             ElevatedButton(
               onPressed: _isSubmitting ? null : _submitValidation,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
+                disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.7),
                 foregroundColor: AppColors.black100,
+                disabledForegroundColor: AppColors.black100,
                 minimumSize: const Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppSize.radiusM),
@@ -299,10 +300,23 @@ class _ValidationRequestScreenState extends State<ValidationRequestScreen> {
                 elevation: 0,
               ),
               child: _isSubmitting
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(color: AppColors.black100, strokeWidth: 2.5),
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: AppColors.black100,
+                            strokeWidth: 2.5,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Submitting...',
+                          style: CustomTextStyle.size16W600(color: AppColors.black100),
+                        ),
+                      ],
                     )
                   : Text(
                       'Submit Validation',

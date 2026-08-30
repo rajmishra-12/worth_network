@@ -160,7 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 stream: ActionRepository().getUserNotificationsStream(),
                 builder: (context, snapshot) {
                   final notifications = snapshot.data ?? [];
-                  final count = notifications.length;
+                  final unreadCount = notifications.where((n) => n['isRead'] == false).length;
 
                   return GestureDetector(
                     onTap: () {
@@ -182,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             size: 22,
                           ),
                         ),
-                        if (count > 0)
+                        if (unreadCount > 0)
                           Positioned(
                             right: -3,
                             top: -3,
@@ -198,7 +198,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 minHeight: 18,
                               ),
                               child: Text(
-                                count > 99 ? '99+' : '$count',
+                                unreadCount > 99 ? '99+' : '$unreadCount',
                                 style: const TextStyle(
                                   color: AppColors.white100,
                                   fontSize: 10,

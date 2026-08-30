@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:worth_network/core/model/home/action_model.dart';
 import 'package:worth_network/core/utils/preferences.dart';
+import 'package:worth_network/core/services/notification_service.dart';
 
 
 
@@ -188,18 +189,19 @@ class ActionRepository {
     if (hasValidator) {
       final validatorId = selectedValidator['uid'];
       try {
-        await _firestore.collection('notifications').add({
-          'type': 'validation_request',
-          'actionId': actionId,
-          'targetUserId': validatorId,
-          'requesterId': uid,
-          'requesterName': userName,
-          'title': title,
-          'createdAt': FieldValue.serverTimestamp(),
-          'isRead': false,
-        });
+        await NotificationService().sendNotification(
+          targetUserId: validatorId,
+          title: 'Validation Request',
+          body: '$userName requested validation for "$title"',
+          type: 'validation_request',
+          actionId: actionId,
+          extraData: {
+            'requesterName': userName,
+            'actionTitle': title,
+          },
+        );
       } catch (e) {
-        print('Notification write warning: $e');
+        print('Notification dispatch warning: $e');
       }
     }
 
@@ -273,119 +275,192 @@ class ActionRepository {
     final uid = currentUserId;
     if (uid == null) return const Stream.empty();
 
-    return _firestore.collection('actions').snapshots().asyncMap((snapshot) async {
+    return _firestore
+        .collection('notifications')
+        .where('targetUserId', isEqualTo: uid)
+        .snapshots()
+        .asyncMap((notifSnap) async {
       final List<Map<String, dynamic>> notifications = [];
+      final Set<String> seenIds = {};
 
-      // Fetch user profile stats for Level Up and Badge Unlocked notifications
-      int userLevel = 1;
-      int userScore = 0;
+      for (var doc in notifSnap.docs) {
+        final data = doc.data();
+        final id = doc.id;
+        seenIds.add(id);
+
+        DateTime createdAt = DateTime.now();
+        if (data['createdAt'] is Timestamp) {
+          createdAt = (data['createdAt'] as Timestamp).toDate();
+        }
+
+        ActionModel? action;
+        final actionId = data['actionId'] as String?;
+        if (actionId != null && actionId.isNotEmpty) {
+          seenIds.add('val_req_$actionId');
+          seenIds.add('approved_$actionId');
+          seenIds.add('rejected_$actionId');
+          try {
+            final actionDoc = await _firestore.collection('actions').doc(actionId).get();
+            if (actionDoc.exists && actionDoc.data() != null) {
+              action = ActionModel.fromMap(actionDoc.data()!, actionDoc.id, currentUserId: uid);
+            }
+          } catch (e) {
+            print('Action fetch warning for notification: $e');
+          }
+        }
+
+        String type = data['type'] ?? 'info';
+        String title = data['title'] ?? 'Notification';
+        String description = data['description'] ?? data['body'] ?? '';
+
+        // If this was a validation request but action is already validated/confirmed/rejected
+        if ((type == 'validation_request' || type == 'validation_requested') && action != null) {
+          if (action.validationStatus == ValidationStatus.confirmed ||
+              action.validationStatus == ValidationStatus.certified) {
+            type = 'approved';
+            title = 'Validation Completed';
+            description = 'You confirmed "${action.title}"';
+          } else if (action.validationStatus == ValidationStatus.rejected) {
+            type = 'rejected';
+            title = 'Validation Completed';
+            description = 'You rejected "${action.title}"';
+          }
+        }
+
+        notifications.add({
+          'id': id,
+          'type': type,
+          'title': title,
+          'description': description,
+          'time': _formatNotificationTime(createdAt),
+          'createdAt': createdAt,
+          'action': action,
+          'isRead': data['isRead'] ?? false,
+        });
+      }
+
+      // 2. Fetch user profile stats for Level Up and Badge Unlocked notifications
       try {
         final userDoc = await _firestore.collection('users').doc(uid).get();
         if (userDoc.exists) {
           final userData = userDoc.data() ?? {};
-          userLevel = userData['level'] ?? 1;
-          userScore = userData['score'] ?? 0;
+          final userLevel = (userData['level'] ?? 1) as int;
+          final userScore = (userData['score'] ?? 0) as int;
+          final List<dynamic> badges = List.from(userData['badges'] ?? []);
+
+          if (userLevel > 1) {
+            final id = 'level_up_$userLevel';
+            if (!seenIds.contains(id)) {
+              seenIds.add(id);
+              notifications.add({
+                'id': id,
+                'type': 'level_up',
+                'title': 'Level Up!',
+                'description': 'You have advanced to Level $userLevel. Keep building your reputation!',
+                'time': 'Level $userLevel',
+                'createdAt': DateTime.now().subtract(const Duration(minutes: 5)),
+                'isRead': true,
+              });
+            }
+          }
+
+          if (badges.isNotEmpty) {
+            for (var badge in badges) {
+              final badgeName = badge is Map ? (badge['title'] ?? badge['name'] ?? 'Badge') : badge.toString();
+              final id = 'badge_${badgeName.replaceAll(' ', '_').toLowerCase()}';
+              if (!seenIds.contains(id)) {
+                seenIds.add(id);
+                notifications.add({
+                  'id': id,
+                  'type': 'badge_unlocked',
+                  'title': 'Badge Unlocked',
+                  'description': 'Congratulations! You unlocked the "$badgeName" badge.',
+                  'time': 'Unlocked',
+                  'createdAt': DateTime.now().subtract(const Duration(minutes: 10)),
+                  'isRead': true,
+                });
+              }
+            }
+          } else if (userScore >= 50) {
+            const id = 'badge_early_contributor';
+            if (!seenIds.contains(id)) {
+              seenIds.add(id);
+              notifications.add({
+                'id': id,
+                'type': 'badge_unlocked',
+                'title': 'Badge Unlocked',
+                'description': 'Congratulations! You unlocked the "Early Contributor" badge.',
+                'time': 'Unlocked',
+                'createdAt': DateTime.now().subtract(const Duration(minutes: 10)),
+                'isRead': true,
+              });
+            }
+          }
         }
       } catch (e) {
         print('User profile fetch warning for notifications: $e');
       }
 
-      // 1. Dynamic Level Up Notification
-      if (userLevel > 1) {
-        notifications.add({
-          'id': 'level_up_$userLevel',
-          'type': 'level_up',
-          'title': 'Level Up!',
-          'description': 'You have advanced to Level $userLevel. Keep building your reputation!',
-          'time': 'Level $userLevel',
-          'createdAt': DateTime.now().subtract(const Duration(minutes: 5)),
-        });
-      }
+      // 3. Fetch dynamic actions for fallback notifications if not already seen
+      try {
+        final actionsSnapshot = await _firestore.collection('actions').get();
+        for (var doc in actionsSnapshot.docs) {
+          final data = doc.data();
+          final action = ActionModel.fromMap(data, doc.id, currentUserId: uid);
 
-      // 2. Dynamic Badge Unlocked Notifications
-      if (userScore >= 50) {
-        notifications.add({
-          'id': 'badge_early_contributor',
-          'type': 'badge_unlocked',
-          'title': 'Badge Unlocked',
-          'description': 'Congratulations! You unlocked the "Early Contributor" badge.',
-          'time': 'Unlocked',
-          'createdAt': DateTime.now().subtract(const Duration(minutes: 10)),
-        });
-      }
-      if (userScore >= 150) {
-        notifications.add({
-          'id': 'badge_reputation_pioneer',
-          'type': 'badge_unlocked',
-          'title': 'Badge Unlocked',
-          'description': 'Congratulations! You unlocked the "Reputation Pioneer" badge.',
-          'time': 'Unlocked',
-          'createdAt': DateTime.now().subtract(const Duration(minutes: 15)),
-        });
-      }
+          // ROLE A: VALIDATOR (Only show if pending and not seen)
+          if (action.validatorId == uid && action.validationStatus == ValidationStatus.pending) {
+            final notifId = 'val_req_${action.id}';
+            if (!seenIds.contains(notifId)) {
+              seenIds.add(notifId);
+              notifications.add({
+                'id': notifId,
+                'type': 'validation_requested',
+                'title': 'Validation Request',
+                'description': '${action.userName} requested validation for "${action.title}"',
+                'time': _formatNotificationTime(action.createdAt),
+                'createdAt': action.createdAt,
+                'action': action,
+              });
+            }
+          }
 
-      // 3. Dynamic Action Notifications (Validator vs Publisher roles)
-      for (var doc in snapshot.docs) {
-        final data = doc.data();
-        final action = ActionModel.fromMap(data, doc.id, currentUserId: uid);
-
-        // ROLE A: VALIDATOR (User assigned to validate)
-        if (action.validatorId == uid) {
-          if (action.validationStatus == ValidationStatus.pending) {
-            notifications.add({
-              'id': 'val_req_${action.id}',
-              'type': 'validation_requested',
-              'title': 'Validation Request',
-              'description': '${action.userName} requested validation for "${action.title}"',
-              'time': 'Action Needed',
-              'createdAt': action.createdAt,
-              'action': action,
-            });
-          } else {
-            // Validator completed validation history
-            final isCert = action.validationStatus == ValidationStatus.certified;
-            final isRej = action.validationStatus == ValidationStatus.rejected;
-            final statusStr = isRej ? 'rejected' : (isCert ? 'certified' : 'confirmed');
-            notifications.add({
-              'id': 'val_done_${action.id}',
-              'type': isRej ? 'rejected' : 'approved',
-              'title': 'Validation Completed',
-              'description': 'You $statusStr "${action.title}" for ${action.userName} (+10 Worth Score reward)',
-              'time': 'Validated',
-              'createdAt': action.createdAt,
-              'action': action,
-            });
+          // ROLE B: PUBLISHER (Only show if not seen)
+          if (action.userId == uid) {
+            final notifId = 'approved_${action.id}';
+            if (!seenIds.contains(notifId)) {
+              if (action.validationStatus == ValidationStatus.confirmed ||
+                  action.validationStatus == ValidationStatus.certified) {
+                seenIds.add(notifId);
+                final isCert = action.validationStatus == ValidationStatus.certified;
+                final scoreReward = isCert ? 100 : 50;
+                final validatorName = action.validatorName ?? 'Validator';
+                notifications.add({
+                  'id': notifId,
+                  'type': 'approved',
+                  'title': isCert ? 'Action Certified!' : 'Action Confirmed!',
+                  'description': 'Your action "${action.title}" has been confirmed by $validatorName (+$scoreReward Worth Score)',
+                  'time': _formatNotificationTime(action.createdAt),
+                  'createdAt': action.createdAt,
+                  'action': action,
+                });
+              } else if (action.validationStatus == ValidationStatus.rejected && !seenIds.contains('rejected_${action.id}')) {
+                seenIds.add('rejected_${action.id}');
+                notifications.add({
+                  'id': 'rejected_${action.id}',
+                  'type': 'rejected',
+                  'title': 'Validation Rejected',
+                  'description': 'Your action "${action.title}" was marked as rejected by validator.',
+                  'time': _formatNotificationTime(action.createdAt),
+                  'createdAt': action.createdAt,
+                  'action': action,
+                });
+              }
+            }
           }
         }
-
-        // ROLE B: PUBLISHER (User who posted the action)
-        if (action.userId == uid) {
-          if (action.validationStatus == ValidationStatus.confirmed ||
-              action.validationStatus == ValidationStatus.certified) {
-            final isCert = action.validationStatus == ValidationStatus.certified;
-            final scoreReward = isCert ? 100 : 50;
-            final validatorName = action.validatorName ?? 'Validator';
-            notifications.add({
-              'id': 'approved_${action.id}',
-              'type': 'approved',
-              'title': isCert ? 'Action Certified!' : 'Action Confirmed!',
-              'description': 'Your action "${action.title}" has been confirmed by $validatorName (+$scoreReward Worth Score)',
-              'time': 'Confirmed',
-              'createdAt': action.createdAt,
-              'action': action,
-            });
-          } else if (action.validationStatus == ValidationStatus.rejected) {
-            notifications.add({
-              'id': 'rejected_${action.id}',
-              'type': 'rejected',
-              'title': 'Validation Rejected',
-              'description': 'Your action "${action.title}" was marked as rejected by validator.',
-              'time': 'Rejected',
-              'createdAt': action.createdAt,
-              'action': action,
-            });
-          }
-        }
+      } catch (e) {
+        print('Error fetching fallback actions for notifications: $e');
       }
 
       notifications.sort((a, b) {
@@ -398,95 +473,64 @@ class ActionRepository {
     });
   }
 
+  String _formatNotificationTime(DateTime dateTime) {
+    final diff = DateTime.now().difference(dateTime);
+    if (diff.inSeconds < 60) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+  }
 
-
-  /// Toggle like status for an action atomically
-  Future<void> toggleLike(String actionId, {bool? isCurrentlyLiked}) async {
+  /// Toggle read/unread status for a specific notification document
+  Future<void> toggleNotificationReadStatus(String notificationId, bool currentIsRead) async {
     final uid = currentUserId;
     if (uid == null) return;
 
-    final docRef = _firestore.collection('actions').doc(actionId);
+    try {
+      final docRef = _firestore.collection('notifications').doc(notificationId);
+      final docSnap = await docRef.get();
 
-    // If preference is passed, update directly without extra fetch
-    if (isCurrentlyLiked != null) {
-      if (isCurrentlyLiked) {
-        await docRef.update({
-          'likedBy': FieldValue.arrayRemove([uid]),
-          'likesCount': FieldValue.increment(-1),
-        });
+      if (docSnap.exists) {
+        await docRef.update({'isRead': !currentIsRead});
       } else {
-        await docRef.update({
-          'likedBy': FieldValue.arrayUnion([uid]),
-          'likesCount': FieldValue.increment(1),
-        });
+        await docRef.set({
+          'targetUserId': uid,
+          'isRead': !currentIsRead,
+          'createdAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
       }
-      return;
-    }
-
-    final snapshot = await docRef.get();
-    if (!snapshot.exists) return;
-
-    final data = snapshot.data()!;
-    final List<dynamic> likedBy = List.from(data['likedBy'] ?? []);
-    final isLiked = likedBy.contains(uid);
-
-    if (isLiked) {
-      await docRef.update({
-        'likedBy': FieldValue.arrayRemove([uid]),
-        'likesCount': FieldValue.increment(-1),
-      });
-    } else {
-      await docRef.update({
-        'likedBy': FieldValue.arrayUnion([uid]),
-        'likesCount': FieldValue.increment(1),
-      });
+    } catch (e) {
+      print('Error toggling notification read status: $e');
     }
   }
 
+  /// Mark all notifications for current user as read
+  Future<void> markAllNotificationsAsRead() async {
+    final uid = currentUserId;
+    if (uid == null) return;
 
-  /// Add comment to action subcollection & increment comment counter
-  Future<void> addComment(String actionId, String commentText) async {
-    final user = _auth.currentUser;
-    if (user == null || commentText.trim().isEmpty) return;
+    try {
+      final unreadSnap = await _firestore
+          .collection('notifications')
+          .where('targetUserId', isEqualTo: uid)
+          .where('isRead', isEqualTo: false)
+          .get();
 
-    final userDoc = await _firestore.collection('users').doc(user.uid).get();
-    final userData = userDoc.data() ?? {};
-    final userName = userData['name'] ?? user.displayName ?? 'User';
-    final userAvatar = userData['avatarUrl'];
-
-    final actionRef = _firestore.collection('actions').doc(actionId);
-    final commentRef = actionRef.collection('comments').doc();
-
-    await commentRef.set({
-      'userId': user.uid,
-      'userName': userName,
-      'userAvatar': userAvatar,
-      'text': commentText.trim(),
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-
-    await actionRef.update({
-      'commentsCount': FieldValue.increment(1),
-    });
+      final batch = _firestore.batch();
+      for (var doc in unreadSnap.docs) {
+        batch.update(doc.reference, {'isRead': true});
+      }
+      await batch.commit();
+    } catch (e) {
+      print('Error marking all notifications as read: $e');
+    }
   }
 
-  /// Stream of comments for an action
-  Stream<List<CommentModel>> getCommentsStream(String actionId) {
-    return _firestore
-        .collection('actions')
-        .doc(actionId)
-        .collection('comments')
-        .orderBy('createdAt', descending: false)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) => CommentModel.fromMap(doc.data(), doc.id)).toList();
-    });
-  }
-
-  /// Submit validation response by validator & update reputation score
-  Future<void> submitValidation({
+  /// Submit validation decision (confirm / certify / reject)
+  Future<void> submitValidationDecision({
     required String actionId,
-    required String decision, // 'confirmed', 'certified', 'rejected'
+    required String decision,
     required double confidence,
     required String comment,
   }) async {
@@ -507,6 +551,28 @@ class ActionRepository {
       'confidenceScore': confidence,
       'validatedAt': FieldValue.serverTimestamp(),
     });
+
+    // Update any pending validation_request notification docs for this validator & action in Firestore
+    try {
+      final valNotifSnap = await _firestore
+          .collection('notifications')
+          .where('actionId', isEqualTo: actionId)
+          .where('targetUserId', isEqualTo: validatorId)
+          .get();
+
+      for (var doc in valNotifSnap.docs) {
+        await doc.reference.update({
+          'type': decision == 'rejected' ? 'rejected' : 'approved',
+          'title': 'Validation Completed',
+          'description': decision == 'rejected'
+              ? 'You marked "${actionData['title']}" as rejected.'
+              : 'You confirmed "${actionData['title']}".',
+          'isRead': true,
+        });
+      }
+    } catch (e) {
+      print('Error updating validator notification: $e');
+    }
 
     // Evolution of Reputation & Stats
     if (decision == 'confirmed' || decision == 'certified') {
@@ -580,6 +646,128 @@ class ActionRepository {
         print('Validator profile update error: $e');
       }
     }
+
+    // 3. Send notification & FCM push to Publisher
+    try {
+      final actionTitle = (actionData['title'] ?? 'Action') as String;
+      final validatorDoc = await _firestore.collection('users').doc(validatorId).get();
+      final validatorName = validatorDoc.data()?['name'] ?? 'Validator';
+
+      final isCert = decision == 'certified';
+      final isRej = decision == 'rejected';
+      final title = isRej
+          ? 'Validation Rejected'
+          : (isCert ? 'Action Certified!' : 'Action Confirmed!');
+      final scoreReward = isCert ? 100 : 50;
+      final body = isRej
+          ? 'Your action "$actionTitle" was rejected by $validatorName.'
+          : 'Your action "$actionTitle" was confirmed by $validatorName (+$scoreReward Worth Score)';
+
+      await NotificationService().sendNotification(
+        targetUserId: publisherId,
+        title: title,
+        body: body,
+        type: isRej ? 'rejected' : 'approved',
+        actionId: actionId,
+      );
+    } catch (e) {
+      print('Error sending validation decision notification: $e');
+    }
+  }
+
+  /// Alias for submitValidationDecision
+  Future<void> submitValidation({
+    required String actionId,
+    required String decision,
+    required double confidence,
+    required String comment,
+  }) => submitValidationDecision(
+        actionId: actionId,
+        decision: decision,
+        confidence: confidence,
+        comment: comment,
+      );
+
+  /// Toggle like status for an action atomically
+  Future<void> toggleLike(String actionId, {bool? isCurrentlyLiked}) async {
+    final uid = currentUserId;
+    if (uid == null) return;
+
+    final docRef = _firestore.collection('actions').doc(actionId);
+
+    // If preference is passed, update directly without extra fetch
+    if (isCurrentlyLiked != null) {
+      if (isCurrentlyLiked) {
+        await docRef.update({
+          'likedBy': FieldValue.arrayRemove([uid]),
+          'likesCount': FieldValue.increment(-1),
+        });
+      } else {
+        await docRef.update({
+          'likedBy': FieldValue.arrayUnion([uid]),
+          'likesCount': FieldValue.increment(1),
+        });
+      }
+      return;
+    }
+
+    final snapshot = await docRef.get();
+    if (!snapshot.exists) return;
+
+    final data = snapshot.data()!;
+    final List<dynamic> likedBy = List.from(data['likedBy'] ?? []);
+    final isLiked = likedBy.contains(uid);
+
+    if (isLiked) {
+      await docRef.update({
+        'likedBy': FieldValue.arrayRemove([uid]),
+        'likesCount': FieldValue.increment(-1),
+      });
+    } else {
+      await docRef.update({
+        'likedBy': FieldValue.arrayUnion([uid]),
+        'likesCount': FieldValue.increment(1),
+      });
+    }
+  }
+
+  /// Add comment to action subcollection & increment comment counter
+  Future<void> addComment(String actionId, String commentText) async {
+    final user = _auth.currentUser;
+    if (user == null || commentText.trim().isEmpty) return;
+
+    final userDoc = await _firestore.collection('users').doc(user.uid).get();
+    final userData = userDoc.data() ?? {};
+    final userName = userData['name'] ?? user.displayName ?? 'User';
+    final userAvatar = userData['avatarUrl'];
+
+    final actionRef = _firestore.collection('actions').doc(actionId);
+    final commentRef = actionRef.collection('comments').doc();
+
+    await commentRef.set({
+      'userId': user.uid,
+      'userName': userName,
+      'userAvatar': userAvatar,
+      'text': commentText.trim(),
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    await actionRef.update({
+      'commentsCount': FieldValue.increment(1),
+    });
+  }
+
+  /// Stream of comments for an action
+  Stream<List<CommentModel>> getCommentsStream(String actionId) {
+    return _firestore
+        .collection('actions')
+        .doc(actionId)
+        .collection('comments')
+        .orderBy('createdAt', descending: false)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) => CommentModel.fromMap(doc.data(), doc.id)).toList();
+    });
   }
 }
 

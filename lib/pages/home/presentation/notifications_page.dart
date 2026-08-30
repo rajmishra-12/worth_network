@@ -18,30 +18,6 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final ActionRepository _actionRepo = ActionRepository();
 
-  final List<Map<String, dynamic>> _defaultNotifications = [
-    {
-      'id': '2',
-      'type': 'approved',
-      'title': 'Action Approved',
-      'description': 'Your action "Mentored junior developer" has been confirmed by Michael Chen (+78 Worth Score)',
-      'time': '2h ago',
-    },
-    {
-      'id': '3',
-      'type': 'badge_unlocked',
-      'title': 'Badge Unlocked',
-      'description': 'Congratulations! You unlocked the "Consistency" badge.',
-      'time': '1d ago',
-    },
-    {
-      'id': '4',
-      'type': 'level_up',
-      'title': 'Level Up!',
-      'description': 'You have advanced to Level 7. Keep building your reputation!',
-      'time': '3d ago',
-    },
-  ];
-
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<LocaleCubit, String>(
@@ -60,18 +36,30 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               loc.translate('notifications'),
               style: CustomTextStyle.size18W600(color: AppColors.white100),
             ),
+            actions: [
+              TextButton.icon(
+                onPressed: () async {
+                  await _actionRepo.markAllNotificationsAsRead();
+                },
+                icon: const Icon(Icons.done_all, size: 16, color: AppColors.primary),
+                label: const Text(
+                  'Mark all read',
+                  style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
           ),
           body: StreamBuilder<List<Map<String, dynamic>>>(
             stream: _actionRepo.getUserNotificationsStream(),
             builder: (context, snapshot) {
-              final liveNotifications = snapshot.data ?? [];
-
-              final List<Map<String, dynamic>> displayNotifications = List.from(liveNotifications);
-
-              // If no live notifications exist, show clean empty state or default items
-              if (displayNotifications.isEmpty) {
-                displayNotifications.addAll(_defaultNotifications);
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                );
               }
+
+              final displayNotifications = snapshot.data ?? [];
 
               if (displayNotifications.isEmpty) {
                 return _buildEmptyState(loc);
@@ -127,10 +115,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Widget _buildNotificationCard(Map<String, dynamic> item, AppLocalizations loc) {
+    final String id = item['id'] as String? ?? '';
     final type = item['type'] as String;
     final title = item['title'] as String;
     final description = item['description'] as String;
     final time = item['time'] as String;
+    final bool isRead = item['isRead'] ?? false;
 
     IconData icon;
     Color iconColor;
@@ -168,77 +158,138 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         bgGradientColor = AppColors.grey900;
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.grey900,
-        borderRadius: BorderRadius.circular(AppSize.radiusM),
-        border: Border.all(color: AppColors.grey800),
-        gradient: LinearGradient(
-          colors: [bgGradientColor, Colors.transparent],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    final action = item['action'];
+
+    return GestureDetector(
+      onTap: () async {
+        if (!isRead && id.isNotEmpty) {
+          await _actionRepo.toggleNotificationReadStatus(id, false);
+        }
+        if (action != null) {
+          if (type == 'validation_requested' || type == 'validation_request') {
+            context.push('/validation-request', extra: action);
+          } else {
+            context.push('/action-details', extra: action);
+          }
+        }
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: isRead ? AppColors.grey900.withValues(alpha: 0.6) : AppColors.grey900,
+          borderRadius: BorderRadius.circular(AppSize.radiusM),
+          border: Border.all(
+            color: isRead ? AppColors.grey800 : AppColors.primary.withValues(alpha: 0.4),
+            width: isRead ? 1.0 : 1.5,
+          ),
+          gradient: LinearGradient(
+            colors: [isRead ? Colors.transparent : bgGradientColor, Colors.transparent],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
         ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSize.paddingM),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.grey800),
-              ),
-              child: Icon(icon, color: iconColor, size: 22),
-            ),
-            const SizedBox(width: AppSize.spacingM),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSize.paddingM),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Stack(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        title,
-                        style: CustomTextStyle.size14W600(color: AppColors.white100),
-                      ),
-                      Text(
-                        time,
-                        style: CustomTextStyle.size11W400(color: AppColors.grey500),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: CustomTextStyle.size13W400(color: AppColors.grey300),
-                  ),
-                  if (type == 'validation_requested') ...[
-                    const SizedBox(height: AppSize.spacingM),
-                    ElevatedButton(
-                      onPressed: () {
-                        context.push('/validation-request', extra: item['action']);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: AppColors.black100,
-                        minimumSize: const Size(100, 32),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSize.radiusS),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(loc.translate('inspect_request'), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.grey800),
                     ),
-                  ],
+                    child: Icon(icon, color: iconColor, size: 22),
+                  ),
+                  if (!isRead)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(
+                        width: 9,
+                        height: 9,
+                        decoration: const BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(width: AppSize.spacingM),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: CustomTextStyle.size14W600(
+                              color: isRead ? AppColors.grey300 : AppColors.white100,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          time,
+                          style: CustomTextStyle.size11W400(color: AppColors.grey500),
+                        ),
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: () {
+                            if (id.isNotEmpty) {
+                              _actionRepo.toggleNotificationReadStatus(id, isRead);
+                            }
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 4.0),
+                            child: Icon(
+                              isRead ? Icons.mark_email_read_outlined : Icons.mark_email_unread_rounded,
+                              color: isRead ? AppColors.grey600 : AppColors.primary,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: CustomTextStyle.size13W400(
+                        color: isRead ? AppColors.grey500 : AppColors.grey300,
+                      ),
+                    ),
+                    if ((type == 'validation_requested' || type == 'validation_request') && action != null) ...[
+                      const SizedBox(height: AppSize.spacingM),
+                      ElevatedButton(
+                        onPressed: () async {
+                          if (!isRead && id.isNotEmpty) {
+                            await _actionRepo.toggleNotificationReadStatus(id, false);
+                          }
+                          context.push('/validation-request', extra: action);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: AppColors.black100,
+                          minimumSize: const Size(100, 32),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppSize.radiusS),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(loc.translate('inspect_request'), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

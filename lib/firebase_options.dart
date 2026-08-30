@@ -46,6 +46,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '143684120020',
     projectId: 'worth-network',
     authDomain: 'worth-network.firebaseapp.com',
+    databaseURL: 'https://worth-network-default-rtdb.firebaseio.com',
     storageBucket: 'worth-network.firebasestorage.app',
     measurementId: 'G-DV1KF87NH2',
   );
@@ -55,7 +56,9 @@ class DefaultFirebaseOptions {
     appId: '1:143684120020:ios:b17390274997a491b9fa41',
     messagingSenderId: '143684120020',
     projectId: 'worth-network',
+    databaseURL: 'https://worth-network-default-rtdb.firebaseio.com',
     storageBucket: 'worth-network.firebasestorage.app',
+    iosClientId: '143684120020-teh1lorv4n8514fq5uko6ejgacii1k4o.apps.googleusercontent.com',
     iosBundleId: 'com.example.worthNetwork',
   );
 
@@ -65,17 +68,20 @@ class DefaultFirebaseOptions {
     messagingSenderId: '143684120020',
     projectId: 'worth-network',
     authDomain: 'worth-network.firebaseapp.com',
+    databaseURL: 'https://worth-network-default-rtdb.firebaseio.com',
     storageBucket: 'worth-network.firebasestorage.app',
     measurementId: 'G-NRVPGLTGTJ',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBT8Mx2GkeewMjwgsHs40nSqY4-pIQfmrQ',
-    appId: '1:143684120020:ios:b17390274997a491b9fa41',
+    appId: '1:143684120020:ios:fa8da40b4b4f68b5b9fa41',
     messagingSenderId: '143684120020',
     projectId: 'worth-network',
+    databaseURL: 'https://worth-network-default-rtdb.firebaseio.com',
     storageBucket: 'worth-network.firebasestorage.app',
-    iosBundleId: 'com.example.worthNetwork',
+    iosClientId: '143684120020-1387c3auskk5m76lbgo0ne0d40l5tvmg.apps.googleusercontent.com',
+    iosBundleId: 'com.rm.worthnetwork',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
@@ -83,6 +89,7 @@ class DefaultFirebaseOptions {
     appId: '1:143684120020:android:da4d9237bf00158eb9fa41',
     messagingSenderId: '143684120020',
     projectId: 'worth-network',
+    databaseURL: 'https://worth-network-default-rtdb.firebaseio.com',
     storageBucket: 'worth-network.firebasestorage.app',
   );
 
