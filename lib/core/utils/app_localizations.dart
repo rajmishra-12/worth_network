@@ -248,6 +248,9 @@ class AppLocalizations {
       'submitting_text': 'Submitting...',
       'retry_btn': 'Retry',
       'privacy_policy_coming_soon': 'Privacy Policy details available at worth.network',
+      'delete_account_btn': 'Delete Account',
+      'delete_account_dialog_title': 'Delete Account?',
+      'delete_account_dialog_desc': 'Are you sure you want to delete your account? All your profile data and actions will be permanently removed. This action cannot be undone.',
     },
     'fr': {
       'app_title': 'RÉSEAU WORTH',
@@ -493,10 +496,16 @@ class AppLocalizations {
       'submitting_text': 'Envoi en cours...',
       'retry_btn': 'Réessayer',
       'privacy_policy_coming_soon': 'Détails de la politique de confidentialité sur worth.network',
+      'delete_account_btn': 'Supprimer le compte',
+      'delete_account_dialog_title': 'Supprimer le compte ?',
+      'delete_account_dialog_desc': 'Voulez-vous vraiment supprimer votre compte ? Toutes vos données de profil et vos actions seront supprimées définitivement. Cette action est irréversible.',
     }
   };
 
   String translate(String key) {
-    return _localizedValues[languageCode]?[key] ?? _localizedValues['en']?[key] ?? key;
+    return _localizedValues[languageCode]?[key] ??
+        _localizedValues['fr']?[key] ??
+        _localizedValues['en']?[key] ??
+        key;
   }
 }

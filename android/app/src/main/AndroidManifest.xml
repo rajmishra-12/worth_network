@@ -5,7 +5,7 @@
 <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
-        android:label="worth_network"
+        android:label="Worth Network"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 

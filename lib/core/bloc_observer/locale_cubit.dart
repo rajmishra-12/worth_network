@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class LocaleCubit extends Cubit<String> {
-  LocaleCubit() : super('en'); // Defaults to English
+  LocaleCubit() : super('fr'); // Defaults to French
 
   void toggleLanguage() {
     emit(state == 'en' ? 'fr' : 'en');

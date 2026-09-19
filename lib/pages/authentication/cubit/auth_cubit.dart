@@ -260,4 +260,13 @@ class AuthCubit extends Cubit<AuthState> {
       resetState();
     } catch (_) {}
   }
+
+  Future<void> deleteAccount() async {
+    try {
+      await repository.deleteAccount();
+      resetState();
+    } catch (e) {
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
 }

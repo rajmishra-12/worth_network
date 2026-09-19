@@ -237,6 +237,29 @@ class AuthRepository {
     }
   }
 
+  /// Delete user account from Firestore & Firebase Auth
+  Future<void> deleteAccount() async {
+    try {
+      final user = _firebaseAuth.currentUser;
+      if (user != null) {
+        final uid = user.uid;
+        // 1. Delete user document from Firestore
+        await _firestore.collection('users').doc(uid).delete();
+        // 2. Delete user authentication record
+        await user.delete();
+        // 3. Clear local cache
+        await Preferences().clear();
+      }
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        throw Exception('For security reasons, please log in again before deleting your account.');
+      }
+      throw Exception(_mapFirebaseError(e));
+    } catch (e) {
+      throw Exception("Failed to delete account. Please try again.");
+    }
+  }
+
   /// Internet connectivity check
   Future<bool> isConnected() async {
     try {

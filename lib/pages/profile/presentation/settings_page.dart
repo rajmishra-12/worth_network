@@ -59,6 +59,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _showDeleteAccountDialog(AppLocalizations loc) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.grey900,
+        title: Text(
+          loc.translate('delete_account_dialog_title'),
+          style: CustomTextStyle.size18W600(color: AppColors.error),
+        ),
+        content: Text(
+          loc.translate('delete_account_dialog_desc'),
+          style: CustomTextStyle.size14W400(color: AppColors.grey300),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(
+              loc.translate('cancel'),
+              style: CustomTextStyle.size14W500(color: AppColors.grey400),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              try {
+                await context.read<AuthCubit>().deleteAccount();
+                if (mounted) {
+                  context.go(Routes.loginScreen);
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to delete account: $e')),
+                  );
+                }
+              }
+            },
+            child: Text(
+              loc.translate('delete_account_btn'),
+              style: CustomTextStyle.size14W600(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showAboutDialog(AppLocalizations loc) {
     showDialog(
       context: context,
@@ -178,27 +225,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: AppSize.spacingXL),
 
-              // Logout Button
+              // Logout & Delete Account Actions
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSize.paddingS,
                 ),
-                child: OutlinedButton.icon(
-                  onPressed: () => _showLogoutDialog(loc),
-                  icon: const Icon(Icons.logout, color: AppColors.error),
-                  label: Text(
-                    loc.translate('logout_btn'),
-                    style: CustomTextStyle.size15W600(color: AppColors.error),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.error, width: 1.2),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSize.radiusM),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showLogoutDialog(loc),
+                        icon: const Icon(Icons.logout, color: AppColors.primary),
+                        label: Text(
+                          loc.translate('logout_btn'),
+                          style: CustomTextStyle.size15W600(color: AppColors.primary),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppColors.primary, width: 1.2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppSize.radiusM),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: AppSize.paddingM,
+                          ),
+                        ),
+                      ),
                     ),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: AppSize.paddingM,
+                    const SizedBox(height: AppSize.spacingM),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showDeleteAccountDialog(loc),
+                        icon: const Icon(Icons.delete_forever_outlined, color: AppColors.error),
+                        label: Text(
+                          loc.translate('delete_account_btn'),
+                          style: CustomTextStyle.size15W600(color: AppColors.error),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppColors.error, width: 1.2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppSize.radiusM),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: AppSize.paddingM,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: AppSize.paddingXL),
+                  ],
                 ),
               ),
             ],
