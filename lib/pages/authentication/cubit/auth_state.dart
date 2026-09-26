@@ -17,10 +17,12 @@ class AuthState extends Equatable {
   final String signUpEmail;
   final String signUpPassword;
   final File? profileImage;
+  final String? accountType;
+  final List<String> roles;
   final bool termsAccepted;
   final bool isSignUpSuccess;
   final String? signUpError;
-  
+
   // Signup validation errors
   final String signUpFullNameError;
   final String signUpUsernameError;
@@ -49,6 +51,8 @@ class AuthState extends Equatable {
     this.signUpEmail = '',
     this.signUpPassword = '',
     this.profileImage,
+    this.accountType,
+    this.roles = const [],
     this.termsAccepted = false,
     this.isSignUpSuccess = false,
     this.signUpError,
@@ -79,6 +83,8 @@ class AuthState extends Equatable {
     String? signUpEmail,
     String? signUpPassword,
     File? profileImage,
+    String? accountType,
+    List<String>? roles,
     bool? termsAccepted,
     bool? isSignUpSuccess,
     String? signUpError,
@@ -108,6 +114,8 @@ class AuthState extends Equatable {
       signUpEmail: signUpEmail ?? this.signUpEmail,
       signUpPassword: signUpPassword ?? this.signUpPassword,
       profileImage: profileImage ?? this.profileImage,
+      accountType: accountType ?? this.accountType,
+      roles: roles ?? this.roles,
       termsAccepted: termsAccepted ?? this.termsAccepted,
       isSignUpSuccess: isSignUpSuccess ?? this.isSignUpSuccess,
       signUpError: signUpError ?? this.signUpError,
@@ -140,6 +148,8 @@ class AuthState extends Equatable {
     signUpEmail,
     signUpPassword,
     profileImage,
+    accountType,
+    roles,
     termsAccepted,
     isSignUpSuccess,
     signUpError,

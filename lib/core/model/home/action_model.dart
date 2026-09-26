@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:equatable/equatable.dart';
+import 'package:worth_network/core/model/home/evidence_model.dart';
 
 enum ValidationStatus {
   declared,
@@ -20,6 +21,7 @@ class ActionModel extends Equatable {
   final String? proofType;
   final String? proofUrl;
   final String? textProof;
+  final List<EvidenceModel> evidences;
   final ValidationStatus validationStatus;
   final String? validatorId;
   final String? validatorUsername;
@@ -43,6 +45,7 @@ class ActionModel extends Equatable {
     this.proofType,
     this.proofUrl,
     this.textProof,
+    this.evidences = const [],
     required this.validationStatus,
     this.validatorId,
     this.validatorUsername,
@@ -67,6 +70,7 @@ class ActionModel extends Equatable {
     String? proofType,
     String? proofUrl,
     String? textProof,
+    List<EvidenceModel>? evidences,
     ValidationStatus? validationStatus,
     String? validatorId,
     String? validatorUsername,
@@ -90,6 +94,7 @@ class ActionModel extends Equatable {
       proofType: proofType ?? this.proofType,
       proofUrl: proofUrl ?? this.proofUrl,
       textProof: textProof ?? this.textProof,
+      evidences: evidences ?? this.evidences,
       validationStatus: validationStatus ?? this.validationStatus,
       validatorId: validatorId ?? this.validatorId,
       validatorUsername: validatorUsername ?? this.validatorUsername,
@@ -116,6 +121,7 @@ class ActionModel extends Equatable {
       'proofType': proofType,
       'proofUrl': proofUrl,
       'textProof': textProof,
+      'evidences': evidences.map((e) => e.toMap()).toList(),
       'validationStatus': validationStatus.name,
       'validatorId': validatorId,
       'validatorUsername': validatorUsername,
@@ -159,6 +165,26 @@ class ActionModel extends Equatable {
       createdDate = DateTime.tryParse(map['createdAt']) ?? DateTime.now();
     }
 
+    // Parse evidences array or synthesize fallback from legacy fields
+    List<EvidenceModel> evidenceList = [];
+    if (map['evidences'] is List && (map['evidences'] as List).isNotEmpty) {
+      evidenceList = (map['evidences'] as List)
+          .map((e) => EvidenceModel.fromMap(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    } else {
+      final legacyType = map['proofType'] as String?;
+      final legacyUrl = map['proofUrl'] as String?;
+      final legacyText = map['textProof'] as String?;
+
+      if (legacyType != null || (legacyText != null && legacyText.isNotEmpty)) {
+        evidenceList.add(EvidenceModel(
+          type: legacyType ?? 'text',
+          url: legacyUrl,
+          text: legacyText,
+        ));
+      }
+    }
+
     return ActionModel(
       id: docId,
       userId: map['userId'] ?? '',
@@ -170,6 +196,7 @@ class ActionModel extends Equatable {
       proofType: map['proofType'],
       proofUrl: map['proofUrl'],
       textProof: map['textProof'],
+      evidences: evidenceList,
       validationStatus: status,
       validatorId: map['validatorId'],
       validatorUsername: map['validatorUsername'],
@@ -196,6 +223,7 @@ class ActionModel extends Equatable {
         proofType,
         proofUrl,
         textProof,
+        evidences,
         validationStatus,
         validatorId,
         validatorUsername,

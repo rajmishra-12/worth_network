@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
+import 'package:worth_network/core/constants/profile_constants.dart';
 import 'package:worth_network/core/model/home/action_model.dart';
 import 'package:worth_network/core/model/profile/profile_model.dart';
 import 'package:worth_network/core/repo/action_repo.dart';
@@ -11,7 +12,9 @@ import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
 import 'package:worth_network/core/utils/app_localizations.dart';
+import 'package:worth_network/core/repo/follow_repo.dart';
 import 'package:worth_network/pages/home/widgets/action_cards.dart';
+import 'package:worth_network/pages/network/widgets/follow_button.dart';
 import 'package:worth_network/pages/profile/widgets/badge_section.dart';
 import 'package:worth_network/pages/profile/widgets/stats_card.dart';
 
@@ -39,6 +42,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   String _username = '';
   String _bio = '';
   String? _avatarUrl;
+  String? _accountType;
+  List<String> _roles = [];
 
   int _totalActions = 0;
   int _validatedCount = 0;
@@ -71,6 +76,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
         _username = data['username'] ?? '';
         _bio = data['bio'] ?? '';
         _avatarUrl = data['avatarUrl'] ?? _avatarUrl;
+        _accountType = data['accountType'] as String?;
+        _roles = (data['roles'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
         _score = data['score'] ?? 0;
         _level = data['level'] ?? 1;
         _xp = data['xp'] ?? 0;
@@ -182,6 +189,14 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
               _username.isNotEmpty ? '@$_username' : _name,
               style: CustomTextStyle.size18W600(color: AppColors.white100),
             ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Center(
+                  child: FollowButton(targetUserId: widget.userId),
+                ),
+              ),
+            ],
           ),
           body: _isLoading
               ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
@@ -243,6 +258,132 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                                 style: CustomTextStyle.size14W400(color: AppColors.grey400),
                                 textAlign: TextAlign.center,
                               ),
+
+                            // Account Type Badge
+                            if (_accountType != null && _accountType!.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Builder(builder: (context) {
+                                final accType = ProfileConstants.getAccountType(_accountType);
+                                if (accType == null) return const SizedBox.shrink();
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(AppSize.radiusM),
+                                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(accType.icon, size: 13, color: AppColors.primary),
+                                      const SizedBox(width: 5),
+                                      Text(
+                                        accType.label,
+                                        style: CustomTextStyle.size12W500(color: AppColors.primary),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                            ],
+
+                            // Roles & Domains Tags
+                            if (_roles.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Wrap(
+                                alignment: WrapAlignment.center,
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: _roles.map((rKey) {
+                                  final rOption = ProfileConstants.getRole(rKey);
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.grey800,
+                                      borderRadius: BorderRadius.circular(AppSize.radiusS),
+                                      border: Border.all(color: AppColors.grey700),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(rOption.icon, size: 12, color: AppColors.white100),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          rOption.label,
+                                          style: CustomTextStyle.size11W400(color: AppColors.white100),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                            const SizedBox(height: AppSize.spacingM),
+
+                            // Followers & Following Metrics Row
+                            StreamBuilder<Map<String, int>>(
+                              stream: FollowRepository().getUserMetricsStream(widget.userId),
+                              builder: (context, snapshot) {
+                                final metrics = snapshot.data;
+                                final followersCount = metrics?['followers'] ?? 0;
+                                final followingCount = metrics?['following'] ?? 0;
+
+                                return Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    GestureDetector(
+                                      onTap: () {
+                                        context.push('/user-connections', extra: {
+                                          'userId': widget.userId,
+                                          'userName': _name,
+                                          'initialTabIndex': 0,
+                                        });
+                                      },
+                                      child: Column(
+                                        children: [
+                                          Text(
+                                            '$followersCount',
+                                            style: CustomTextStyle.size16W600(color: AppColors.white100),
+                                          ),
+                                          Text(
+                                            loc.translate('followers_count'),
+                                            style: CustomTextStyle.size12W400(color: AppColors.grey400),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: AppSize.spacingXL),
+                                    Container(
+                                      height: 24,
+                                      width: 1,
+                                      color: AppColors.grey800,
+                                    ),
+                                    const SizedBox(width: AppSize.spacingXL),
+                                    GestureDetector(
+                                      onTap: () {
+                                        context.push('/user-connections', extra: {
+                                          'userId': widget.userId,
+                                          'userName': _name,
+                                          'initialTabIndex': 1,
+                                        });
+                                      },
+                                      child: Column(
+                                        children: [
+                                          Text(
+                                            '$followingCount',
+                                            style: CustomTextStyle.size16W600(color: AppColors.white100),
+                                          ),
+                                          Text(
+                                            loc.translate('following_count'),
+                                            style: CustomTextStyle.size12W400(color: AppColors.grey400),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
                           ],
                         ),
                       ),

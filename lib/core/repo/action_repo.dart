@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:worth_network/core/model/home/action_model.dart';
+import 'package:worth_network/core/model/home/evidence_model.dart';
 import 'package:worth_network/core/utils/preferences.dart';
 import 'package:worth_network/core/services/notification_service.dart';
 
@@ -118,6 +119,7 @@ class ActionRepository {
     String? proofType,
     File? proofFile,
     String? textProof,
+    List<EvidenceModel>? evidences,
     Map<String, dynamic>? selectedValidator,
   }) async {
     final user = _auth.currentUser;
@@ -146,12 +148,34 @@ class ActionRepository {
     final docRef = _firestore.collection('actions').doc();
     final actionId = docRef.id;
 
-    String? proofUrl;
-    if (proofFile != null) {
-      proofUrl = await uploadProofFile(proofFile, actionId);
+    // Process multi-evidence list if provided
+    final List<EvidenceModel> processedEvidences = [];
+    if (evidences != null && evidences.isNotEmpty) {
+      for (final item in evidences) {
+        if (item.localFile != null) {
+          final uploadedUrl = await uploadProofFile(item.localFile!, actionId);
+          processedEvidences.add(item.copyWith(url: uploadedUrl));
+        } else {
+          processedEvidences.add(item);
+        }
+      }
+    } else {
+      // Legacy single proof fallback
+      String? proofUrl;
+      if (proofFile != null) {
+        proofUrl = await uploadProofFile(proofFile, actionId);
+      }
+      if (proofType != null || proofUrl != null || (textProof != null && textProof.isNotEmpty)) {
+        processedEvidences.add(EvidenceModel(
+          type: proofType ?? 'text',
+          url: proofUrl,
+          text: textProof,
+        ));
+      }
     }
 
     final hasValidator = selectedValidator != null && selectedValidator['uid'] != null;
+    final firstEvidence = processedEvidences.isNotEmpty ? processedEvidences.first : null;
 
     final actionData = <String, dynamic>{
       'id': actionId,
@@ -161,9 +185,10 @@ class ActionRepository {
       'title': title.trim(),
       'description': description.trim(),
       'category': category,
-      'proofType': proofType,
-      'proofUrl': proofUrl,
-      'textProof': textProof,
+      'proofType': firstEvidence?.type ?? proofType,
+      'proofUrl': firstEvidence?.url ?? proofFile?.path,
+      'textProof': firstEvidence?.text ?? textProof,
+      'evidences': processedEvidences.map((e) => e.toMap()).toList(),
       'validationStatus': hasValidator ? 'pending' : 'declared',
       'validatorId': selectedValidator?['uid'],
       'validatorUsername': selectedValidator?['username'],
@@ -210,16 +235,324 @@ class ActionRepository {
 
 
 
-  /// Real-time stream of all public actions for Home Feed
+  /// Real-time discovery stream for For You feed (all eligible community actions, chronological order)
+  Stream<List<ActionModel>> getForYouFeedStream() {
+    return getFeedStream().map((actions) {
+      // Deduplicate actions by ID while preserving chronological ordering
+      final Set<String> seenIds = {};
+      final List<ActionModel> dedupedActions = [];
+
+      for (final action in actions) {
+        if (!seenIds.contains(action.id)) {
+          seenIds.add(action.id);
+          dedupedActions.add(action);
+        }
+      }
+
+      return dedupedActions;
+    });
+  }
+
+  /// Paginated fetch for For You feed (10 items per page)
+  Future<Map<String, dynamic>> getForYouFeedPage({
+    int limit = 10,
+    DocumentSnapshot? lastDoc,
+  }) async {
+    try {
+      Query query = _firestore
+          .collection('actions')
+          .orderBy('createdAt', descending: true);
+
+      if (lastDoc != null) {
+        query = query.startAfterDocument(lastDoc);
+      }
+
+      final snap = await query.limit(limit).get();
+      if (snap.docs.isEmpty) {
+        return {
+          'actions': <ActionModel>[],
+          'lastDoc': null,
+          'hasMore': false,
+        };
+      }
+
+      final uids = snap.docs
+          .map((doc) => (doc.data() as Map<String, dynamic>)['userId'] as String?)
+          .where((id) => id != null && id.isNotEmpty)
+          .cast<String>()
+          .toSet();
+
+      final Map<String, Map<String, dynamic>> userProfiles = {};
+      for (final uid in uids) {
+        try {
+          final userDoc = await _firestore.collection('users').doc(uid).get();
+          if (userDoc.exists && userDoc.data() != null) {
+            userProfiles[uid] = userDoc.data()!;
+          }
+        } catch (_) {}
+      }
+
+      final actions = snap.docs.map((doc) {
+        final data = Map<String, dynamic>.from(doc.data() as Map<String, dynamic>);
+        final uid = data['userId'] as String?;
+        final userProfile = uid != null ? userProfiles[uid] : null;
+
+        if (userProfile != null) {
+          final liveAvatar = userProfile['avatarUrl'] as String?;
+          final liveName = userProfile['name'] as String?;
+          if (liveAvatar != null && liveAvatar.isNotEmpty) data['userAvatar'] = liveAvatar;
+          if (liveName != null && liveName.isNotEmpty) data['userName'] = liveName;
+        }
+
+        return ActionModel.fromMap(data, doc.id, currentUserId: currentUserId);
+      }).toList();
+
+      return {
+        'actions': actions,
+        'lastDoc': snap.docs.last,
+        'hasMore': snap.docs.length >= limit,
+      };
+    } catch (e) {
+      print('Error getting For You feed page: $e');
+      rethrow;
+    }
+  }
+
+  /// Paginated fetch for Following feed (10 items per page)
+  Future<Map<String, dynamic>> getFollowingFeedPage({
+    int limit = 10,
+    DocumentSnapshot? lastDoc,
+  }) async {
+    final uid = currentUserId;
+    if (uid == null || uid.isEmpty) {
+      return {
+        'actions': <ActionModel>[],
+        'lastDoc': null,
+        'hasMore': false,
+        'isFollowingNobody': true,
+      };
+    }
+
+    try {
+      final userDoc = await _firestore.collection('users').doc(uid).get();
+      if (!userDoc.exists) {
+        return {
+          'actions': <ActionModel>[],
+          'lastDoc': null,
+          'hasMore': false,
+          'isFollowingNobody': true,
+        };
+      }
+
+      final followingIds = (userDoc.data()?['following'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .where((id) => id.isNotEmpty)
+              .toList() ??
+          [];
+
+      if (followingIds.isEmpty) {
+        return {
+          'actions': <ActionModel>[],
+          'lastDoc': null,
+          'hasMore': false,
+          'isFollowingNobody': true,
+        };
+      }
+
+      Query query = _firestore
+          .collection('actions')
+          .orderBy('createdAt', descending: true);
+
+      if (lastDoc != null) {
+        query = query.startAfterDocument(lastDoc);
+      }
+
+      final snap = await query.limit(limit * 3).get();
+      if (snap.docs.isEmpty) {
+        return {
+          'actions': <ActionModel>[],
+          'lastDoc': null,
+          'hasMore': false,
+          'isFollowingNobody': false,
+        };
+      }
+
+      final filteredDocs = snap.docs.where((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        final authorId = data['userId'] as String?;
+        return authorId != null && followingIds.contains(authorId);
+      }).take(limit).toList();
+
+      if (filteredDocs.isEmpty) {
+        return {
+          'actions': <ActionModel>[],
+          'lastDoc': snap.docs.last,
+          'hasMore': snap.docs.length >= (limit * 3),
+          'isFollowingNobody': false,
+        };
+      }
+
+      final authorIds = filteredDocs
+          .map((doc) => (doc.data() as Map<String, dynamic>)['userId'] as String?)
+          .where((id) => id != null && id.isNotEmpty)
+          .cast<String>()
+          .toSet();
+
+      final Map<String, Map<String, dynamic>> userProfiles = {};
+      for (final authorId in authorIds) {
+        try {
+          final uDoc = await _firestore.collection('users').doc(authorId).get();
+          if (uDoc.exists && uDoc.data() != null) {
+            userProfiles[authorId] = uDoc.data()!;
+          }
+        } catch (_) {}
+      }
+
+      final actions = filteredDocs.map((doc) {
+        final data = Map<String, dynamic>.from(doc.data() as Map<String, dynamic>);
+        final authorId = data['userId'] as String?;
+        final uProfile = authorId != null ? userProfiles[authorId] : null;
+
+        if (uProfile != null) {
+          final liveAvatar = uProfile['avatarUrl'] as String?;
+          final liveName = uProfile['name'] as String?;
+          if (liveAvatar != null && liveAvatar.isNotEmpty) data['userAvatar'] = liveAvatar;
+          if (liveName != null && liveName.isNotEmpty) data['userName'] = liveName;
+        }
+
+        return ActionModel.fromMap(data, doc.id, currentUserId: uid);
+      }).toList();
+
+      return {
+        'actions': actions,
+        'lastDoc': filteredDocs.last,
+        'hasMore': snap.docs.length >= (limit * 3),
+        'isFollowingNobody': false,
+      };
+    } catch (e) {
+      print('Error getting Following feed page: $e');
+      rethrow;
+    }
+  }
+
+  /// Real-time stream of all public actions for Home Feed with dynamic live user profile data
   Stream<List<ActionModel>> getFeedStream() {
     return _firestore
         .collection('actions')
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) {
+        .asyncMap((snapshot) async {
+      // 1. Collect unique author IDs from actions
+      final uids = snapshot.docs
+          .map((doc) => doc.data()['userId'] as String?)
+          .where((id) => id != null && id.isNotEmpty)
+          .cast<String>()
+          .toSet();
+
+      // 2. Fetch live user profile docs from 'users' collection
+      final Map<String, Map<String, dynamic>> userProfiles = {};
+      for (final uid in uids) {
+        try {
+          final userDoc = await _firestore.collection('users').doc(uid).get();
+          if (userDoc.exists && userDoc.data() != null) {
+            userProfiles[uid] = userDoc.data()!;
+          }
+        } catch (e) {
+          print('Warning: Failed to fetch user profile for $uid in feed stream: $e');
+        }
+      }
+
+      // 3. Construct actions with live user avatar & name
       return snapshot.docs.map((doc) {
-        return ActionModel.fromMap(doc.data(), doc.id, currentUserId: currentUserId);
+        final data = Map<String, dynamic>.from(doc.data());
+        final uid = data['userId'] as String?;
+        final userProfile = uid != null ? userProfiles[uid] : null;
+
+        if (userProfile != null) {
+          final liveAvatar = userProfile['avatarUrl'] as String?;
+          final liveName = userProfile['name'] as String?;
+          if (liveAvatar != null && liveAvatar.isNotEmpty) {
+            data['userAvatar'] = liveAvatar;
+          }
+          if (liveName != null && liveName.isNotEmpty) {
+            data['userName'] = liveName;
+          }
+        }
+
+        return ActionModel.fromMap(data, doc.id, currentUserId: currentUserId);
       }).toList();
+    });
+  }
+
+  /// Real-time stream of actions from followed users only with dynamic live profile updates
+  Stream<List<ActionModel>> getFollowingFeedStream() {
+    final uid = currentUserId;
+    if (uid == null || uid.isEmpty) {
+      return Stream.value([]);
+    }
+
+    return _firestore
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .asyncExpand((userSnap) {
+      if (!userSnap.exists) return Stream.value(<ActionModel>[]);
+
+      final followingIds = (userSnap.data()?['following'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .where((id) => id.isNotEmpty)
+              .toList() ??
+          [];
+
+      if (followingIds.isEmpty) {
+        return Stream.value(<ActionModel>[]);
+      }
+
+      return _firestore
+          .collection('actions')
+          .orderBy('createdAt', descending: true)
+          .snapshots()
+          .asyncMap((actionsSnap) async {
+        final filteredDocs = actionsSnap.docs.where((doc) {
+          final authorId = doc.data()['userId'] as String?;
+          return authorId != null && followingIds.contains(authorId);
+        }).toList();
+
+        if (filteredDocs.isEmpty) return <ActionModel>[];
+
+        final authorIds = filteredDocs
+            .map((doc) => doc.data()['userId'] as String?)
+            .where((id) => id != null && id.isNotEmpty)
+            .cast<String>()
+            .toSet();
+
+        final Map<String, Map<String, dynamic>> userProfiles = {};
+        for (final authorId in authorIds) {
+          try {
+            final uDoc = await _firestore.collection('users').doc(authorId).get();
+            if (uDoc.exists && uDoc.data() != null) {
+              userProfiles[authorId] = uDoc.data()!;
+            }
+          } catch (e) {
+            print('Warning: Failed to fetch user profile for $authorId: $e');
+          }
+        }
+
+        return filteredDocs.map((doc) {
+          final data = Map<String, dynamic>.from(doc.data());
+          final authorId = data['userId'] as String?;
+          final uProfile = authorId != null ? userProfiles[authorId] : null;
+
+          if (uProfile != null) {
+            final liveAvatar = uProfile['avatarUrl'] as String?;
+            final liveName = uProfile['name'] as String?;
+            if (liveAvatar != null && liveAvatar.isNotEmpty) data['userAvatar'] = liveAvatar;
+            if (liveName != null && liveName.isNotEmpty) data['userName'] = liveName;
+          }
+
+          return ActionModel.fromMap(data, doc.id, currentUserId: uid);
+        }).toList();
+      });
     });
   }
 
@@ -240,20 +573,37 @@ class ActionRepository {
     await docRef.delete();
   }
 
-  /// Real-time stream of a single action document
-
+  /// Real-time stream of a single action document with live user profile data
   Stream<ActionModel?> getActionStream(String actionId) {
     return _firestore
         .collection('actions')
         .doc(actionId)
         .snapshots()
-        .map((snapshot) {
+        .asyncMap((snapshot) async {
       if (!snapshot.exists || snapshot.data() == null) return null;
-      return ActionModel.fromMap(snapshot.data()!, snapshot.id, currentUserId: currentUserId);
+      final data = Map<String, dynamic>.from(snapshot.data()!);
+      final uid = data['userId'] as String?;
+
+      if (uid != null && uid.isNotEmpty) {
+        try {
+          final userDoc = await _firestore.collection('users').doc(uid).get();
+          if (userDoc.exists && userDoc.data() != null) {
+            final uData = userDoc.data()!;
+            final liveAvatar = uData['avatarUrl'] as String?;
+            final liveName = uData['name'] as String?;
+            if (liveAvatar != null && liveAvatar.isNotEmpty) data['userAvatar'] = liveAvatar;
+            if (liveName != null && liveName.isNotEmpty) data['userName'] = liveName;
+          }
+        } catch (e) {
+          print('Warning: Failed to fetch user profile for action details stream: $e');
+        }
+      }
+
+      return ActionModel.fromMap(data, snapshot.id, currentUserId: currentUserId);
     });
   }
 
-  /// Real-time stream of actions where current user is validator
+  /// Real-time stream of actions where current user is validator with live user profile data
   Stream<List<ActionModel>> getPendingValidationsStream() {
     final uid = currentUserId;
     if (uid == null) return const Stream.empty();
@@ -262,11 +612,37 @@ class ActionRepository {
         .collection('actions')
         .where('validatorId', isEqualTo: uid)
         .snapshots()
-        .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => ActionModel.fromMap(doc.data(), doc.id, currentUserId: uid))
-          .where((action) => action.validationStatus == ValidationStatus.pending)
-          .toList();
+        .asyncMap((snapshot) async {
+      final uids = snapshot.docs
+          .map((doc) => doc.data()['userId'] as String?)
+          .where((id) => id != null && id.isNotEmpty)
+          .cast<String>()
+          .toSet();
+
+      final Map<String, Map<String, dynamic>> userProfiles = {};
+      for (final id in uids) {
+        try {
+          final uDoc = await _firestore.collection('users').doc(id).get();
+          if (uDoc.exists && uDoc.data() != null) {
+            userProfiles[id] = uDoc.data()!;
+          }
+        } catch (_) {}
+      }
+
+      return snapshot.docs.map((doc) {
+        final data = Map<String, dynamic>.from(doc.data());
+        final publisherId = data['userId'] as String?;
+        final uProfile = publisherId != null ? userProfiles[publisherId] : null;
+
+        if (uProfile != null) {
+          final liveAvatar = uProfile['avatarUrl'] as String?;
+          final liveName = uProfile['name'] as String?;
+          if (liveAvatar != null && liveAvatar.isNotEmpty) data['userAvatar'] = liveAvatar;
+          if (liveName != null && liveName.isNotEmpty) data['userName'] = liveName;
+        }
+
+        return ActionModel.fromMap(data, doc.id, currentUserId: uid);
+      }).where((action) => action.validationStatus == ValidationStatus.pending).toList();
     });
   }
 

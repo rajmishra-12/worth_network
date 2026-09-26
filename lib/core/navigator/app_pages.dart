@@ -16,6 +16,8 @@ import 'package:worth_network/pages/profile/presentation/user_detail_page.dart';
 import 'package:worth_network/pages/authentication/presentation/forget_password_page.dart';
 import 'package:worth_network/core/model/home/action_model.dart';
 
+import 'package:worth_network/pages/network/presentation/user_connections_page.dart';
+
 part 'app_router.dart';
 
 class Pages {
@@ -100,6 +102,18 @@ class Pages {
             userId: args['userId'],
             initialName: args['userName'],
             initialAvatar: args['userAvatar'],
+          );
+        },
+      ),
+      GoRoute(
+        path: '/user-connections',
+        name: 'user-connections',
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>;
+          return UserConnectionsScreen(
+            userId: args['userId'],
+            userName: args['userName'],
+            initialTabIndex: args['initialTabIndex'] ?? 0,
           );
         },
       ),

@@ -92,6 +92,14 @@ class AuthCubit extends Cubit<AuthState> {
     emit(state.copyWith(signUpPassword: password, signUpPasswordError: '', signUpError: null));
   }
 
+  void updateAccountType(String? accountType) {
+    emit(state.copyWith(accountType: accountType));
+  }
+
+  void updateRoles(List<String> roles) {
+    emit(state.copyWith(roles: roles));
+  }
+
   void updateProfileImage(File? image) {
     emit(state.copyWith(profileImage: image));
   }
@@ -200,6 +208,8 @@ class AuthCubit extends Cubit<AuthState> {
         username: state.signUpUsername,
         email: state.signUpEmail,
         password: state.signUpPassword,
+        accountType: state.accountType,
+        roles: state.roles,
         profileImage: state.profileImage,
       );
       

@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:metadata_fetch/metadata_fetch.dart';
+import 'package:worth_network/core/model/home/evidence_model.dart';
 import 'package:worth_network/core/repo/action_repo.dart';
 
 part 'add_action_state.dart';
 
-enum EvidenceType { photo, document, audio, text, none }
+enum EvidenceType { photo, document, audio, text, link, none }
 
 class AddActionCubit extends Cubit<AddActionState> {
   final ActionRepository _repository;
@@ -60,18 +62,81 @@ class AddActionCubit extends Cubit<AddActionState> {
   }
 
   void addEvidence(EvidenceType type, File file) {
+    String typeStr = 'photo';
+    if (type == EvidenceType.document) typeStr = 'document';
+    if (type == EvidenceType.audio) typeStr = 'audio';
+
+    final newItem = EvidenceModel(
+      type: typeStr,
+      localFile: file,
+    );
+
+    final updated = List<EvidenceModel>.from(state.evidences)..add(newItem);
     emit(state.copyWith(
       evidenceType: type,
       evidenceFile: file,
-      textProof: null,
+      evidences: updated,
     ));
   }
 
   void addTextProof(String text) {
+    if (text.trim().isEmpty) return;
+    final newItem = EvidenceModel(
+      type: 'text',
+      text: text.trim(),
+    );
+    final updated = List<EvidenceModel>.from(state.evidences)..add(newItem);
     emit(state.copyWith(
       evidenceType: EvidenceType.text,
       textProof: text,
-      evidenceFile: null,
+      evidences: updated,
+    ));
+  }
+
+  Future<void> addLinkEvidence(String linkUrl) async {
+    final cleanUrl = linkUrl.trim();
+    if (cleanUrl.isEmpty) return;
+    String formattedUrl = cleanUrl;
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      formattedUrl = 'https://$cleanUrl';
+    }
+
+    String? title;
+    String? imageUrl;
+    String? description;
+
+    try {
+      final metadata = await MetadataFetch.extract(formattedUrl);
+      if (metadata != null) {
+        title = metadata.title;
+        imageUrl = metadata.image;
+        description = metadata.description;
+      }
+    } catch (e) {
+      print('Warning: Metadata fetch error for link $formattedUrl: $e');
+    }
+
+    final newItem = EvidenceModel(
+      type: 'link',
+      url: formattedUrl,
+      title: title ?? formattedUrl,
+      imageUrl: imageUrl,
+      description: description,
+    );
+
+    final updated = List<EvidenceModel>.from(state.evidences)..add(newItem);
+    emit(state.copyWith(
+      evidenceType: EvidenceType.link,
+      evidences: updated,
+    ));
+  }
+
+  void removeEvidenceAt(int index) {
+    if (index < 0 || index >= state.evidences.length) return;
+    final updated = List<EvidenceModel>.from(state.evidences)..removeAt(index);
+    emit(state.copyWith(
+      evidences: updated,
+      evidenceType: updated.isEmpty ? EvidenceType.none : state.evidenceType,
     ));
   }
 
@@ -80,6 +145,7 @@ class AddActionCubit extends Cubit<AddActionState> {
       evidenceType: EvidenceType.none,
       evidenceFile: null,
       textProof: null,
+      evidences: const [],
     ));
   }
 
@@ -110,6 +176,9 @@ class AddActionCubit extends Cubit<AddActionState> {
         case EvidenceType.text:
           proofType = 'text';
           break;
+        case EvidenceType.link:
+          proofType = 'link';
+          break;
         case EvidenceType.none:
           proofType = null;
           break;
@@ -122,6 +191,7 @@ class AddActionCubit extends Cubit<AddActionState> {
         proofType: proofType,
         proofFile: state.evidenceFile,
         textProof: state.textProof,
+        evidences: state.evidences,
         selectedValidator: state.selectedValidator,
       );
 

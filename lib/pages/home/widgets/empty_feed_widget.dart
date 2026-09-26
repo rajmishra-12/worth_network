@@ -180,8 +180,8 @@ class ValidationBadge extends StatelessWidget {
 
         return Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppSize.paddingS,
-            vertical: AppSize.paddingXS,
+            horizontal: 6,
+            vertical: 2,
           ),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.15),
@@ -192,10 +192,14 @@ class ValidationBadge extends StatelessWidget {
             children: [
               Icon(icon, size: 12, color: color),
               const SizedBox(width: 4),
-              Text(
-                loc.translate(labelKey),
-                style: CustomTextStyle.size14W500(
-                  color: color,
+              Flexible(
+                child: Text(
+                  loc.translate(labelKey),
+                  style: CustomTextStyle.size11W600(
+                    color: color,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],

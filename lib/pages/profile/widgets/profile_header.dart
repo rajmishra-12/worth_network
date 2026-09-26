@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
+import 'package:worth_network/core/constants/profile_constants.dart';
 import 'package:worth_network/core/model/profile/profile_model.dart';
+import 'package:worth_network/core/repo/follow_repo.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
+import 'package:worth_network/core/utils/app_localizations.dart';
 
 class ProfileHeader extends StatelessWidget {
   final ProfileModel profile;
@@ -95,6 +100,137 @@ class ProfileHeader extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ],
+
+          // Account Type Badge
+          if (profile.accountType != null && profile.accountType!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Builder(builder: (context) {
+              final accType = ProfileConstants.getAccountType(profile.accountType);
+              if (accType == null) return const SizedBox.shrink();
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(AppSize.radiusM),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(accType.icon, size: 13, color: AppColors.primary),
+                    const SizedBox(width: 5),
+                    Text(
+                      accType.label,
+                      style: CustomTextStyle.size12W500(color: AppColors.primary),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+
+          // Roles & Domains Tags
+          if (profile.roles.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 6,
+              runSpacing: 6,
+              children: profile.roles.map((rKey) {
+                final rOption = ProfileConstants.getRole(rKey);
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.grey800,
+                    borderRadius: BorderRadius.circular(AppSize.radiusS),
+                    border: Border.all(color: AppColors.grey700),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(rOption.icon, size: 12, color: AppColors.white100),
+                      const SizedBox(width: 4),
+                      Text(
+                        rOption.label,
+                        style: CustomTextStyle.size11W400(color: AppColors.white100),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+          const SizedBox(height: AppSize.spacingM),
+
+          // Followers & Following Metrics Row
+          StreamBuilder<Map<String, int>>(
+            stream: FollowRepository().getUserMetricsStream(profile.id),
+            builder: (context, snapshot) {
+              final metrics = snapshot.data;
+              final followersCount = metrics?['followers'] ?? profile.followersCount;
+              final followingCount = metrics?['following'] ?? profile.followingCount;
+
+              return BlocBuilder<LocaleCubit, String>(
+                builder: (context, localeCode) {
+                  final loc = AppLocalizations(localeCode);
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          context.push('/user-connections', extra: {
+                            'userId': profile.id,
+                            'userName': profile.name,
+                            'initialTabIndex': 0,
+                          });
+                        },
+                        child: Column(
+                          children: [
+                            Text(
+                              '$followersCount',
+                              style: CustomTextStyle.size16W600(color: AppColors.white100),
+                            ),
+                            Text(
+                              loc.translate('followers_count'),
+                              style: CustomTextStyle.size12W400(color: AppColors.grey400),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: AppSize.spacingXL),
+                      Container(
+                        height: 24,
+                        width: 1,
+                        color: AppColors.grey800,
+                      ),
+                      const SizedBox(width: AppSize.spacingXL),
+                      GestureDetector(
+                        onTap: () {
+                          context.push('/user-connections', extra: {
+                            'userId': profile.id,
+                            'userName': profile.name,
+                            'initialTabIndex': 1,
+                          });
+                        },
+                        child: Column(
+                          children: [
+                            Text(
+                              '$followingCount',
+                              style: CustomTextStyle.size16W600(color: AppColors.white100),
+                            ),
+                            Text(
+                              loc.translate('following_count'),
+                              style: CustomTextStyle.size12W400(color: AppColors.grey400),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
           const SizedBox(height: AppSize.spacingM),
 
           // Edit Profile Button

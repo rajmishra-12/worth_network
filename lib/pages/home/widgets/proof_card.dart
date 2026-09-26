@@ -4,7 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
+import 'package:worth_network/core/model/home/evidence_model.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
@@ -12,11 +14,14 @@ import 'package:worth_network/core/utils/app_localizations.dart';
 import 'package:worth_network/pages/home/widgets/in_app_document_viewer.dart';
 
 class ProofCard extends StatelessWidget {
-  final String? proofType; // 'photo', 'image', 'document', 'audio', 'text'
+  final String? proofType; // 'photo', 'image', 'document', 'audio', 'text', 'link'
   final String? proofUrl;  // Remote URL or local path
   final File? localFile;   // Local File when uploading
   final String? textProof; // Text note content
+  final EvidenceModel? evidence; // Single EvidenceModel
+  final List<EvidenceModel>? evidences; // Multi-evidence items list
   final VoidCallback? onRemove; // Optional remove callback during upload
+  final Function(int index)? onRemoveAtIndex; // Optional index-based remove callback for carousel
 
   const ProofCard({
     super.key,
@@ -24,14 +29,35 @@ class ProofCard extends StatelessWidget {
     this.proofUrl,
     this.localFile,
     this.textProof,
+    this.evidence,
+    this.evidences,
     this.onRemove,
+    this.onRemoveAtIndex,
   });
 
   @override
   Widget build(BuildContext context) {
-    final type = proofType?.toLowerCase();
+    // If a list of evidence items is passed:
+    if (evidences != null && evidences!.isNotEmpty) {
+      if (evidences!.length == 1) {
+        return ProofCard(
+          evidence: evidences![0],
+          onRemove: onRemoveAtIndex != null ? () => onRemoveAtIndex!(0) : onRemove,
+        );
+      }
+      return _EvidenceCarousel(
+        evidences: evidences!,
+        onRemove: onRemove,
+        onRemoveAtIndex: onRemoveAtIndex,
+      );
+    }
 
-    if (type == null && localFile == null && (textProof == null || textProof!.isEmpty)) {
+    final type = (evidence?.type ?? proofType)?.toLowerCase();
+    final url = evidence?.url ?? proofUrl;
+    final file = evidence?.localFile ?? localFile;
+    final textContent = evidence?.text ?? textProof;
+
+    if (type == null && file == null && (textContent == null || textContent.isEmpty) && url == null) {
       return const SizedBox.shrink();
     }
 
@@ -89,23 +115,29 @@ class ProofCard extends StatelessWidget {
               // Content according to type
               if (type == 'photo' || type == 'image')
                 _ImageProofViewer(
-                  proofUrl: proofUrl,
-                  localFile: localFile,
+                  proofUrl: url,
+                  localFile: file,
                 )
               else if (type == 'document')
                 _DocumentProofViewer(
-                  proofUrl: proofUrl,
-                  localFile: localFile,
+                  proofUrl: url,
+                  localFile: file,
                   loc: loc,
                 )
               else if (type == 'audio')
                 _AudioProofPlayer(
-                  proofUrl: proofUrl,
-                  localFile: localFile,
+                  proofUrl: url,
+                  localFile: file,
                   loc: loc,
                 )
-              else if (type == 'text' || (textProof != null && textProof!.isNotEmpty))
-                _TextProofViewer(textProof: textProof),
+              else if (type == 'link')
+                _LinkProofViewer(
+                  evidence: evidence,
+                  fallbackUrl: url,
+                  loc: loc,
+                )
+              else if (type == 'text' || (textContent != null && textContent.isNotEmpty))
+                _TextProofViewer(textProof: textContent),
             ],
           ),
         );
@@ -122,6 +154,8 @@ class ProofCard extends StatelessWidget {
         return Icons.description_outlined;
       case 'audio':
         return Icons.mic_none_outlined;
+      case 'link':
+        return Icons.link_rounded;
       case 'text':
         return Icons.format_quote;
       default:
@@ -138,6 +172,8 @@ class ProofCard extends StatelessWidget {
         return loc.translate('proof_document');
       case 'audio':
         return loc.translate('proof_audio');
+      case 'link':
+        return 'Link Evidence';
       case 'text':
         return loc.translate('proof_text');
       default:
@@ -189,7 +225,7 @@ class _ImageProofViewer extends StatelessWidget {
           borderRadius: const BorderRadius.vertical(bottom: Radius.circular(AppSize.radiusL)),
           child: Image.file(
             localFile!,
-            height: 220,
+            height: 190,
             width: double.infinity,
             fit: BoxFit.cover,
           ),
@@ -204,14 +240,14 @@ class _ImageProofViewer extends StatelessWidget {
           borderRadius: const BorderRadius.vertical(bottom: Radius.circular(AppSize.radiusL)),
           child: CachedNetworkImage(
             imageUrl: proofUrl!,
-            height: 220,
+            height: 190,
             width: double.infinity,
             fit: BoxFit.cover,
             placeholder: (context, url) => Shimmer.fromColors(
               baseColor: AppColors.grey800,
               highlightColor: AppColors.grey700,
               child: Container(
-                height: 220,
+                height: 190,
                 width: double.infinity,
                 color: AppColors.grey800,
               ),
@@ -616,6 +652,267 @@ class _TextProofViewer extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ----------------------------------------------------------------------
+// Link Proof Viewer Widget with Preview Thumbnail & Browser Launcher
+// ----------------------------------------------------------------------
+class _LinkProofViewer extends StatelessWidget {
+  final EvidenceModel? evidence;
+  final String? fallbackUrl;
+  final AppLocalizations loc;
+
+  const _LinkProofViewer({
+    this.evidence,
+    this.fallbackUrl,
+    required this.loc,
+  });
+
+  Future<void> _launchUrl(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      print('Error launching URL $url: $e');
+    }
+  }
+
+  String _getDomain(String url) {
+    try {
+      final uri = Uri.parse(url);
+      return uri.host.replaceFirst('www.', '');
+    } catch (_) {
+      return url;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final targetUrl = evidence?.url ?? fallbackUrl;
+    if (targetUrl == null || targetUrl.isEmpty) return const SizedBox.shrink();
+
+    final title = evidence?.title ?? targetUrl;
+    final imageUrl = evidence?.imageUrl;
+    final description = evidence?.description;
+    final domain = _getDomain(targetUrl);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSize.paddingM, vertical: AppSize.paddingS),
+      child: GestureDetector(
+        onTap: () => _launchUrl(targetUrl),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.grey800,
+            borderRadius: BorderRadius.circular(AppSize.radiusM),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Preview Thumbnail Image if available
+              if (imageUrl != null && imageUrl.isNotEmpty)
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSize.radiusM)),
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    height: 120,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      height: 120,
+                      color: AppColors.grey900,
+                      child: const Center(
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => const SizedBox.shrink(),
+                  ),
+                ),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Site Domain Tag & Open Link Button Header Row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.language_rounded, size: 14, color: AppColors.primary),
+                            const SizedBox(width: 4),
+                            Text(
+                              domain,
+                              style: CustomTextStyle.size12W500(color: AppColors.primary),
+                            ),
+                          ],
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () => _launchUrl(targetUrl),
+                          icon: const Icon(Icons.open_in_new, size: 12),
+                          label: Text(
+                            'Open Link',
+                            style: CustomTextStyle.size11W600(color: AppColors.black100),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: AppColors.black100,
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+
+                    // Link Title
+                    Text(
+                      title,
+                      style: CustomTextStyle.size13W600(color: AppColors.white100),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                    // Link Description if present
+                    if (description != null && description.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        description,
+                        style: CustomTextStyle.size11W400(color: AppColors.grey400),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ----------------------------------------------------------------------
+// Horizontal Carousel Widget for Multiple Evidence Attachments
+// ----------------------------------------------------------------------
+class _EvidenceCarousel extends StatefulWidget {
+  final List<EvidenceModel> evidences;
+  final VoidCallback? onRemove;
+  final Function(int index)? onRemoveAtIndex;
+
+  const _EvidenceCarousel({
+    required this.evidences,
+    this.onRemove,
+    this.onRemoveAtIndex,
+  });
+
+  @override
+  State<_EvidenceCarousel> createState() => _EvidenceCarouselState();
+}
+
+class _EvidenceCarouselState extends State<_EvidenceCarousel> {
+  late final PageController _pageController;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: 295,
+          child: Stack(
+            children: [
+              PageView.builder(
+                controller: _pageController,
+                itemCount: widget.evidences.length,
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentPage = index;
+                  });
+                },
+                itemBuilder: (context, index) {
+                  final item = widget.evidences[index];
+                  final removeItem = widget.onRemoveAtIndex != null
+                      ? () => widget.onRemoveAtIndex!(index)
+                      : (widget.onRemove != null && index == 0 ? widget.onRemove : null);
+
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 2.0),
+                    child: ProofCard(
+                      evidence: item,
+                      onRemove: removeItem,
+                    ),
+                  );
+                },
+              ),
+              // Top-right counter badge (e.g., 1 / 2)
+              Positioned(
+                top: 14,
+                right: 14,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.grey700),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.collections_outlined, size: 13, color: AppColors.primary),
+                      const SizedBox(width: 5),
+                      Text(
+                        '${_currentPage + 1} / ${widget.evidences.length}',
+                        style: CustomTextStyle.size12W600(color: AppColors.white100),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        // Dots Indicator
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            widget.evidences.length,
+            (index) => AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: _currentPage == index ? 20 : 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: _currentPage == index ? AppColors.primary : AppColors.grey700,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

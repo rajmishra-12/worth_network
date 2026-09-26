@@ -548,6 +548,7 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
 
   Widget _buildEvidencePreview(ActionModel action) {
     return ProofCard(
+      evidences: action.evidences.isNotEmpty ? action.evidences : null,
       proofType: action.proofType,
       proofUrl: action.proofUrl,
       textProof: action.textProof,

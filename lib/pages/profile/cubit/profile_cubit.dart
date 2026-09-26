@@ -55,6 +55,7 @@ class ProfileCubit extends Cubit<ProfileState> {
                 id: doc.id,
                 userId: currentUser.uid,
                 userName: data['name'] ?? currentUser.displayName ?? 'User',
+                userAvatar: data['avatarUrl'],
                 title: actionData['title'] ?? '',
                 description: actionData['description'] ?? '',
                 category: actionData['category'] ?? 'Support',
@@ -139,6 +140,8 @@ class ProfileCubit extends Cubit<ProfileState> {
                 ? avatarUrlVal
                 : 'https://i.pravatar.cc/150?img=10',
             bio: data['bio'] ?? 'Building worth through real actions.',
+            accountType: data['accountType'] as String?,
+            roles: (data['roles'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
             score: userScore,
             level: userLevel,
             xp: data['xp'] ?? 0,

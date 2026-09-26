@@ -126,12 +126,14 @@ class ActionCard extends StatelessWidget {
                               children: [
                                 Text(
                                   _formatTimeAgo(action.createdAt, loc),
-                                  style: CustomTextStyle.size14W500(
-                                    color: AppColors.white100,
+                                  style: CustomTextStyle.size12W400(
+                                    color: AppColors.grey400,
                                   ),
                                 ),
                                 const SizedBox(width: AppSize.spacingS),
-                                ValidationBadge(status: action.validationStatus),
+                                Flexible(
+                                  child: ValidationBadge(status: action.validationStatus),
+                                ),
                               ],
                             ),
                           ],
@@ -229,12 +231,14 @@ class ActionCard extends StatelessWidget {
                   ),
                 ),
               ),
-              // Dynamic Proof Preview (Photo, Document, Audio, Text Note)
-              if ((action.proofUrl != null && action.proofUrl!.isNotEmpty) ||
+              // Dynamic Proof Preview (Photo, Document, Audio, Text Note, Link)
+              if (action.evidences.isNotEmpty ||
+                  (action.proofUrl != null && action.proofUrl!.isNotEmpty) ||
                   (action.textProof != null && action.textProof!.isNotEmpty))
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: AppSize.paddingM),
                   child: ProofCard(
+                    evidences: action.evidences.isNotEmpty ? action.evidences : null,
                     proofType: action.proofType,
                     proofUrl: action.proofUrl,
                     textProof: action.textProof,

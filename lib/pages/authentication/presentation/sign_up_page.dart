@@ -16,6 +16,7 @@ import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
 import 'package:worth_network/core/utils/app_localizations.dart';
+import 'package:worth_network/core/constants/profile_constants.dart';
 import 'package:worth_network/pages/authentication/cubit/auth_cubit.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -570,6 +571,135 @@ class _SignupScreenState extends State<SignupScreen> {
                               });
                             },
                           ),
+                        ),
+
+                        const SizedBox(height: AppSize.spacingL),
+
+                        // Account Type (Optional)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Account Type',
+                              style: CustomTextStyle.size14W500(
+                                color: AppColors.white100,
+                              ),
+                            ),
+                            Text(
+                              'Optional',
+                              style: CustomTextStyle.size12W400(
+                                color: AppColors.grey500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSize.spacingS),
+                        DropdownButtonFormField<String>(
+                          initialValue: state.accountType,
+                          dropdownColor: AppColors.grey900,
+                          style: CustomTextStyle.size14W400(color: AppColors.white100),
+                          decoration: InputDecoration(
+                            hintText: 'Select type (e.g. Particular, NGO, Business)',
+                            hintStyle: CustomTextStyle.size14W400(color: AppColors.grey500),
+                            filled: true,
+                            fillColor: AppColors.grey900,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(AppSize.radiusM),
+                              borderSide: const BorderSide(color: AppColors.grey800),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(AppSize.radiusM),
+                              borderSide: const BorderSide(color: AppColors.grey800),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(AppSize.radiusM),
+                              borderSide: const BorderSide(color: AppColors.primary),
+                            ),
+                          ),
+                          items: [
+                            const DropdownMenuItem<String>(
+                              value: null,
+                              child: Text('Not Specified', style: TextStyle(color: AppColors.grey500)),
+                            ),
+                            ...ProfileConstants.accountTypes.map(
+                              (type) => DropdownMenuItem<String>(
+                                value: type.key,
+                                child: Row(
+                                  children: [
+                                    Icon(type.icon, size: 18, color: AppColors.primary),
+                                    const SizedBox(width: 8),
+                                    Text(type.label, style: const TextStyle(color: AppColors.white100)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                          onChanged: (val) {
+                            authCubit.updateAccountType(val);
+                          },
+                        ),
+
+                        const SizedBox(height: AppSize.spacingL),
+
+                        // Roles & Domains (Optional Multi-select)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Roles & Domains',
+                              style: CustomTextStyle.size14W500(
+                                color: AppColors.white100,
+                              ),
+                            ),
+                            Text(
+                              'Optional (Multi-select)',
+                              style: CustomTextStyle.size12W400(
+                                color: AppColors.grey500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSize.spacingS),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: ProfileConstants.roles.map((role) {
+                            final isSelected = state.roles.contains(role.key);
+                            return FilterChip(
+                              label: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    role.icon,
+                                    size: 15,
+                                    color: isSelected ? AppColors.black100 : AppColors.primary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(role.label),
+                                ],
+                              ),
+                              selected: isSelected,
+                              selectedColor: AppColors.primary,
+                              backgroundColor: AppColors.grey900,
+                              checkmarkColor: AppColors.black100,
+                              labelStyle: CustomTextStyle.size12W500(
+                                color: isSelected ? AppColors.black100 : AppColors.white100,
+                              ),
+                              side: BorderSide(
+                                color: isSelected ? AppColors.primary : AppColors.grey800,
+                              ),
+                              onSelected: (selected) {
+                                final currentRoles = List<String>.from(state.roles);
+                                if (selected) {
+                                  currentRoles.add(role.key);
+                                } else {
+                                  currentRoles.remove(role.key);
+                                }
+                                authCubit.updateRoles(currentRoles);
+                              },
+                            );
+                          }).toList(),
                         ),
 
                         const SizedBox(height: AppSize.spacingL),

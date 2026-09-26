@@ -5,15 +5,18 @@ import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
 
+import 'package:worth_network/pages/network/widgets/follow_button.dart';
 
 class UserCard extends StatelessWidget {
   final UserModel user;
   final VoidCallback onTap;
+  final VoidCallback? onFollowChanged;
 
   const UserCard({
     super.key,
     required this.user,
     required this.onTap,
+    this.onFollowChanged,
   });
 
   @override
@@ -29,10 +32,7 @@ class UserCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.grey900,
           borderRadius: BorderRadius.circular(AppSize.radiusM),
-          border: Border.all(
-            color: AppColors.grey800,
-            width: 1,
-          ),
+          border: Border.all(color: AppColors.grey800, width: 1),
         ),
         child: Row(
           children: [
@@ -64,10 +64,7 @@ class UserCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppColors.success,
                         shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.grey900,
-                          width: 2,
-                        ),
+                        border: Border.all(color: AppColors.grey900, width: 2),
                       ),
                     ),
                   ),
@@ -93,7 +90,9 @@ class UserCard extends StatelessWidget {
                       ),
                       if (user.verified)
                         Container(
-                          margin: const EdgeInsets.only(left: AppSize.spacingXS),
+                          margin: const EdgeInsets.only(
+                            left: AppSize.spacingXS,
+                          ),
                           child: Icon(
                             Icons.verified,
                             size: 16,
@@ -126,11 +125,7 @@ class UserCard extends StatelessWidget {
                       // Score
                       Row(
                         children: [
-                          Icon(
-                            Icons.star,
-                            size: 14,
-                            color: AppColors.accent,
-                          ),
+                          Icon(Icons.star, size: 14, color: AppColors.accent),
                           const SizedBox(width: 4),
                           Text(
                             '${user.score}',
@@ -145,22 +140,9 @@ class UserCard extends StatelessWidget {
                 ],
               ),
             ),
-            // Action Button (Future-ready for connect)
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSize.paddingM,
-                vertical: AppSize.paddingS,
-              ),
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(AppSize.radiusM),
-              ),
-              child: Text(
-                'View',
-                style: CustomTextStyle.size12W600(
-                  color: AppColors.black100,
-                ),
-              ),
+            FollowButton(
+              targetUserId: user.id,
+              onFollowChanged: onFollowChanged,
             ),
           ],
         ),

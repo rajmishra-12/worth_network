@@ -12,6 +12,7 @@ class AddActionState extends Equatable {
   final EvidenceType evidenceType;
   final File? evidenceFile;
   final String? textProof;
+  final List<EvidenceModel> evidences;
   final bool isSubmitting;
   final bool isSuccess;
   final String? errorMessage;
@@ -29,6 +30,7 @@ class AddActionState extends Equatable {
     this.evidenceType = EvidenceType.none,
     this.evidenceFile,
     this.textProof,
+    this.evidences = const [],
     this.isSubmitting = false,
     this.isSuccess = false,
     this.errorMessage,
@@ -48,6 +50,7 @@ class AddActionState extends Equatable {
     EvidenceType? evidenceType,
     File? evidenceFile,
     String? textProof,
+    List<EvidenceModel>? evidences,
     bool? isSubmitting,
     bool? isSuccess,
     String? errorMessage,
@@ -59,12 +62,15 @@ class AddActionState extends Equatable {
       category: category ?? this.category,
       date: date ?? this.date,
       personInvolved: personInvolved ?? this.personInvolved,
-      selectedValidator: clearValidator ? null : (selectedValidator ?? this.selectedValidator),
+      selectedValidator: clearValidator
+          ? null
+          : (selectedValidator ?? this.selectedValidator),
       searchResults: searchResults ?? this.searchResults,
       isSearchingUsers: isSearchingUsers ?? this.isSearchingUsers,
       evidenceType: evidenceType ?? this.evidenceType,
       evidenceFile: evidenceFile ?? this.evidenceFile,
       textProof: textProof ?? this.textProof,
+      evidences: evidences ?? this.evidences,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       isSuccess: isSuccess ?? this.isSuccess,
       errorMessage: errorMessage ?? this.errorMessage,
@@ -74,20 +80,21 @@ class AddActionState extends Equatable {
 
   @override
   List<Object?> get props => [
-        title,
-        description,
-        category,
-        date,
-        personInvolved,
-        selectedValidator,
-        searchResults,
-        isSearchingUsers,
-        evidenceType,
-        evidenceFile,
-        textProof,
-        isSubmitting,
-        isSuccess,
-        errorMessage,
-        shouldRefreshHome,
-      ];
+    title,
+    description,
+    category,
+    date,
+    personInvolved,
+    selectedValidator,
+    searchResults,
+    isSearchingUsers,
+    evidenceType,
+    evidenceFile,
+    textProof,
+    evidences,
+    isSubmitting,
+    isSuccess,
+    errorMessage,
+    shouldRefreshHome,
+  ];
 }

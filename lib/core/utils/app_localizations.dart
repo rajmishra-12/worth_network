@@ -251,6 +251,24 @@ class AppLocalizations {
       'delete_account_btn': 'Delete Account',
       'delete_account_dialog_title': 'Delete Account?',
       'delete_account_dialog_desc': 'Are you sure you want to delete your account? All your profile data and actions will be permanently removed. This action cannot be undone.',
+
+      // Follow / Following System & Feed
+      'btn_follow': 'Follow',
+      'btn_following': 'Following',
+      'btn_unfollow': 'Unfollow',
+      'followers_count': 'Followers',
+      'following_count': 'Following',
+      'no_followers_yet': 'No followers yet',
+      'no_following_yet': 'Not following anyone yet',
+      'cannot_follow_self': 'You cannot follow yourself',
+      'connections_title': 'Connections',
+      'tab_for_you_feed': 'For You',
+      'tab_following_feed': 'Following',
+      'no_for_you_feed_title': 'No Actions Found',
+      'no_for_you_feed_desc': 'Be the first to share a real-life action with the WORTH community.',
+      'no_following_feed_title': 'No Following Actions',
+      'no_following_feed_desc': 'Follow people in the Network tab to see their actions here.',
+      'explore_network_btn': 'Explore Network',
     },
     'fr': {
       'app_title': 'RÉSEAU WORTH',
@@ -499,6 +517,24 @@ class AppLocalizations {
       'delete_account_btn': 'Supprimer le compte',
       'delete_account_dialog_title': 'Supprimer le compte ?',
       'delete_account_dialog_desc': 'Voulez-vous vraiment supprimer votre compte ? Toutes vos données de profil et vos actions seront supprimées définitivement. Cette action est irréversible.',
+
+      // Follow / Following System & Feed
+      'btn_follow': 'Suivre',
+      'btn_following': 'Abonné(e)',
+      'btn_unfollow': 'Se désabonner',
+      'followers_count': 'Abonnés',
+      'following_count': 'Abonnements',
+      'no_followers_yet': 'Aucun abonné pour le moment',
+      'no_following_yet': 'Aucun abonnement pour le moment',
+      'cannot_follow_self': 'Vous ne pouvez pas vous suivre vous-même',
+      'connections_title': 'Relations',
+      'tab_for_you_feed': 'Pour vous',
+      'tab_following_feed': 'Abonnements',
+      'no_for_you_feed_title': 'Aucune action trouvée',
+      'no_for_you_feed_desc': 'Soyez le premier à partager une action concrète avec la communauté WORTH.',
+      'no_following_feed_title': 'Aucune action des abonnements',
+      'no_following_feed_desc': 'Suivez des personnes dans l\'onglet Réseau pour voir leurs actions ici.',
+      'explore_network_btn': 'Explorer le Réseau',
     }
   };
 

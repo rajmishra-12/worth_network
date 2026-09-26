@@ -14,6 +14,8 @@ import 'package:worth_network/pages/home/widgets/action_cards.dart';
 import 'package:worth_network/pages/home/widgets/empty_feed_widget.dart';
 
 
+import 'package:worth_network/pages/home/widgets/empty_following_feed_widget.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -22,10 +24,33 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     context.read<HomeCubit>().loadFeed();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    if (maxScroll - currentScroll <= 300) {
+      final cubit = context.read<HomeCubit>();
+      if (cubit.state.currentTab == HomeFeedTab.forYou) {
+        cubit.loadMoreForYouFeed();
+      } else {
+        cubit.loadMoreFollowingFeed();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -40,65 +65,52 @@ class _HomeScreenState extends State<HomeScreen> {
               onRefresh: () async {
                 await context.read<HomeCubit>().loadFeed();
               },
-              child: CustomScrollView(
-                slivers: [
-                  // Top Bar
-                  SliverToBoxAdapter(child: _buildTopBar(context, loc)),
-                  // Feed Content
-                  BlocBuilder<HomeCubit, HomeState>(
-                    builder: (context, state) {
-                      if (state.isLoading) {
-                        return const SliverFillRemaining(child: FeedShimmer());
-                      }
+              child: BlocBuilder<HomeCubit, HomeState>(
+                builder: (context, state) {
+                  final isMoreLoading = state.currentTab == HomeFeedTab.forYou
+                      ? state.isLoadingMore
+                      : state.isFollowingLoadingMore;
 
-                      if (state.actions.isEmpty) {
-                        return SliverFillRemaining(
-                          child: EmptyFeedWidget(
-                            onActionTap: () {
-                              context.read<DashboardCubit>().changeTab(1);
-                            },
+                  return CustomScrollView(
+                    controller: _scrollController,
+                    slivers: [
+                      // Top Bar
+                      SliverToBoxAdapter(child: _buildTopBar(context, loc)),
+                      // Feed Tab Selector (For You vs Following)
+                      SliverToBoxAdapter(child: _buildFeedTabSelector(context, state, loc)),
+                      const SliverToBoxAdapter(child: SizedBox(height: AppSize.spacingS)),
+
+                      // Feed Content
+                      if (state.currentTab == HomeFeedTab.forYou)
+                        _buildForYouFeed(context, state)
+                      else
+                        _buildFollowingFeed(context, state),
+
+                      // Infinite Scroll Loading Indicator
+                      if (isMoreLoading)
+                        const SliverToBoxAdapter(
+                          child: Padding(
+                            padding: EdgeInsets.all(AppSize.paddingM),
+                            child: Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
                           ),
-                        );
-                      }
+                        ),
 
-                      return SliverList(
-                        delegate: SliverChildBuilderDelegate((context, index) {
-                          final action = state.actions[index];
-                          final currentUserId = ActionRepository().currentUserId;
-                          final isOwner = action.userId == currentUserId || action.userId == 'currentUser';
-
-                          return ActionCard(
-                            action: action,
-                            onLikeTap: () {
-                              context.read<HomeCubit>().likeAction(action.id);
-                            },
-                            onCommentTap: () {
-                              context.push('/action-details', extra: action);
-                            },
-                            onUserTap: () {
-                              context.push('/user-detail', extra: {
-                                'userId': action.userId,
-                                'userName': action.userName,
-                                'userAvatar': action.userAvatar,
-                              });
-                            },
-
-                            onDeleteTap: isOwner
-                                ? () {
-                                    context.read<HomeCubit>().deleteAction(action.id);
-                                  }
-                                : null,
-                          );
-                        }, childCount: state.actions.length),
-                      );
-
-                    },
-                  ),
-                  // Bottom padding
-                  const SliverToBoxAdapter(
-                    child: SizedBox(height: AppSize.paddingL),
-                  ),
-                ],
+                      // Bottom padding
+                      const SliverToBoxAdapter(
+                        child: SizedBox(height: AppSize.paddingL),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -111,6 +123,181 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildFeedTabSelector(BuildContext context, HomeState state, AppLocalizations loc) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSize.paddingM,
+        vertical: AppSize.paddingXS,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildTabPill(
+              context: context,
+              label: loc.translate('tab_for_you_feed'),
+              isSelected: state.currentTab == HomeFeedTab.forYou,
+              onTap: () => context.read<HomeCubit>().changeTab(HomeFeedTab.forYou),
+            ),
+          ),
+          const SizedBox(width: AppSize.spacingS),
+          Expanded(
+            child: _buildTabPill(
+              context: context,
+              label: loc.translate('tab_following_feed'),
+              isSelected: state.currentTab == HomeFeedTab.following,
+              onTap: () => context.read<HomeCubit>().changeTab(HomeFeedTab.following),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabPill({
+    required BuildContext context,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : AppColors.grey900,
+          borderRadius: BorderRadius.circular(AppSize.radiusM),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.grey800,
+          ),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: isSelected
+              ? CustomTextStyle.size13W600(color: AppColors.black100)
+              : CustomTextStyle.size13W500(color: AppColors.grey400),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildForYouFeed(BuildContext context, HomeState state) {
+    if (state.isLoading) {
+      return const SliverFillRemaining(child: FeedShimmer());
+    }
+
+    if (state.actions.isEmpty) {
+      return SliverFillRemaining(
+        child: EmptyFeedWidget(
+          onActionTap: () {
+            context.read<DashboardCubit>().changeTab(1);
+          },
+        ),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final action = state.actions[index];
+        final currentUserId = ActionRepository().currentUserId;
+        final isOwner = action.userId == currentUserId || action.userId == 'currentUser';
+
+        return ActionCard(
+          action: action,
+          onLikeTap: () {
+            context.read<HomeCubit>().likeAction(action.id);
+          },
+          onCommentTap: () {
+            context.push('/action-details', extra: action);
+          },
+          onUserTap: () {
+            context.push('/user-detail', extra: {
+              'userId': action.userId,
+              'userName': action.userName,
+              'userAvatar': action.userAvatar,
+            });
+          },
+          onDeleteTap: isOwner
+              ? () {
+                  context.read<HomeCubit>().deleteAction(action.id);
+                }
+              : null,
+        );
+      }, childCount: state.actions.length),
+    );
+  }
+
+  Widget _buildFollowingFeed(BuildContext context, HomeState state) {
+    if (state.isFollowingLoading) {
+      return const SliverFillRemaining(child: FeedShimmer());
+    }
+
+    if (state.followingError != null) {
+      return SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: AppColors.error, size: 40),
+              const SizedBox(height: AppSize.spacingS),
+              Text(
+                state.followingError!,
+                style: CustomTextStyle.size14W400(color: AppColors.grey400),
+              ),
+              const SizedBox(height: AppSize.spacingM),
+              ElevatedButton(
+                onPressed: () => context.read<HomeCubit>().loadFeed(),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                child: const Text('Retry', style: TextStyle(color: AppColors.black100)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (state.followingActions.isEmpty) {
+      return SliverFillRemaining(
+        child: EmptyFollowingFeedWidget(
+          onExploreTap: () {
+            context.read<DashboardCubit>().changeTab(1);
+          },
+        ),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final action = state.followingActions[index];
+        final currentUserId = ActionRepository().currentUserId;
+        final isOwner = action.userId == currentUserId || action.userId == 'currentUser';
+
+        return ActionCard(
+          action: action,
+          onLikeTap: () {
+            context.read<HomeCubit>().likeAction(action.id);
+          },
+          onCommentTap: () {
+            context.push('/action-details', extra: action);
+          },
+          onUserTap: () {
+            context.push('/user-detail', extra: {
+              'userId': action.userId,
+              'userName': action.userName,
+              'userAvatar': action.userAvatar,
+            });
+          },
+          onDeleteTap: isOwner
+              ? () {
+                  context.read<HomeCubit>().deleteAction(action.id);
+                }
+              : null,
+        );
+      }, childCount: state.followingActions.length),
     );
   }
 

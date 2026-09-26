@@ -19,6 +19,7 @@ import 'package:worth_network/pages/dashboard/cubit/dashboard_cubit.dart';
 
 import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
 import 'package:worth_network/core/utils/app_localizations.dart';
+import 'package:worth_network/pages/home/widgets/proof_card.dart';
 
 class AddActionScreen extends StatefulWidget {
   const AddActionScreen({super.key});
@@ -268,12 +269,31 @@ class _AddActionScreenState extends State<AddActionScreen> {
                               isSelected: state.evidenceType == EvidenceType.text,
                               onTap: () => _showTextProofDialog(context),
                             ),
+                            _buildDivider(),
+                            _buildEvidenceOption(
+                              icon: Icons.link_rounded,
+                              label: 'Link / Web URL',
+                              description: 'Attach a website link or online article',
+                              isSelected: state.evidenceType == EvidenceType.link,
+                              onTap: () => _showLinkProofDialog(context),
+                            ),
                           ],
                         ),
                       ),
                       
-                      // Evidence Preview
-                      if (state.evidenceFile != null || state.textProof != null)
+                      // Evidence Previews List (Multi-Evidence Support with Carousel)
+                      if (state.evidences.isNotEmpty) ...[
+                        const SizedBox(height: AppSize.spacingM),
+                        Text(
+                          'Attached Evidence (${state.evidences.length})',
+                          style: CustomTextStyle.size14W600(color: AppColors.white100),
+                        ),
+                        const SizedBox(height: AppSize.spacingS),
+                        ProofCard(
+                          evidences: state.evidences,
+                          onRemoveAtIndex: (index) => _cubit.removeEvidenceAt(index),
+                        ),
+                      ] else if (state.evidenceFile != null || state.textProof != null)
                         Padding(
                           padding: const EdgeInsets.only(top: AppSize.paddingM),
                           child: EvidencePreview(
@@ -589,12 +609,67 @@ class _AddActionScreenState extends State<AddActionScreen> {
           TextButton(
             onPressed: () {
               if (controller.text.isNotEmpty) {
-    context.pop();
+                context.pop();
                 _cubit.addTextProof(controller.text);
               }
             },
             child: Text(
               'Add',
+              style: CustomTextStyle.size14W600(color: AppColors.primary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLinkProofDialog(BuildContext context) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.grey900,
+        title: Text(
+          'Add Link / URL Evidence',
+          style: CustomTextStyle.size18W600(color: AppColors.white100),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Paste a URL link (e.g. news article, tweet, video, website) as evidence:',
+              style: CustomTextStyle.size12W400(color: AppColors.grey400),
+            ),
+            const SizedBox(height: AppSize.spacingM),
+            TextField(
+              controller: controller,
+              style: CustomTextStyle.size14W400(color: AppColors.white100),
+              decoration: _buildInputDecoration(
+                hintText: 'https://example.com/article',
+              ),
+              keyboardType: TextInputType.url,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(
+              'Cancel',
+              style: CustomTextStyle.size14W500(color: AppColors.grey400),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              final text = controller.text.trim();
+              if (text.isNotEmpty) {
+                Navigator.pop(dialogContext);
+                _cubit.addLinkEvidence(text);
+              }
+            },
+            child: Text(
+              'Fetch & Add',
               style: CustomTextStyle.size14W600(color: AppColors.primary),
             ),
           ),

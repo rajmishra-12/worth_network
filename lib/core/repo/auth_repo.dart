@@ -11,7 +11,10 @@ class AuthRepository {
   User? get currentUser => _firebaseAuth.currentUser;
 
   /// Check if a username is available (case-insensitive check)
-  Future<bool> isUsernameAvailable(String username, {String? excludeUid}) async {
+  Future<bool> isUsernameAvailable(
+    String username, {
+    String? excludeUid,
+  }) async {
     final cleanUsername = username.trim().replaceAll('@', '').toLowerCase();
     if (cleanUsername.isEmpty) return false;
 
@@ -44,6 +47,8 @@ class AuthRepository {
     required String username,
     required String email,
     required String password,
+    String? accountType,
+    List<String>? roles,
     File? profileImage,
   }) async {
     try {
@@ -54,7 +59,9 @@ class AuthRepository {
       // Check username availability BEFORE creating Firebase Auth user
       final isAvailable = await isUsernameAvailable(usernameStr);
       if (!isAvailable) {
-        throw Exception("Username '@$usernameStr' is already taken. Please choose another username.");
+        throw Exception(
+          "Username '@$usernameStr' is already taken. Please choose another username.",
+        );
       }
 
       // 1. Create Firebase Auth user
@@ -87,6 +94,8 @@ class AuthRepository {
           'email': emailStr,
           'bio': 'New to Worth Network! 🚀',
           'avatarUrl': avatarUrl ?? 'https://i.pravatar.cc/150?img=10',
+          'accountType': accountType,
+          'roles': roles ?? [],
           'score': 0,
           'level': 1,
           'xp': 0,
@@ -113,20 +122,28 @@ class AuthRepository {
     }
   }
 
-  /// Update user profile details (username, bio, profile photo uploader)
-  Future<void> updateProfile({
+  /// Update user profile details (username, bio, profile photo uploader, optional name, accountType, roles)
+  Future<String?> updateProfile({
     required String uid,
     required String username,
     required String bio,
+    String? name,
+    String? accountType,
+    List<String>? roles,
     File? profileImage,
   }) async {
     try {
       final usernameStr = username.trim().replaceAll('@', '');
       final cleanUsername = usernameStr.toLowerCase();
 
-      final isAvailable = await isUsernameAvailable(usernameStr, excludeUid: uid);
+      final isAvailable = await isUsernameAvailable(
+        usernameStr,
+        excludeUid: uid,
+      );
       if (!isAvailable) {
-        throw Exception("Username '@$usernameStr' is already taken. Please choose another username.");
+        throw Exception(
+          "Username '@$usernameStr' is already taken. Please choose another username.",
+        );
       }
 
       final updates = <String, dynamic>{
@@ -135,21 +152,85 @@ class AuthRepository {
         'bio': bio.trim(),
       };
 
+      if (name != null && name.trim().isNotEmpty) {
+        updates['name'] = name.trim();
+      }
+
+      if (accountType != null) {
+        updates['accountType'] = accountType;
+      }
+
+      if (roles != null) {
+        updates['roles'] = roles;
+      }
+
+      String? avatarUrl;
       if (profileImage != null) {
         final storageRef = FirebaseStorage.instance
             .ref()
             .child('profile_pictures')
-            .child('$uid.jpg');
+            .child('${uid}_${DateTime.now().millisecondsSinceEpoch}.jpg');
         await storageRef.putFile(profileImage);
-        final avatarUrl = await storageRef.getDownloadURL();
+        avatarUrl = await storageRef.getDownloadURL();
         updates['avatarUrl'] = avatarUrl;
       }
 
       await _firestore.collection('users').doc(uid).update(updates);
 
+      // Batch update user's past actions & validations in 'actions' collection so old posts reflect new profile picture/name
+      try {
+        final batch = _firestore.batch();
+        bool hasUpdates = false;
+
+        final userActionsSnap = await _firestore
+            .collection('actions')
+            .where('userId', isEqualTo: uid)
+            .get();
+
+        for (var doc in userActionsSnap.docs) {
+          final actionUpdates = <String, dynamic>{};
+          if (avatarUrl != null) actionUpdates['userAvatar'] = avatarUrl;
+          if (name != null && name.trim().isNotEmpty)
+            actionUpdates['userName'] = name.trim();
+
+          if (actionUpdates.isNotEmpty) {
+            batch.update(doc.reference, actionUpdates);
+            hasUpdates = true;
+          }
+        }
+
+        final validatorActionsSnap = await _firestore
+            .collection('actions')
+            .where('validatorId', isEqualTo: uid)
+            .get();
+
+        for (var doc in validatorActionsSnap.docs) {
+          final valUpdates = <String, dynamic>{};
+          if (avatarUrl != null) valUpdates['validatorAvatar'] = avatarUrl;
+          if (name != null && name.trim().isNotEmpty)
+            valUpdates['validatorName'] = name.trim();
+
+          if (valUpdates.isNotEmpty) {
+            batch.update(doc.reference, valUpdates);
+            hasUpdates = true;
+          }
+        }
+
+        if (hasUpdates) {
+          await batch.commit();
+        }
+      } catch (e) {
+        print('Warning: Failed to sync past actions with new profile info: $e');
+      }
+
       // Cache changes locally in Shared Preferences
       final prefs = Preferences();
       prefs.username = usernameStr;
+      if (name != null && name.trim().isNotEmpty) {
+        prefs.name = name.trim();
+      }
+
+      return avatarUrl;
     } catch (e) {
       throw Exception(e.toString().replaceFirst('Exception: ', ''));
     }
@@ -194,7 +275,10 @@ class AuthRepository {
 
       // Save details locally in SharedPreferences
       if (user != null) {
-        final docSnapshot = await _firestore.collection('users').doc(user.uid).get();
+        final docSnapshot = await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .get();
         if (docSnapshot.exists) {
           final data = docSnapshot.data();
           if (data != null) {
@@ -252,7 +336,9 @@ class AuthRepository {
       }
     } on FirebaseAuthException catch (e) {
       if (e.code == 'requires-recent-login') {
-        throw Exception('For security reasons, please log in again before deleting your account.');
+        throw Exception(
+          'For security reasons, please log in again before deleting your account.',
+        );
       }
       throw Exception(_mapFirebaseError(e));
     } catch (e) {

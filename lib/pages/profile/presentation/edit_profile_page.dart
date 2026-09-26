@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
+import 'package:worth_network/core/constants/profile_constants.dart';
 import 'package:worth_network/core/repo/auth_repo.dart';
 import 'package:worth_network/core/utils/preferences.dart';
 import 'package:worth_network/pages/profile/cubit/profile_cubit.dart';
@@ -29,6 +29,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   File? _newAvatarFile;
   String? _currentAvatarUrl;
+  String? _selectedAccountType;
+  final List<String> _selectedRoles = [];
   bool _isLoading = true;
   bool _isSaving = false;
 
@@ -56,6 +58,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           final uname = data['username'] ?? prefs.username;
           _usernameController.text = uname.isNotEmpty ? '@$uname' : '@user';
           _currentAvatarUrl = data['avatarUrl'];
+          _selectedAccountType = data['accountType'];
+          if (data['roles'] != null) {
+            _selectedRoles.clear();
+            _selectedRoles.addAll(List<String>.from(data['roles']));
+          }
         }
       } catch (e) {
         print('Error loading user profile: $e');
@@ -136,42 +143,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     try {
       final user = FirebaseAuth.instance.currentUser;
-      final prefs = Preferences();
-      String? avatarUrl = _currentAvatarUrl;
-
-      // Upload avatar to Firebase Storage if new file picked
-      if (_newAvatarFile != null && user != null) {
-        final fileName = '${user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final storageRef = FirebaseStorage.instance.ref().child('profile_pictures').child(fileName);
-        final uploadTask = await storageRef.putFile(
-          _newAvatarFile!,
-          SettableMetadata(contentType: 'image/jpeg'),
-        );
-        avatarUrl = await uploadTask.ref.getDownloadURL();
-      }
-
       final newName = _nameController.text.trim();
       final newBio = _bioController.text.trim();
       final newUsername = _usernameController.text.trim();
 
-      // Update user profile with unique username check
+      // Update user profile and sync past actions in Firestore
       if (user != null) {
         final repo = AuthRepository();
         await repo.updateProfile(
           uid: user.uid,
           username: newUsername,
           bio: newBio,
+          name: newName,
+          accountType: _selectedAccountType,
+          roles: _selectedRoles,
           profileImage: _newAvatarFile,
         );
-
-        // Update name and avatarUrl if updated
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-          'name': newName,
-          if (avatarUrl != null) 'avatarUrl': avatarUrl,
-        });
       }
 
       // Update Local Preferences
+      final prefs = Preferences();
       prefs.name = newName;
 
       if (mounted) {
@@ -323,6 +314,137 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       enabled: true,
                       maxLines: 3,
                       hint: 'Tell the community about your actions and goals...',
+                    ),
+                    const SizedBox(height: AppSize.spacingL),
+
+                    // Account Type (Optional)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Account Type',
+                              style: CustomTextStyle.size14W600(color: AppColors.white100),
+                            ),
+                            Text(
+                              'Optional',
+                              style: CustomTextStyle.size11W400(color: AppColors.grey500),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedAccountType,
+                          dropdownColor: AppColors.grey900,
+                          style: CustomTextStyle.size14W400(color: AppColors.white100),
+                          decoration: InputDecoration(
+                            hintText: 'Select type (e.g. Particular, NGO, Business)',
+                            hintStyle: CustomTextStyle.size14W400(color: AppColors.grey600),
+                            filled: true,
+                            fillColor: AppColors.grey900,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(AppSize.radiusM),
+                              borderSide: const BorderSide(color: AppColors.grey800),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(AppSize.radiusM),
+                              borderSide: const BorderSide(color: AppColors.grey800),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(AppSize.radiusM),
+                              borderSide: const BorderSide(color: AppColors.primary),
+                            ),
+                          ),
+                          items: [
+                            const DropdownMenuItem<String>(
+                              value: null,
+                              child: Text('Not Specified', style: TextStyle(color: AppColors.grey500)),
+                            ),
+                            ...ProfileConstants.accountTypes.map(
+                              (type) => DropdownMenuItem<String>(
+                                value: type.key,
+                                child: Row(
+                                  children: [
+                                    Icon(type.icon, size: 18, color: AppColors.primary),
+                                    const SizedBox(width: 8),
+                                    Text(type.label, style: const TextStyle(color: AppColors.white100)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                          onChanged: (val) {
+                            setState(() {
+                              _selectedAccountType = val;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSize.spacingL),
+
+                    // Roles & Domains (Optional Multi-select)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Roles & Domains',
+                              style: CustomTextStyle.size14W600(color: AppColors.white100),
+                            ),
+                            Text(
+                              'Optional (Multi-select)',
+                              style: CustomTextStyle.size11W400(color: AppColors.grey500),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: ProfileConstants.roles.map((role) {
+                            final isSelected = _selectedRoles.contains(role.key);
+                            return FilterChip(
+                              label: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    role.icon,
+                                    size: 14,
+                                    color: isSelected ? AppColors.black100 : AppColors.primary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(role.label),
+                                ],
+                              ),
+                              selected: isSelected,
+                              selectedColor: AppColors.primary,
+                              backgroundColor: AppColors.grey900,
+                              checkmarkColor: AppColors.black100,
+                              labelStyle: CustomTextStyle.size12W500(
+                                color: isSelected ? AppColors.black100 : AppColors.white100,
+                              ),
+                              side: BorderSide(
+                                color: isSelected ? AppColors.primary : AppColors.grey800,
+                              ),
+                              onSelected: (selected) {
+                                setState(() {
+                                  if (selected) {
+                                    _selectedRoles.add(role.key);
+                                  } else {
+                                    _selectedRoles.remove(role.key);
+                                  }
+                                });
+                              },
+                            );
+                          }).toList(),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: AppSize.spacingL),
 
