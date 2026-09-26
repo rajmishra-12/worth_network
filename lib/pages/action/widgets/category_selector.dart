@@ -145,215 +145,221 @@ class PersonField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // If a validator is already selected, display selected validator card
-    if (state.selectedValidator != null) {
-      final validator = state.selectedValidator!;
-      final avatarUrl = validator['avatarUrl'] as String?;
-      final name = validator['name'] ?? 'User';
-      final username = validator['username'] ?? '';
+    return BlocBuilder<LocaleCubit, String>(
+      builder: (context, localeCode) {
+        final loc = AppLocalizations(localeCode);
 
-      return Container(
-        padding: const EdgeInsets.all(AppSize.paddingM),
-        decoration: BoxDecoration(
-          color: AppColors.grey900,
-          borderRadius: BorderRadius.circular(AppSize.radiusM),
-          border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: AppColors.grey800,
-              backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
-                  ? NetworkImage(avatarUrl)
-                  : null,
-              child: avatarUrl == null || avatarUrl.isEmpty
-                  ? Text(
-                      name[0].toUpperCase(),
-                      style: CustomTextStyle.size14W600(
-                        color: AppColors.white100,
-                      ),
-                    )
-                  : null,
-            ),
-            const SizedBox(width: AppSize.spacingM),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: CustomTextStyle.size15W600(
-                      color: AppColors.white100,
-                    ),
-                  ),
-                  if (username.isNotEmpty)
-                    Text(
-                      '@$username',
-                      style: CustomTextStyle.size13W400(
-                        color: AppColors.primary,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                icon: const Icon(
-                  Icons.close,
-                  color: AppColors.primary,
-                  size: 18,
-                ),
-                onPressed: () {
-                  controller.clear();
-                  cubit.removeValidator();
-                },
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+        // If a validator is already selected, display selected validator card
+        if (state.selectedValidator != null) {
+          final validator = state.selectedValidator!;
+          final avatarUrl = validator['avatarUrl'] as String?;
+          final name = validator['name'] ?? 'User';
+          final username = validator['username'] ?? '';
 
-    // Otherwise render real-time search field
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextFormField(
-          controller: controller,
-          style: CustomTextStyle.size15W400(color: AppColors.white100),
-          decoration: InputDecoration(
-            hintText: 'Search validator by name...',
-            hintStyle: CustomTextStyle.size14W400(color: AppColors.grey500),
-            prefixIcon: const Icon(
-              Icons.search,
-              color: AppColors.primary,
-              size: 20,
-            ),
-            suffixIcon: state.isSearchingUsers
-                ? const UnconstrainedBox(
-                    child: SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  )
-                : (controller.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(
-                            Icons.clear,
-                            color: AppColors.grey400,
-                            size: 18,
-                          ),
-                          onPressed: () {
-                            controller.clear();
-                            cubit.searchUsers('');
-                          },
-                        )
-                      : null),
-            filled: true,
-            fillColor: AppColors.grey900,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSize.radiusM),
-              borderSide: BorderSide(color: AppColors.grey800),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSize.radiusM),
-              borderSide: BorderSide(color: AppColors.grey800),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSize.radiusM),
-              borderSide: BorderSide(color: AppColors.primary, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: AppSize.paddingM,
-              vertical: AppSize.paddingM,
-            ),
-          ),
-          onChanged: (val) {
-            cubit.searchUsers(val);
-          },
-        ),
-        if (state.searchResults.isNotEmpty) ...[
-          const SizedBox(height: AppSize.spacingS),
-          Container(
-            constraints: const BoxConstraints(maxHeight: 200),
+          return Container(
+            padding: const EdgeInsets.all(AppSize.paddingM),
             decoration: BoxDecoration(
               color: AppColors.grey900,
               borderRadius: BorderRadius.circular(AppSize.radiusM),
-              border: Border.all(color: AppColors.grey800),
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
             ),
-            child: ListView.separated(
-              shrinkWrap: true,
-              itemCount: state.searchResults.length,
-              separatorBuilder: (context, index) =>
-                  const Divider(height: 1, color: AppColors.grey800),
-              itemBuilder: (context, index) {
-                final user = state.searchResults[index];
-                final avatarUrl = user['avatarUrl'] as String?;
-                final name = user['name'] ?? 'User';
-                final username = user['username'] ?? '';
-
-                return ListTile(
-                  dense: true,
-                  leading: CircleAvatar(
-                    radius: 16,
-                    backgroundColor: AppColors.grey800,
-                    backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
-                        ? NetworkImage(avatarUrl)
-                        : null,
-                    child: avatarUrl == null || avatarUrl.isEmpty
-                        ? Text(
-                            name[0].toUpperCase(),
-                            style: const TextStyle(
-                              color: AppColors.white100,
-                              fontSize: 12,
-                            ),
-                          )
-                        : null,
-                  ),
-                  title: Text(
-                    name,
-                    style: CustomTextStyle.size14W600(
-                      color: AppColors.white100,
-                    ),
-                  ),
-                  subtitle: Text(
-                    '@$username',
-                    style: CustomTextStyle.size12W400(color: AppColors.grey400),
-                  ),
-                  trailing: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      'Select',
-                      style: CustomTextStyle.size12W600(
-                        color: AppColors.primary,
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: AppColors.grey800,
+                  backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+                      ? NetworkImage(avatarUrl)
+                      : null,
+                  child: avatarUrl == null || avatarUrl.isEmpty
+                      ? Text(
+                          name[0].toUpperCase(),
+                          style: CustomTextStyle.size14W600(
+                            color: AppColors.white100,
+                          ),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: AppSize.spacingM),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: CustomTextStyle.size15W600(
+                          color: AppColors.white100,
+                        ),
                       ),
-                    ),
+                      if (username.isNotEmpty)
+                        Text(
+                          '@$username',
+                          style: CustomTextStyle.size13W400(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                    ],
                   ),
-                  onTap: () {
-                    cubit.selectValidator(user);
-                  },
-                );
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.close,
+                      color: AppColors.primary,
+                      size: 18,
+                    ),
+                    onPressed: () {
+                      controller.clear();
+                      cubit.removeValidator();
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // Otherwise render real-time search field
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextFormField(
+              controller: controller,
+              style: CustomTextStyle.size15W400(color: AppColors.white100),
+              decoration: InputDecoration(
+                hintText: loc.translate('search_validator_hint'),
+                hintStyle: CustomTextStyle.size14W400(color: AppColors.grey500),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+                suffixIcon: state.isSearchingUsers
+                    ? const UnconstrainedBox(
+                        child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      )
+                    : (controller.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(
+                                Icons.clear,
+                                color: AppColors.grey400,
+                                size: 18,
+                              ),
+                              onPressed: () {
+                                controller.clear();
+                                cubit.searchUsers('');
+                              },
+                            )
+                          : null),
+                filled: true,
+                fillColor: AppColors.grey900,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppSize.radiusM),
+                  borderSide: BorderSide(color: AppColors.grey800),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppSize.radiusM),
+                  borderSide: BorderSide(color: AppColors.grey800),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppSize.radiusM),
+                  borderSide: BorderSide(color: AppColors.primary, width: 2),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSize.paddingM,
+                  vertical: AppSize.paddingM,
+                ),
+              ),
+              onChanged: (val) {
+                cubit.searchUsers(val);
               },
             ),
-          ),
-        ],
-      ],
+            if (state.searchResults.isNotEmpty) ...[
+              const SizedBox(height: AppSize.spacingS),
+              Container(
+                constraints: const BoxConstraints(maxHeight: 200),
+                decoration: BoxDecoration(
+                  color: AppColors.grey900,
+                  borderRadius: BorderRadius.circular(AppSize.radiusM),
+                  border: Border.all(color: AppColors.grey800),
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: state.searchResults.length,
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1, color: AppColors.grey800),
+                  itemBuilder: (context, index) {
+                    final user = state.searchResults[index];
+                    final avatarUrl = user['avatarUrl'] as String?;
+                    final name = user['name'] ?? 'User';
+                    final username = user['username'] ?? '';
+
+                    return ListTile(
+                      dense: true,
+                      leading: CircleAvatar(
+                        radius: 16,
+                        backgroundColor: AppColors.grey800,
+                        backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+                            ? NetworkImage(avatarUrl)
+                            : null,
+                        child: avatarUrl == null || avatarUrl.isEmpty
+                            ? Text(
+                                name[0].toUpperCase(),
+                                style: const TextStyle(
+                                  color: AppColors.white100,
+                                  fontSize: 12,
+                                ),
+                              )
+                            : null,
+                      ),
+                      title: Text(
+                        name,
+                        style: CustomTextStyle.size14W600(
+                          color: AppColors.white100,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '@$username',
+                        style: CustomTextStyle.size12W400(color: AppColors.grey400),
+                      ),
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          loc.translate('select_btn'),
+                          style: CustomTextStyle.size12W600(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                      onTap: () {
+                        cubit.selectValidator(user);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }

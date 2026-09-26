@@ -104,60 +104,68 @@ class ProfileHeader extends StatelessWidget {
           // Account Type Badge
           if (profile.accountType != null && profile.accountType!.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Builder(builder: (context) {
-              final accType = ProfileConstants.getAccountType(profile.accountType);
-              if (accType == null) return const SizedBox.shrink();
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(AppSize.radiusM),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(accType.icon, size: 13, color: AppColors.primary),
-                    const SizedBox(width: 5),
-                    Text(
-                      accType.label,
-                      style: CustomTextStyle.size12W500(color: AppColors.primary),
-                    ),
-                  ],
-                ),
-              );
-            }),
+            BlocBuilder<LocaleCubit, String>(
+              builder: (context, localeCode) {
+                final loc = AppLocalizations(localeCode);
+                final accType = ProfileConstants.getAccountType(profile.accountType);
+                if (accType == null) return const SizedBox.shrink();
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(AppSize.radiusM),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(accType.icon, size: 13, color: AppColors.primary),
+                      const SizedBox(width: 5),
+                      Text(
+                        accType.getLocalizedLabel(loc),
+                        style: CustomTextStyle.size12W500(color: AppColors.primary),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
           ],
 
           // Roles & Domains Tags
           if (profile.roles.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 6,
-              runSpacing: 6,
-              children: profile.roles.map((rKey) {
-                final rOption = ProfileConstants.getRole(rKey);
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.grey800,
-                    borderRadius: BorderRadius.circular(AppSize.radiusS),
-                    border: Border.all(color: AppColors.grey700),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(rOption.icon, size: 12, color: AppColors.white100),
-                      const SizedBox(width: 4),
-                      Text(
-                        rOption.label,
-                        style: CustomTextStyle.size11W400(color: AppColors.white100),
+            BlocBuilder<LocaleCubit, String>(
+              builder: (context, localeCode) {
+                final loc = AppLocalizations(localeCode);
+                return Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: profile.roles.map((rKey) {
+                    final rOption = ProfileConstants.getRole(rKey);
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.grey800,
+                        borderRadius: BorderRadius.circular(AppSize.radiusS),
+                        border: Border.all(color: AppColors.grey700),
                       ),
-                    ],
-                  ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(rOption.icon, size: 12, color: AppColors.white100),
+                          const SizedBox(width: 4),
+                          Text(
+                            rOption.getLocalizedLabel(loc),
+                            style: CustomTextStyle.size11W400(color: AppColors.white100),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
                 );
-              }).toList(),
+              },
             ),
           ],
           const SizedBox(height: AppSize.spacingM),
@@ -234,21 +242,26 @@ class ProfileHeader extends StatelessWidget {
           const SizedBox(height: AppSize.spacingM),
 
           // Edit Profile Button
-          OutlinedButton.icon(
-            onPressed: () => context.push('/edit-profile'),
-            icon: const Icon(Icons.tune_rounded, size: 15, color: AppColors.white100),
-            label: Text(
-              'Edit Profile',
-              style: CustomTextStyle.size13W500(color: AppColors.white100),
-            ),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: AppColors.grey800),
-              backgroundColor: AppColors.grey900.withValues(alpha: 0.6),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSize.radiusL),
-              ),
-            ),
+          BlocBuilder<LocaleCubit, String>(
+            builder: (context, localeCode) {
+              final loc = AppLocalizations(localeCode);
+              return OutlinedButton.icon(
+                onPressed: () => context.push('/edit-profile'),
+                icon: const Icon(Icons.tune_rounded, size: 15, color: AppColors.white100),
+                label: Text(
+                  loc.translate('edit_profile_title'),
+                  style: CustomTextStyle.size13W500(color: AppColors.white100),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.grey800),
+                  backgroundColor: AppColors.grey900.withValues(alpha: 0.6),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSize.radiusL),
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),

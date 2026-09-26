@@ -50,7 +50,7 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
-  Future<void> _pickProfileImage() async {
+  Future<void> _pickProfileImage(AppLocalizations loc) async {
     final pageContext = context;
     showModalBottomSheet(
       context: context,
@@ -67,7 +67,7 @@ class _SignupScreenState extends State<SignupScreen> {
             ListTile(
               leading: const Icon(Icons.camera_alt, color: AppColors.primary),
               title: Text(
-                'Take a photo',
+                loc.translate('take_photo'),
                 style: CustomTextStyle.size15W500(color: AppColors.white100),
               ),
               onTap: () async {
@@ -83,9 +83,9 @@ class _SignupScreenState extends State<SignupScreen> {
                   if (sizeInMb > 2.0) {
                     if (pageContext.mounted) {
                       ScaffoldMessenger.of(pageContext).showSnackBar(
-                        const SnackBar(
+                        SnackBar(
                           content: Text(
-                            'Profile picture size must be less than 2MB',
+                            loc.translate('photo_size_warning'),
                           ),
                           backgroundColor: AppColors.error,
                         ),
@@ -106,7 +106,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 color: AppColors.primary,
               ),
               title: Text(
-                'Choose from gallery',
+                loc.translate('choose_from_gallery'),
                 style: CustomTextStyle.size15W500(color: AppColors.white100),
               ),
               onTap: () async {
@@ -122,9 +122,9 @@ class _SignupScreenState extends State<SignupScreen> {
                   if (sizeInMb > 2.0) {
                     if (pageContext.mounted) {
                       ScaffoldMessenger.of(pageContext).showSnackBar(
-                        const SnackBar(
+                        SnackBar(
                           content: Text(
-                            'Profile picture size must be less than 2MB',
+                            loc.translate('photo_size_warning'),
                           ),
                           backgroundColor: AppColors.error,
                         ),
@@ -243,7 +243,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         // Profile Photo (Optional)
                         Center(
                           child: GestureDetector(
-                            onTap: _pickProfileImage,
+                            onTap: () => _pickProfileImage(loc),
                             child: Stack(
                               children: [
                                 Container(
@@ -599,7 +599,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           dropdownColor: AppColors.grey900,
                           style: CustomTextStyle.size14W400(color: AppColors.white100),
                           decoration: InputDecoration(
-                            hintText: 'Select type (e.g. Particular, NGO, Business)',
+                            hintText: loc.translate('select_account_type_hint'),
                             hintStyle: CustomTextStyle.size14W400(color: AppColors.grey500),
                             filled: true,
                             fillColor: AppColors.grey900,
@@ -618,9 +618,9 @@ class _SignupScreenState extends State<SignupScreen> {
                             ),
                           ),
                           items: [
-                            const DropdownMenuItem<String>(
+                            DropdownMenuItem<String>(
                               value: null,
-                              child: Text('Not Specified', style: TextStyle(color: AppColors.grey500)),
+                              child: Text(loc.translate('not_specified'), style: const TextStyle(color: AppColors.grey500)),
                             ),
                             ...ProfileConstants.accountTypes.map(
                               (type) => DropdownMenuItem<String>(
@@ -629,7 +629,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                   children: [
                                     Icon(type.icon, size: 18, color: AppColors.primary),
                                     const SizedBox(width: 8),
-                                    Text(type.label, style: const TextStyle(color: AppColors.white100)),
+                                    Text(type.getLocalizedLabel(loc), style: const TextStyle(color: AppColors.white100)),
                                   ],
                                 ),
                               ),
@@ -647,13 +647,13 @@ class _SignupScreenState extends State<SignupScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Roles & Domains',
+                              loc.translate('roles_domains_label'),
                               style: CustomTextStyle.size14W500(
                                 color: AppColors.white100,
                               ),
                             ),
                             Text(
-                              'Optional (Multi-select)',
+                              loc.translate('optional_multi_select'),
                               style: CustomTextStyle.size12W400(
                                 color: AppColors.grey500,
                               ),
@@ -676,7 +676,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                     color: isSelected ? AppColors.black100 : AppColors.primary,
                                   ),
                                   const SizedBox(width: 6),
-                                  Text(role.label),
+                                  Text(role.getLocalizedLabel(loc)),
                                 ],
                               ),
                               selected: isSelected,

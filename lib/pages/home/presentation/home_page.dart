@@ -84,7 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       if (state.currentTab == HomeFeedTab.forYou)
                         _buildForYouFeed(context, state)
                       else
-                        _buildFollowingFeed(context, state),
+                        _buildFollowingFeed(context, state, loc),
 
                       // Infinite Scroll Loading Indicator
                       if (isMoreLoading)
@@ -231,7 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildFollowingFeed(BuildContext context, HomeState state) {
+  Widget _buildFollowingFeed(BuildContext context, HomeState state, AppLocalizations loc) {
     if (state.isFollowingLoading) {
       return const SliverFillRemaining(child: FeedShimmer());
     }
@@ -252,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ElevatedButton(
                 onPressed: () => context.read<HomeCubit>().loadFeed(),
                 style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-                child: const Text('Retry', style: TextStyle(color: AppColors.black100)),
+                child: Text(loc.translate('retry_btn'), style: const TextStyle(color: AppColors.black100)),
               ),
             ],
           ),

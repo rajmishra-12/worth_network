@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
 import 'package:worth_network/core/model/moderation/blocked_user_model.dart';
 import 'package:worth_network/core/repo/moderation_repo.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
+import 'package:worth_network/core/utils/app_localizations.dart';
 
 class BlockedUsersScreen extends StatelessWidget {
   const BlockedUsersScreen({super.key});
 
-  void _confirmUnblock(BuildContext context, BlockedUserModel user, ModerationRepository repo) {
+  void _confirmUnblock(BuildContext context, BlockedUserModel user, ModerationRepository repo, AppLocalizations loc) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -18,18 +21,18 @@ class BlockedUsersScreen extends StatelessWidget {
           side: const BorderSide(color: AppColors.grey800),
         ),
         title: Text(
-          'Unblock User?',
+          loc.translate('unblock_user_dialog_title'),
           style: CustomTextStyle.size18W600(color: AppColors.white100),
         ),
         content: Text(
-          'Are you sure you want to unblock @${user.userName}? They will be able to view your content and interact with you.',
+          loc.translate('unblock_user_dialog_desc').replaceFirst('{username}', user.userName),
           style: CustomTextStyle.size14W400(color: AppColors.grey300),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
             child: Text(
-              'Cancel',
+              loc.translate('cancel'),
               style: CustomTextStyle.size14W500(color: AppColors.grey400),
             ),
           ),
@@ -41,7 +44,7 @@ class BlockedUsersScreen extends StatelessWidget {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Unblocked @${user.userName}'),
+                      content: Text(loc.translate('unblocked_user_success').replaceFirst('{username}', user.userName)),
                       backgroundColor: AppColors.success,
                     ),
                   );
@@ -64,7 +67,7 @@ class BlockedUsersScreen extends StatelessWidget {
               ),
             ),
             child: Text(
-              'Unblock',
+              loc.translate('unblock_user_btn'),
               style: CustomTextStyle.size14W600(color: AppColors.white100),
             ),
           ),
@@ -77,115 +80,121 @@ class BlockedUsersScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final repo = ModerationRepository();
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.grey900,
-        elevation: 0,
-        title: Text(
-          'Blocked Users',
-          style: CustomTextStyle.size18W600(color: AppColors.white100),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.white100),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: StreamBuilder<List<BlockedUserModel>>(
-        stream: repo.getBlockedUsersStream(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
-          }
+    return BlocBuilder<LocaleCubit, String>(
+      builder: (context, localeCode) {
+        final loc = AppLocalizations(localeCode);
 
-          final blockedUsers = snapshot.data ?? [];
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            backgroundColor: AppColors.grey900,
+            elevation: 0,
+            title: Text(
+              loc.translate('blocked_users_title'),
+              style: CustomTextStyle.size18W600(color: AppColors.white100),
+            ),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: AppColors.white100),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+          body: StreamBuilder<List<BlockedUserModel>>(
+            stream: repo.getBlockedUsersStream(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                );
+              }
 
-          if (blockedUsers.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.block, size: 64, color: AppColors.grey600),
-                  const SizedBox(height: AppSize.spacingM),
-                  Text(
-                    'No Blocked Users',
-                    style: CustomTextStyle.size18W600(color: AppColors.white100),
+              final blockedUsers = snapshot.data ?? [];
+
+              if (blockedUsers.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.block, size: 64, color: AppColors.grey600),
+                      const SizedBox(height: AppSize.spacingM),
+                      Text(
+                        loc.translate('no_blocked_users_title'),
+                        style: CustomTextStyle.size18W600(color: AppColors.white100),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        loc.translate('no_blocked_users_desc'),
+                        style: CustomTextStyle.size14W400(color: AppColors.grey400),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Users you block will appear here.',
-                    style: CustomTextStyle.size14W400(color: AppColors.grey400),
-                  ),
-                ],
-              ),
-            );
-          }
+                );
+              }
 
-          return ListView.separated(
-            padding: const EdgeInsets.all(AppSize.paddingM),
-            itemCount: blockedUsers.length,
-            separatorBuilder: (context, index) => const SizedBox(height: AppSize.spacingS),
-            itemBuilder: (context, index) {
-              final user = blockedUsers[index];
-              return Container(
+              return ListView.separated(
                 padding: const EdgeInsets.all(AppSize.paddingM),
-                decoration: BoxDecoration(
-                  color: AppColors.grey900,
-                  borderRadius: BorderRadius.circular(AppSize.radiusL),
-                  border: Border.all(color: AppColors.grey800),
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 22,
-                      backgroundColor: AppColors.grey800,
-                      backgroundImage: user.avatarUrl != null ? NetworkImage(user.avatarUrl!) : null,
-                      child: user.avatarUrl == null
-                          ? Text(
-                              user.userName.isNotEmpty ? user.userName[0].toUpperCase() : 'U',
-                              style: CustomTextStyle.size16W600(color: AppColors.white100),
-                            )
-                          : null,
+                itemCount: blockedUsers.length,
+                separatorBuilder: (context, index) => const SizedBox(height: AppSize.spacingS),
+                itemBuilder: (context, index) {
+                  final user = blockedUsers[index];
+                  return Container(
+                    padding: const EdgeInsets.all(AppSize.paddingM),
+                    decoration: BoxDecoration(
+                      color: AppColors.grey900,
+                      borderRadius: BorderRadius.circular(AppSize.radiusL),
+                      border: Border.all(color: AppColors.grey800),
                     ),
-                    const SizedBox(width: AppSize.spacingM),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            user.userName,
-                            style: CustomTextStyle.size14W600(color: AppColors.white100),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Blocked',
-                            style: CustomTextStyle.size12W400(color: AppColors.error),
-                          ),
-                        ],
-                      ),
-                    ),
-                    OutlinedButton(
-                      onPressed: () => _confirmUnblock(context, user, repo),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.grey700),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSize.radiusM),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 22,
+                          backgroundColor: AppColors.grey800,
+                          backgroundImage: user.avatarUrl != null ? NetworkImage(user.avatarUrl!) : null,
+                          child: user.avatarUrl == null
+                              ? Text(
+                                  user.userName.isNotEmpty ? user.userName[0].toUpperCase() : 'U',
+                                  style: CustomTextStyle.size16W600(color: AppColors.white100),
+                                )
+                              : null,
                         ),
-                      ),
-                      child: Text(
-                        'Unblock',
-                        style: CustomTextStyle.size12W600(color: AppColors.white100),
-                      ),
+                        const SizedBox(width: AppSize.spacingM),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                user.userName,
+                                style: CustomTextStyle.size14W600(color: AppColors.white100),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                loc.translate('user_blocked_badge'),
+                                style: CustomTextStyle.size12W400(color: AppColors.error),
+                              ),
+                            ],
+                          ),
+                        ),
+                        OutlinedButton(
+                          onPressed: () => _confirmUnblock(context, user, repo, loc),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: AppColors.grey700),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppSize.radiusM),
+                            ),
+                          ),
+                          child: Text(
+                            loc.translate('unblock_user_btn'),
+                            style: CustomTextStyle.size12W600(color: AppColors.white100),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  );
+                },
               );
             },
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }

@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
 import 'package:worth_network/core/constants/profile_constants.dart';
 import 'package:worth_network/core/repo/auth_repo.dart';
+import 'package:worth_network/core/utils/app_localizations.dart';
 import 'package:worth_network/core/utils/preferences.dart';
 import 'package:worth_network/pages/profile/cubit/profile_cubit.dart';
 
@@ -77,6 +79,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _pickAvatar() async {
+    final loc = AppLocalizations(context.read<LocaleCubit>().state);
     final picker = ImagePicker();
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
@@ -90,12 +93,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt, color: AppColors.primary),
-              title: Text('Take Photo', style: CustomTextStyle.size15W500(color: AppColors.white100)),
+              title: Text(loc.translate('take_photo'), style: CustomTextStyle.size15W500(color: AppColors.white100)),
               onTap: () => Navigator.pop(context, ImageSource.camera),
             ),
             ListTile(
               leading: const Icon(Icons.photo_library, color: AppColors.primary),
-              title: Text('Choose from Gallery', style: CustomTextStyle.size15W500(color: AppColors.white100)),
+              title: Text(loc.translate('choose_from_gallery'), style: CustomTextStyle.size15W500(color: AppColors.white100)),
               onTap: () => Navigator.pop(context, ImageSource.gallery),
             ),
           ],
@@ -118,8 +121,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         if (bytes > 10 * 1024 * 1024) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Profile image size exceeds 10MB limit. Please choose a smaller image.'),
+              SnackBar(
+                content: Text(loc.translate('image_size_exceeds_limit')),
                 backgroundColor: AppColors.error,
               ),
             );
@@ -136,6 +139,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
+    final prefs = Preferences();
+    final loc = AppLocalizations(context.read<LocaleCubit>().state);
 
     setState(() {
       _isSaving = true;
@@ -162,14 +167,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
 
       // Update Local Preferences
-      final prefs = Preferences();
       prefs.name = newName;
 
       if (mounted) {
         context.read<ProfileCubit>().loadProfile();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated successfully!'),
+          SnackBar(
+            content: Text(loc.translate('profile_updated_success')),
             backgroundColor: AppColors.success,
           ),
         );
@@ -206,276 +210,287 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.white100),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          'Edit Profile',
-          style: CustomTextStyle.size18W600(color: AppColors.white100),
-        ),
-        actions: [
-          TextButton(
-            onPressed: _isSaving ? null : _saveProfile,
-            child: _isSaving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
-                  )
-                : Text(
-                    'Save',
-                    style: CustomTextStyle.size15W600(color: AppColors.primary),
-                  ),
-          ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSize.paddingL),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Avatar Picker
-                    Center(
-                      child: GestureDetector(
-                        onTap: _pickAvatar,
-                        child: Stack(
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: AppColors.primary, width: 2),
-                              ),
-                              child: CircleAvatar(
-                                radius: 50,
-                                backgroundColor: AppColors.grey800,
-                                backgroundImage: _newAvatarFile != null
-                                    ? FileImage(_newAvatarFile!)
-                                    : (_currentAvatarUrl != null && _currentAvatarUrl!.isNotEmpty
-                                        ? NetworkImage(_currentAvatarUrl!)
-                                        : null) as ImageProvider?,
-                                child: _newAvatarFile == null &&
-                                        (_currentAvatarUrl == null || _currentAvatarUrl!.isEmpty)
-                                    ? Text(
-                                        _nameController.text.isNotEmpty
-                                            ? _nameController.text[0].toUpperCase()
-                                            : 'U',
-                                        style: CustomTextStyle.size30W600(color: AppColors.white100),
-                                      )
-                                    : null,
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: const BoxDecoration(
-                                  color: AppColors.primary,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.camera_alt, size: 16, color: AppColors.black100),
-                              ),
-                            ),
-                          ],
-                        ),
+    return BlocBuilder<LocaleCubit, String>(
+      builder: (context, localeCode) {
+        final loc = AppLocalizations(localeCode);
+
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            backgroundColor: AppColors.background,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: AppColors.white100),
+              onPressed: () => context.pop(),
+            ),
+            title: Text(
+              loc.translate('edit_profile_title'),
+              style: CustomTextStyle.size18W600(color: AppColors.white100),
+            ),
+            actions: [
+              TextButton(
+                onPressed: _isSaving ? null : _saveProfile,
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                      )
+                    : Text(
+                        loc.translate('save_btn'),
+                        style: CustomTextStyle.size15W600(color: AppColors.primary),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Tap to change profile picture',
-                      style: CustomTextStyle.size12W400(color: AppColors.grey500),
-                    ),
-                    const SizedBox(height: AppSize.spacingXL),
-
-                    // Full Name (Editable)
-                    _buildInputField(
-                      label: 'Full Name',
-                      controller: _nameController,
-                      enabled: true,
-                      validator: (val) =>
-                          val == null || val.trim().isEmpty ? 'Full Name is required' : null,
-                    ),
-                    const SizedBox(height: AppSize.spacingL),
-
-                    // Bio (Editable)
-                    _buildInputField(
-                      label: 'Bio',
-                      controller: _bioController,
-                      enabled: true,
-                      maxLines: 3,
-                      hint: 'Tell the community about your actions and goals...',
-                    ),
-                    const SizedBox(height: AppSize.spacingL),
-
-                    // Account Type (Optional)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+            ],
+          ),
+          body: _isLoading
+              ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppSize.paddingL),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Account Type',
-                              style: CustomTextStyle.size14W600(color: AppColors.white100),
-                            ),
-                            Text(
-                              'Optional',
-                              style: CustomTextStyle.size11W400(color: AppColors.grey500),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedAccountType,
-                          dropdownColor: AppColors.grey900,
-                          style: CustomTextStyle.size14W400(color: AppColors.white100),
-                          decoration: InputDecoration(
-                            hintText: 'Select type (e.g. Particular, NGO, Business)',
-                            hintStyle: CustomTextStyle.size14W400(color: AppColors.grey600),
-                            filled: true,
-                            fillColor: AppColors.grey900,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(AppSize.radiusM),
-                              borderSide: const BorderSide(color: AppColors.grey800),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(AppSize.radiusM),
-                              borderSide: const BorderSide(color: AppColors.grey800),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(AppSize.radiusM),
-                              borderSide: const BorderSide(color: AppColors.primary),
+                        // Avatar Picker
+                        Center(
+                          child: GestureDetector(
+                            onTap: _pickAvatar,
+                            child: Stack(
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: AppColors.primary, width: 2),
+                                  ),
+                                  child: CircleAvatar(
+                                    radius: 50,
+                                    backgroundColor: AppColors.grey800,
+                                    backgroundImage: _newAvatarFile != null
+                                        ? FileImage(_newAvatarFile!)
+                                        : (_currentAvatarUrl != null && _currentAvatarUrl!.isNotEmpty
+                                            ? NetworkImage(_currentAvatarUrl!)
+                                            : null) as ImageProvider?,
+                                    child: _newAvatarFile == null &&
+                                            (_currentAvatarUrl == null || _currentAvatarUrl!.isEmpty)
+                                        ? Text(
+                                            _nameController.text.isNotEmpty
+                                                ? _nameController.text[0].toUpperCase()
+                                                : 'U',
+                                            style: CustomTextStyle.size30W600(color: AppColors.white100),
+                                          )
+                                        : null,
+                                  ),
+                                ),
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.primary,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.camera_alt, size: 16, color: AppColors.black100),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          items: [
-                            const DropdownMenuItem<String>(
-                              value: null,
-                              child: Text('Not Specified', style: TextStyle(color: AppColors.grey500)),
-                            ),
-                            ...ProfileConstants.accountTypes.map(
-                              (type) => DropdownMenuItem<String>(
-                                value: type.key,
-                                child: Row(
-                                  children: [
-                                    Icon(type.icon, size: 18, color: AppColors.primary),
-                                    const SizedBox(width: 8),
-                                    Text(type.label, style: const TextStyle(color: AppColors.white100)),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                          onChanged: (val) {
-                            setState(() {
-                              _selectedAccountType = val;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSize.spacingL),
-
-                    // Roles & Domains (Optional Multi-select)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Roles & Domains',
-                              style: CustomTextStyle.size14W600(color: AppColors.white100),
-                            ),
-                            Text(
-                              'Optional (Multi-select)',
-                              style: CustomTextStyle.size11W400(color: AppColors.grey500),
-                            ),
-                          ],
                         ),
                         const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: ProfileConstants.roles.map((role) {
-                            final isSelected = _selectedRoles.contains(role.key);
-                            return FilterChip(
-                              label: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    role.icon,
-                                    size: 14,
-                                    color: isSelected ? AppColors.black100 : AppColors.primary,
+                        Text(
+                          loc.translate('tap_to_change_avatar'),
+                          style: CustomTextStyle.size12W400(color: AppColors.grey500),
+                        ),
+                        const SizedBox(height: AppSize.spacingXL),
+
+                        // Full Name (Editable)
+                        _buildInputField(
+                          label: loc.translate('full_name_label'),
+                          controller: _nameController,
+                          enabled: true,
+                          loc: loc,
+                          validator: (val) =>
+                              val == null || val.trim().isEmpty ? loc.translate('full_name_required') : null,
+                        ),
+                        const SizedBox(height: AppSize.spacingL),
+
+                        // Bio (Editable)
+                        _buildInputField(
+                          label: loc.translate('bio_label'),
+                          controller: _bioController,
+                          enabled: true,
+                          loc: loc,
+                          maxLines: 3,
+                          hint: loc.translate('bio_placeholder'),
+                        ),
+                        const SizedBox(height: AppSize.spacingL),
+
+                        // Account Type (Optional)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  loc.translate('account_type_label'),
+                                  style: CustomTextStyle.size14W600(color: AppColors.white100),
+                                ),
+                                Text(
+                                  loc.translate('optional'),
+                                  style: CustomTextStyle.size11W400(color: AppColors.grey500),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            DropdownButtonFormField<String>(
+                              initialValue: _selectedAccountType,
+                              dropdownColor: AppColors.grey900,
+                              style: CustomTextStyle.size14W400(color: AppColors.white100),
+                              decoration: InputDecoration(
+                                hintText: loc.translate('select_account_type_hint'),
+                                hintStyle: CustomTextStyle.size14W400(color: AppColors.grey600),
+                                filled: true,
+                                fillColor: AppColors.grey900,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(AppSize.radiusM),
+                                  borderSide: const BorderSide(color: AppColors.grey800),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(AppSize.radiusM),
+                                  borderSide: const BorderSide(color: AppColors.grey800),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(AppSize.radiusM),
+                                  borderSide: const BorderSide(color: AppColors.primary),
+                                ),
+                              ),
+                              items: [
+                                DropdownMenuItem<String>(
+                                  value: null,
+                                  child: Text(loc.translate('not_specified'), style: const TextStyle(color: AppColors.grey500)),
+                                ),
+                                ...ProfileConstants.accountTypes.map(
+                                  (type) => DropdownMenuItem<String>(
+                                    value: type.key,
+                                    child: Row(
+                                      children: [
+                                        Icon(type.icon, size: 18, color: AppColors.primary),
+                                        const SizedBox(width: 8),
+                                        Text(type.getLocalizedLabel(loc), style: const TextStyle(color: AppColors.white100)),
+                                      ],
+                                    ),
                                   ),
-                                  const SizedBox(width: 6),
-                                  Text(role.label),
-                                ],
-                              ),
-                              selected: isSelected,
-                              selectedColor: AppColors.primary,
-                              backgroundColor: AppColors.grey900,
-                              checkmarkColor: AppColors.black100,
-                              labelStyle: CustomTextStyle.size12W500(
-                                color: isSelected ? AppColors.black100 : AppColors.white100,
-                              ),
-                              side: BorderSide(
-                                color: isSelected ? AppColors.primary : AppColors.grey800,
-                              ),
-                              onSelected: (selected) {
+                                ),
+                              ],
+                              onChanged: (val) {
                                 setState(() {
-                                  if (selected) {
-                                    _selectedRoles.add(role.key);
-                                  } else {
-                                    _selectedRoles.remove(role.key);
-                                  }
+                                  _selectedAccountType = val;
                                 });
                               },
-                            );
-                          }).toList(),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSize.spacingL),
+
+                        // Roles & Domains (Optional Multi-select)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  loc.translate('roles_domains_label'),
+                                  style: CustomTextStyle.size14W600(color: AppColors.white100),
+                                ),
+                                Text(
+                                  loc.translate('optional_multi_select'),
+                                  style: CustomTextStyle.size11W400(color: AppColors.grey500),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: ProfileConstants.roles.map((role) {
+                                final isSelected = _selectedRoles.contains(role.key);
+                                return FilterChip(
+                                  label: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        role.icon,
+                                        size: 14,
+                                        color: isSelected ? AppColors.black100 : AppColors.primary,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(role.getLocalizedLabel(loc)),
+                                    ],
+                                  ),
+                                  selected: isSelected,
+                                  selectedColor: AppColors.primary,
+                                  backgroundColor: AppColors.grey900,
+                                  checkmarkColor: AppColors.black100,
+                                  labelStyle: CustomTextStyle.size12W500(
+                                    color: isSelected ? AppColors.black100 : AppColors.white100,
+                                  ),
+                                  side: BorderSide(
+                                    color: isSelected ? AppColors.primary : AppColors.grey800,
+                                  ),
+                                  onSelected: (selected) {
+                                    setState(() {
+                                      if (selected) {
+                                        _selectedRoles.add(role.key);
+                                      } else {
+                                        _selectedRoles.remove(role.key);
+                                      }
+                                    });
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSize.spacingL),
+
+                        // Username (Read-Only / Disabled)
+                        _buildInputField(
+                          label: loc.translate('username_label'),
+                          controller: _usernameController,
+                          enabled: false,
+                          lockIcon: true,
+                          loc: loc,
+                          helperText: loc.translate('username_helper'),
+                        ),
+                        const SizedBox(height: AppSize.spacingL),
+
+                        // Email Address (Read-Only / Disabled)
+                        _buildInputField(
+                          label: loc.translate('email_label'),
+                          controller: _emailController,
+                          enabled: false,
+                          lockIcon: true,
+                          loc: loc,
+                          helperText: loc.translate('email_helper'),
                         ),
                       ],
                     ),
-                    const SizedBox(height: AppSize.spacingL),
-
-                    // Username (Read-Only / Disabled)
-                    _buildInputField(
-                      label: 'Username',
-                      controller: _usernameController,
-                      enabled: false,
-                      lockIcon: true,
-                      helperText: 'Username is unique and cannot be changed.',
-                    ),
-                    const SizedBox(height: AppSize.spacingL),
-
-                    // Email Address (Read-Only / Disabled)
-                    _buildInputField(
-                      label: 'Email Address',
-                      controller: _emailController,
-                      enabled: false,
-                      lockIcon: true,
-                      helperText: 'Email address is linked to your login account.',
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+        );
+      },
     );
   }
 
   Widget _buildInputField({
     required String label,
     required TextEditingController controller,
+    required AppLocalizations loc,
     bool enabled = true,
     bool lockIcon = false,
     int maxLines = 1,
@@ -499,7 +514,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   const Icon(Icons.lock_outline, size: 14, color: AppColors.grey500),
                   const SizedBox(width: 4),
                   Text(
-                    'Read Only',
+                    loc.translate('read_only'),
                     style: CustomTextStyle.size11W400(color: AppColors.grey500),
                   ),
                 ],

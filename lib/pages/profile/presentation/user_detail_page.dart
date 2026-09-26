@@ -374,7 +374,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                                       Icon(accType.icon, size: 13, color: AppColors.primary),
                                       const SizedBox(width: 5),
                                       Text(
-                                        accType.label,
+                                        accType.getLocalizedLabel(loc),
                                         style: CustomTextStyle.size12W500(color: AppColors.primary),
                                       ),
                                     ],
@@ -405,7 +405,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                                         Icon(rOption.icon, size: 12, color: AppColors.white100),
                                         const SizedBox(width: 4),
                                         Text(
-                                          rOption.label,
+                                          rOption.getLocalizedLabel(loc),
                                           style: CustomTextStyle.size11W400(color: AppColors.white100),
                                         ),
                                       ],

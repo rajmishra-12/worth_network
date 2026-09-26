@@ -34,7 +34,7 @@ class _ValidationRequestScreenState extends State<ValidationRequestScreen> {
     super.dispose();
   }
 
-  Future<void> _submitValidation() async {
+  Future<void> _submitValidation(AppLocalizations loc) async {
     setState(() {
       _isSubmitting = true;
     });
@@ -63,8 +63,8 @@ class _ValidationRequestScreenState extends State<ValidationRequestScreen> {
           SnackBar(
             content: Text(
               isApproved
-                  ? 'Validation submitted successfully! Score awarded.'
-                  : 'Validation submitted. Action marked as rejected.',
+                  ? loc.translate('val_submitted_success_score')
+                  : loc.translate('val_submitted_rejected'),
             ),
             backgroundColor: isApproved ? AppColors.success : AppColors.error,
           ),
@@ -74,7 +74,7 @@ class _ValidationRequestScreenState extends State<ValidationRequestScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to submit validation: $e'),
+            content: Text('${loc.translate('failed_to_submit_val')}$e'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -303,7 +303,7 @@ class _ValidationRequestScreenState extends State<ValidationRequestScreen> {
                 const SizedBox(height: 40),
 
                 ElevatedButton(
-                  onPressed: _isSubmitting ? null : _submitValidation,
+                  onPressed: _isSubmitting ? null : () => _submitValidation(loc),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.7),

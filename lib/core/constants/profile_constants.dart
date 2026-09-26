@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:worth_network/core/utils/app_localizations.dart';
 
 class AccountTypeOption {
   final String key;
@@ -10,6 +11,12 @@ class AccountTypeOption {
     required this.label,
     required this.icon,
   });
+
+  String getLocalizedLabel(AppLocalizations loc) {
+    final locKey = 'account_type_$key';
+    final translated = loc.translate(locKey);
+    return translated != locKey ? translated : label;
+  }
 }
 
 class RoleOption {
@@ -22,6 +29,12 @@ class RoleOption {
     required this.label,
     required this.icon,
   });
+
+  String getLocalizedLabel(AppLocalizations loc) {
+    final locKey = 'role_$key';
+    final translated = loc.translate(locKey);
+    return translated != locKey ? translated : label;
+  }
 }
 
 class ProfileConstants {
@@ -71,3 +84,4 @@ class ProfileConstants {
     }
   }
 }
+

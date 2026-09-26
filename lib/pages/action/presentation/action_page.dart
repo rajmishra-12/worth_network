@@ -144,10 +144,10 @@ class _AddActionScreenState extends State<AddActionScreen> {
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter a title';
+                            return loc.translate('err_title_required');
                           }
                           if (value.length < 5) {
-                            return 'Title must be at least 5 characters';
+                            return loc.translate('err_title_min_length');
                           }
                           return null;
                         },
@@ -196,10 +196,10 @@ class _AddActionScreenState extends State<AddActionScreen> {
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter a description';
+                            return loc.translate('err_desc_required');
                           }
                           if (value.length < 10) {
-                            return 'Description must be at least 10 characters';
+                            return loc.translate('err_desc_min_length');
                           }
                           return null;
                         },
@@ -245,7 +245,7 @@ class _AddActionScreenState extends State<AddActionScreen> {
                               label: loc.translate('proof_photo'),
                               description: loc.translate('proof_photo_desc'),
                               isSelected: state.evidenceType == EvidenceType.photo,
-                              onTap: () => _pickImage(context),
+                              onTap: () => _pickImage(context, loc),
                             ),
                             _buildDivider(),
                             _buildEvidenceOption(
@@ -253,7 +253,7 @@ class _AddActionScreenState extends State<AddActionScreen> {
                               label: loc.translate('proof_document'),
                               description: loc.translate('proof_document_desc'),
                               isSelected: state.evidenceType == EvidenceType.document,
-                              onTap: () => _pickDocument(context),
+                              onTap: () => _pickDocument(context, loc),
                             ),
                             _buildDivider(),
                             _buildEvidenceOption(
@@ -261,7 +261,7 @@ class _AddActionScreenState extends State<AddActionScreen> {
                               label: loc.translate('proof_audio'),
                               description: loc.translate('proof_audio_desc'),
                               isSelected: state.evidenceType == EvidenceType.audio,
-                              onTap: () => _showAudioRecorderDialog(context),
+                              onTap: () => _showAudioRecorderDialog(context, loc),
                             ),
                             _buildDivider(),
                             _buildEvidenceOption(
@@ -269,15 +269,15 @@ class _AddActionScreenState extends State<AddActionScreen> {
                               label: loc.translate('proof_text'),
                               description: loc.translate('proof_text_desc'),
                               isSelected: state.evidenceType == EvidenceType.text,
-                              onTap: () => _showTextProofDialog(context),
+                              onTap: () => _showTextProofDialog(context, loc),
                             ),
                             _buildDivider(),
                             _buildEvidenceOption(
                               icon: Icons.link_rounded,
-                              label: 'Link / Web URL',
-                              description: 'Attach a website link or online article',
+                              label: loc.translate('link_web_url_label'),
+                              description: loc.translate('link_web_url_desc'),
                               isSelected: state.evidenceType == EvidenceType.link,
-                              onTap: () => _showLinkProofDialog(context),
+                              onTap: () => _showLinkProofDialog(context, loc),
                             ),
                           ],
                         ),
@@ -287,7 +287,7 @@ class _AddActionScreenState extends State<AddActionScreen> {
                       if (state.evidences.isNotEmpty) ...[
                         const SizedBox(height: AppSize.spacingM),
                         Text(
-                          'Attached Evidence (${state.evidences.length})',
+                          '${loc.translate('attached_evidence_count')} (${state.evidences.length})',
                           style: CustomTextStyle.size14W600(color: AppColors.white100),
                         ),
                         const SizedBox(height: AppSize.spacingS),
@@ -474,7 +474,7 @@ class _AddActionScreenState extends State<AddActionScreen> {
     );
   }
 
-  Future<void> _pickImage(BuildContext context) async {
+  Future<void> _pickImage(BuildContext context, AppLocalizations loc) async {
     final picker = ImagePicker();
     final result = await showModalBottomSheet<ImageSource>(
       context: context,
@@ -489,7 +489,7 @@ class _AddActionScreenState extends State<AddActionScreen> {
             ListTile(
               leading: const Icon(Icons.camera_alt, color: AppColors.primary),
               title: Text(
-                'Take a photo',
+                loc.translate('take_photo'),
                 style: CustomTextStyle.size15W500(color: AppColors.white100),
               ),
               onTap: () => Navigator.pop(context, ImageSource.camera),
@@ -497,7 +497,7 @@ class _AddActionScreenState extends State<AddActionScreen> {
             ListTile(
               leading: const Icon(Icons.photo_library, color: AppColors.primary),
               title: Text(
-                'Choose from gallery',
+                loc.translate('choose_from_gallery'),
                 style: CustomTextStyle.size15W500(color: AppColors.white100),
               ),
               onTap: () => Navigator.pop(context, ImageSource.gallery),
@@ -521,8 +521,8 @@ class _AddActionScreenState extends State<AddActionScreen> {
         if (bytes > 10 * 1024 * 1024) {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Image size exceeds 10MB limit. Please select a smaller photo.'),
+              SnackBar(
+                content: Text(loc.translate('err_image_size_limit')),
                 backgroundColor: AppColors.error,
               ),
             );
@@ -534,7 +534,7 @@ class _AddActionScreenState extends State<AddActionScreen> {
     }
   }
 
-  Future<void> _pickDocument(BuildContext context) async {
+  Future<void> _pickDocument(BuildContext context, AppLocalizations loc) async {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'doc', 'docx', 'txt'],
@@ -546,8 +546,8 @@ class _AddActionScreenState extends State<AddActionScreen> {
       if (bytes > 10 * 1024 * 1024) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Document size exceeds 10MB limit. Please select a smaller file.'),
+            SnackBar(
+              content: Text(loc.translate('err_doc_size_limit')),
               backgroundColor: AppColors.error,
             ),
           );
@@ -558,7 +558,7 @@ class _AddActionScreenState extends State<AddActionScreen> {
     }
   }
 
-  void _showAudioRecorderDialog(BuildContext context) {
+  void _showAudioRecorderDialog(BuildContext context, AppLocalizations loc) {
     showDialog(
       context: context,
       builder: (context) => const AudioRecorderDialog(),
@@ -568,8 +568,8 @@ class _AddActionScreenState extends State<AddActionScreen> {
         if (bytes > 10 * 1024 * 1024) {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Audio size exceeds 10MB limit. Please record a shorter message.'),
+              SnackBar(
+                content: Text(loc.translate('err_audio_size_limit')),
                 backgroundColor: AppColors.error,
               ),
             );
@@ -581,15 +581,14 @@ class _AddActionScreenState extends State<AddActionScreen> {
     });
   }
 
-
-  void _showTextProofDialog(BuildContext context) {
+  void _showTextProofDialog(BuildContext context, AppLocalizations loc) {
     final controller = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.grey900,
         title: Text(
-          'Add Text Proof',
+          loc.translate('add_text_proof_title'),
           style: CustomTextStyle.size18W600(color: AppColors.white100),
         ),
         content: TextField(
@@ -597,14 +596,14 @@ class _AddActionScreenState extends State<AddActionScreen> {
           maxLines: 5,
           style: CustomTextStyle.size14W400(color: AppColors.white100),
           decoration: _buildInputDecoration(
-            hintText: 'Write your proof here...',
+            hintText: loc.translate('add_text_proof_hint'),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
-              'Cancel',
+              loc.translate('cancel'),
               style: CustomTextStyle.size14W500(color: AppColors.grey400),
             ),
           ),
@@ -616,7 +615,7 @@ class _AddActionScreenState extends State<AddActionScreen> {
               }
             },
             child: Text(
-              'Add',
+              loc.translate('add_btn'),
               style: CustomTextStyle.size14W600(color: AppColors.primary),
             ),
           ),
@@ -625,14 +624,14 @@ class _AddActionScreenState extends State<AddActionScreen> {
     );
   }
 
-  void _showLinkProofDialog(BuildContext context) {
+  void _showLinkProofDialog(BuildContext context, AppLocalizations loc) {
     final controller = TextEditingController();
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.grey900,
         title: Text(
-          'Add Link / URL Evidence',
+          loc.translate('add_link_proof_title'),
           style: CustomTextStyle.size18W600(color: AppColors.white100),
         ),
         content: Column(
@@ -640,7 +639,7 @@ class _AddActionScreenState extends State<AddActionScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Paste a URL link (e.g. news article, tweet, video, website) as evidence:',
+              loc.translate('add_link_proof_desc'),
               style: CustomTextStyle.size12W400(color: AppColors.grey400),
             ),
             const SizedBox(height: AppSize.spacingM),
@@ -658,7 +657,7 @@ class _AddActionScreenState extends State<AddActionScreen> {
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
             child: Text(
-              'Cancel',
+              loc.translate('cancel'),
               style: CustomTextStyle.size14W500(color: AppColors.grey400),
             ),
           ),
@@ -671,7 +670,7 @@ class _AddActionScreenState extends State<AddActionScreen> {
               }
             },
             child: Text(
-              'Fetch & Add',
+              loc.translate('fetch_and_add_btn'),
               style: CustomTextStyle.size14W600(color: AppColors.primary),
             ),
           ),
@@ -753,54 +752,59 @@ class _AudioRecorderDialogState extends State<AudioRecorderDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: AppColors.grey900,
-      title: Text(
-        'Record Audio Proof',
-        style: CustomTextStyle.size18W600(color: AppColors.white100),
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: AppColors.grey800,
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: Icon(
-                _isRecording ? Icons.stop : Icons.mic,
-                size: 40,
-                color: _isRecording ? AppColors.error : AppColors.primary,
+    return BlocBuilder<LocaleCubit, String>(
+      builder: (context, localeCode) {
+        final loc = AppLocalizations(localeCode);
+        return AlertDialog(
+          backgroundColor: AppColors.grey900,
+          title: Text(
+            loc.translate('record_audio_proof_title'),
+            style: CustomTextStyle.size18W600(color: AppColors.white100),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: AppColors.grey800,
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    _isRecording ? Icons.stop : Icons.mic,
+                    size: 40,
+                    color: _isRecording ? AppColors.error : AppColors.primary,
+                  ),
+                  onPressed: _isRecording ? _stopRecording : _startRecording,
+                ),
               ),
-              onPressed: _isRecording ? _stopRecording : _startRecording,
+              const SizedBox(height: AppSize.spacingM),
+              if (_isRecording)
+                Text(
+                  _formatDuration(_recordingDuration),
+                  style: CustomTextStyle.size20W600(color: AppColors.white100),
+                ),
+              if (_isRecording)
+                const SizedBox(height: AppSize.spacingS),
+              Text(
+                _isRecording ? loc.translate('recording_status') : loc.translate('tap_to_start_recording'),
+                style: CustomTextStyle.size14W400(color: AppColors.grey400),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                loc.translate('cancel'),
+                style: CustomTextStyle.size14W500(color: AppColors.grey400),
+              ),
             ),
-          ),
-          const SizedBox(height: AppSize.spacingM),
-          if (_isRecording)
-            Text(
-              _formatDuration(_recordingDuration),
-              style: CustomTextStyle.size20W600(color: AppColors.white100),
-            ),
-          if (_isRecording)
-            const SizedBox(height: AppSize.spacingS),
-          Text(
-            _isRecording ? 'Recording...' : 'Tap to start recording',
-            style: CustomTextStyle.size14W400(color: AppColors.grey400),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(
-            'Cancel',
-            style: CustomTextStyle.size14W500(color: AppColors.grey400),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 }

@@ -189,11 +189,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: AppSize.spacingL),
 
               // Safety & Moderation Section
-              _buildSettingsHeader('Safety & Moderation'),
+              _buildSettingsHeader(loc.translate('safety_moderation_sec')),
               _buildSettingsTile(
                 icon: Icons.block,
-                title: 'Blocked Users',
-                subtitle: 'Manage users you have blocked',
+                title: loc.translate('blocked_users_title'),
+                subtitle: loc.translate('blocked_users_desc'),
                 onTap: () {
                   context.push('/blocked-users');
                 },
@@ -201,8 +201,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               if (isAdmin)
                 _buildSettingsTile(
                   icon: Icons.admin_panel_settings,
-                  title: 'Admin Moderation Console',
-                  subtitle: 'Review reports, word filters & moderation logs',
+                  title: loc.translate('admin_console_title'),
+                  subtitle: loc.translate('admin_console_desc'),
                   onTap: () {
                     context.push('/admin');
                   },

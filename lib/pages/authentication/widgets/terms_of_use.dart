@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
+import 'package:worth_network/core/utils/app_localizations.dart';
 
 class TermsOfUsePage extends StatelessWidget {
   const TermsOfUsePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white100,
-      appBar: AppBar(
-        backgroundColor: AppColors.white100,
-        title: const Text('Terms of Use / EULA'),
-      ),
+    return BlocBuilder<LocaleCubit, String>(
+      builder: (context, localeCode) {
+        final loc = AppLocalizations(localeCode);
+        return Scaffold(
+          backgroundColor: AppColors.white100,
+          appBar: AppBar(
+            backgroundColor: AppColors.white100,
+            title: Text(loc.translate('terms_of_use_eula_title')),
+          ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -268,6 +274,8 @@ Tout litige relève des juridictions françaises compétentes.
         ),
       ),
     );
+  },
+);
   }
 
   Widget _sectionTitle(String title) {

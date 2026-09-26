@@ -484,7 +484,7 @@ class _AudioProofPlayerState extends State<_AudioProofPlayer> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Audio play error: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text('${widget.loc.translate('audio_play_error')}$e'), backgroundColor: AppColors.error),
         );
       }
     }
