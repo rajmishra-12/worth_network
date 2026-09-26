@@ -65,7 +65,7 @@ class UserConnectionsCubit extends Cubit<UserConnectionsState> {
     if (isClosed) return;
     emit(state.copyWith(isLoading: true, errorMessage: null));
 
-    try {
+    try { 
       final results = await Future.wait([
         _followRepo.getFollowers(userId).catchError((e) {
           print('Error in getFollowers: $e');

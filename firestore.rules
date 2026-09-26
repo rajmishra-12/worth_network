@@ -12,48 +12,81 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Users Collection Rules:
-    // Read: All authenticated users can view public user profiles and network cards.
-    // Write: Strictly restricted to the owner matching request.auth.uid.
-    // Followers/Following array updates: Users can ONLY edit their own document's 'following' array.
-    match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+    // Safe Admin helper check
+    function isAdmin() {
+      return isAuthenticated() && (
+        (request.auth.token != null && 'email' in request.auth.token && request.auth.token.email == 'admin@gmail.com') ||
+        (request.auth.token != null && 'admin' in request.auth.token && request.auth.token.admin == true) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         'accountType' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.accountType == 'admin') ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         'roles' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles.hasAny(['admin']))
+      );
     }
 
-    // Actions Collection Rules:
-    // Read: All authenticated users can view published community actions.
-    // Create: Must set userId to caller's request.auth.uid.
-    // Update: Allowed for post owner, assigned validator (to confirm/certify/reject), or callers liking/commenting.
-    // Delete: Only post owner can delete.
+    // Check if user account is active (not suspended or blocked by admin)
+    function isActiveUser() {
+      return isAuthenticated() && (
+        !exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
+        !('accountStatus' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data) ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.accountStatus == 'active'
+      );
+    }
+
+    // Users Collection Rules
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+      allow delete: if isOwner(userId) || isAdmin();
+
+      // Blocked users subcollection
+      match /blocked_users/{blockedId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+
+    // Top-level Blocked Users collection
+    match /blockedUsers/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Actions Collection Rules
     match /actions/{actionId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow create: if isActiveUser();
       allow update: if isAuthenticated() && (
-        resource.data.userId == request.auth.uid || 
-        resource.data.validatorId == request.auth.uid ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likedBy', 'likesCount', 'commentsCount'])
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['moderationStatus', 'moderatedBy', 'moderatedAt', 'moderationReason']) ||
+        isAdmin()
       );
-      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
 
       // Comments subcollection
       match /comments/{commentId} {
         allow read: if isAuthenticated();
-        allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-        allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+        allow create, update, delete: if isActiveUser();
       }
     }
 
-    // Notifications Collection Rules:
-    // Read/Update/Delete: Only target user can access their notifications.
-    // Create: Authenticated users can send validation requests/notifications.
+    // Moderation Reports Collection
+    match /moderationReports/{reportId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Moderation Audit Log Collection
+    match /moderationActions/{actionId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Moderation Settings Collection (Blocked Words)
+    match /moderationSettings/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Notifications Collection Rules
     match /notifications/{notificationId} {
-      allow read: if isAuthenticated() && resource.data.targetUserId == request.auth.uid;
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && resource.data.targetUserId == request.auth.uid;
-      allow delete: if isAuthenticated() && resource.data.targetUserId == request.auth.uid;
+      allow read, write: if isAuthenticated();
     }
   }
 }

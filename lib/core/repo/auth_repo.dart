@@ -282,6 +282,14 @@ class AuthRepository {
         if (docSnapshot.exists) {
           final data = docSnapshot.data();
           if (data != null) {
+            final accountStatus = data['accountStatus'] as String? ?? 'active';
+            if (accountStatus == 'suspended' || accountStatus == 'blocked') {
+              final reason = data['suspensionReason'] as String?;
+              await _firebaseAuth.signOut();
+              await Preferences().clear();
+              final reasonMsg = reason != null && reason.isNotEmpty ? ' Reason: $reason' : '';
+              throw Exception('Your account has been $accountStatus by an administrator.$reasonMsg');
+            }
             final prefs = Preferences();
             prefs.isLoggedIn = true;
             prefs.userId = user.uid;

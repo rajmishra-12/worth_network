@@ -78,7 +78,7 @@ class UserCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Expanded(
+                      Flexible(
                         child: Text(
                           user.name,
                           style: CustomTextStyle.size16W600(
@@ -88,17 +88,14 @@ class UserCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (user.verified)
-                        Container(
-                          margin: const EdgeInsets.only(
-                            left: AppSize.spacingXS,
-                          ),
-                          child: Icon(
-                            Icons.verified,
-                            size: 16,
-                            color: AppColors.primary,
-                          ),
+                      if (user.verified) ...[
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.verified,
+                          size: 16,
+                          color: AppColors.primary,
                         ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: AppSize.spacingXS),

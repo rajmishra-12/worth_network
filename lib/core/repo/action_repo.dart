@@ -6,8 +6,8 @@ import 'package:worth_network/core/model/home/action_model.dart';
 import 'package:worth_network/core/model/home/evidence_model.dart';
 import 'package:worth_network/core/utils/preferences.dart';
 import 'package:worth_network/core/services/notification_service.dart';
-
-
+import 'package:worth_network/core/services/moderation_text_service.dart';
+import 'package:worth_network/core/repo/moderation_repo.dart';
 
 class CommentModel {
   final String id;
@@ -16,6 +16,10 @@ class CommentModel {
   final String? userAvatar;
   final String text;
   final DateTime createdAt;
+  final String moderationStatus;
+  final String? moderatedBy;
+  final DateTime? moderatedAt;
+  final String? moderationReason;
 
   CommentModel({
     required this.id,
@@ -24,12 +28,22 @@ class CommentModel {
     this.userAvatar,
     required this.text,
     required this.createdAt,
+    this.moderationStatus = 'visible',
+    this.moderatedBy,
+    this.moderatedAt,
+    this.moderationReason,
   });
+
+  bool get isVisible => moderationStatus == 'visible';
 
   factory CommentModel.fromMap(Map<String, dynamic> map, String docId) {
     DateTime createdDate = DateTime.now();
     if (map['createdAt'] is Timestamp) {
       createdDate = (map['createdAt'] as Timestamp).toDate();
+    }
+    DateTime? modDate;
+    if (map['moderatedAt'] is Timestamp) {
+      modDate = (map['moderatedAt'] as Timestamp).toDate();
     }
     return CommentModel(
       id: docId,
@@ -38,6 +52,10 @@ class CommentModel {
       userAvatar: map['userAvatar'],
       text: map['text'] ?? '',
       createdAt: createdDate,
+      moderationStatus: map['moderationStatus'] ?? 'visible',
+      moderatedBy: map['moderatedBy'],
+      moderatedAt: modDate,
+      moderationReason: map['moderationReason'],
     );
   }
 }
@@ -128,6 +146,19 @@ class ActionRepository {
 
     if (uid.isEmpty) throw Exception('User not authenticated. Please sign in.');
 
+    // Abusive text check
+    final textService = ModerationTextService();
+    final titleError = await textService.checkText(title);
+    if (titleError != null) throw Exception(titleError);
+
+    final descError = await textService.checkText(description);
+    if (descError != null) throw Exception(descError);
+
+    if (textProof != null && textProof.isNotEmpty) {
+      final proofError = await textService.checkText(textProof);
+      if (proofError != null) throw Exception(proofError);
+    }
+
     String userName = user?.displayName ?? prefs.name;
     if (userName.isEmpty) userName = 'User';
     String? userAvatar;
@@ -137,11 +168,18 @@ class ActionRepository {
         final userDoc = await _firestore.collection('users').doc(user.uid).get();
         if (userDoc.exists) {
           final userData = userDoc.data() ?? {};
+          final accountStatus = userData['accountStatus'] as String? ?? 'active';
+          if (accountStatus == 'suspended' || accountStatus == 'blocked') {
+            final reason = userData['suspensionReason'] as String?;
+            final reasonMsg = reason != null && reason.isNotEmpty ? ' Reason: $reason' : '';
+            throw Exception('Your account is $accountStatus by an administrator and cannot publish actions.$reasonMsg');
+          }
           userName = userData['name'] ?? userName;
           userAvatar = userData['avatarUrl'];
         }
       }
     } catch (e) {
+      if (e.toString().contains('cannot publish actions')) rethrow;
       print('User details fetch warning: $e');
     }
 
@@ -292,20 +330,34 @@ class ActionRepository {
         } catch (_) {}
       }
 
-      final actions = snap.docs.map((doc) {
-        final data = Map<String, dynamic>.from(doc.data() as Map<String, dynamic>);
-        final uid = data['userId'] as String?;
-        final userProfile = uid != null ? userProfiles[uid] : null;
+      final blockedUserIds = await ModerationRepository().getBlockedUserIds();
+      final reportedContentIds = await ModerationRepository().getReportedContentIds();
 
-        if (userProfile != null) {
-          final liveAvatar = userProfile['avatarUrl'] as String?;
-          final liveName = userProfile['name'] as String?;
-          if (liveAvatar != null && liveAvatar.isNotEmpty) data['userAvatar'] = liveAvatar;
-          if (liveName != null && liveName.isNotEmpty) data['userName'] = liveName;
-        }
+      final actions = snap.docs
+          .map((doc) {
+            final data = Map<String, dynamic>.from(doc.data() as Map<String, dynamic>);
+            final uid = data['userId'] as String?;
+            final userProfile = uid != null ? userProfiles[uid] : null;
 
-        return ActionModel.fromMap(data, doc.id, currentUserId: currentUserId);
-      }).toList();
+            if (userProfile != null) {
+              final liveAvatar = userProfile['avatarUrl'] as String?;
+              final liveName = userProfile['name'] as String?;
+              if (liveAvatar != null && liveAvatar.isNotEmpty) data['userAvatar'] = liveAvatar;
+              if (liveName != null && liveName.isNotEmpty) data['userName'] = liveName;
+            }
+
+            return ActionModel.fromMap(data, doc.id, currentUserId: currentUserId);
+          })
+          .where((action) {
+            final authorProfile = userProfiles[action.userId];
+            final accStatus = (authorProfile?['accountStatus'] as String?) ?? 'active';
+            final isSuspendedOrBlocked = accStatus == 'suspended' || accStatus == 'blocked';
+            final isReportedByMe = reportedContentIds.contains(action.id);
+            final isAuthorBlockedByMe = blockedUserIds.contains(action.userId);
+
+            return action.isVisible && !isSuspendedOrBlocked && !isReportedByMe && !isAuthorBlockedByMe;
+          })
+          .toList();
 
       return {
         'actions': actions,
@@ -408,6 +460,9 @@ class ActionRepository {
         } catch (_) {}
       }
 
+      final blockedUserIds = await ModerationRepository().getBlockedUserIds();
+      final reportedContentIds = await ModerationRepository().getReportedContentIds();
+
       final actions = filteredDocs.map((doc) {
         final data = Map<String, dynamic>.from(doc.data() as Map<String, dynamic>);
         final authorId = data['userId'] as String?;
@@ -421,6 +476,14 @@ class ActionRepository {
         }
 
         return ActionModel.fromMap(data, doc.id, currentUserId: uid);
+      }).where((action) {
+        final authorProfile = userProfiles[action.userId];
+        final accStatus = (authorProfile?['accountStatus'] as String?) ?? 'active';
+        final isSuspendedOrBlocked = accStatus == 'suspended' || accStatus == 'blocked';
+        final isReportedByMe = reportedContentIds.contains(action.id);
+        final isAuthorBlockedByMe = blockedUserIds.contains(action.userId);
+
+        return action.isVisible && !isSuspendedOrBlocked && !isReportedByMe && !isAuthorBlockedByMe;
       }).toList();
 
       return {
@@ -462,25 +525,39 @@ class ActionRepository {
         }
       }
 
+      final blockedUserIds = await ModerationRepository().getBlockedUserIds();
+      final reportedContentIds = await ModerationRepository().getReportedContentIds();
+
       // 3. Construct actions with live user avatar & name
-      return snapshot.docs.map((doc) {
-        final data = Map<String, dynamic>.from(doc.data());
-        final uid = data['userId'] as String?;
-        final userProfile = uid != null ? userProfiles[uid] : null;
+      return snapshot.docs
+          .map((doc) {
+            final data = Map<String, dynamic>.from(doc.data());
+            final uid = data['userId'] as String?;
+            final userProfile = uid != null ? userProfiles[uid] : null;
 
-        if (userProfile != null) {
-          final liveAvatar = userProfile['avatarUrl'] as String?;
-          final liveName = userProfile['name'] as String?;
-          if (liveAvatar != null && liveAvatar.isNotEmpty) {
-            data['userAvatar'] = liveAvatar;
-          }
-          if (liveName != null && liveName.isNotEmpty) {
-            data['userName'] = liveName;
-          }
-        }
+            if (userProfile != null) {
+              final liveAvatar = userProfile['avatarUrl'] as String?;
+              final liveName = userProfile['name'] as String?;
+              if (liveAvatar != null && liveAvatar.isNotEmpty) {
+                data['userAvatar'] = liveAvatar;
+              }
+              if (liveName != null && liveName.isNotEmpty) {
+                data['userName'] = liveName;
+              }
+            }
 
-        return ActionModel.fromMap(data, doc.id, currentUserId: currentUserId);
-      }).toList();
+            return ActionModel.fromMap(data, doc.id, currentUserId: currentUserId);
+          })
+          .where((action) {
+            final authorProfile = userProfiles[action.userId];
+            final accStatus = (authorProfile?['accountStatus'] as String?) ?? 'active';
+            final isSuspendedOrBlocked = accStatus == 'suspended' || accStatus == 'blocked';
+            final isReportedByMe = reportedContentIds.contains(action.id);
+            final isAuthorBlockedByMe = blockedUserIds.contains(action.userId);
+
+            return action.isVisible && !isSuspendedOrBlocked && !isReportedByMe && !isAuthorBlockedByMe;
+          })
+          .toList();
     });
   }
 
@@ -538,6 +615,9 @@ class ActionRepository {
           }
         }
 
+        final blockedUserIds = await ModerationRepository().getBlockedUserIds();
+        final reportedContentIds = await ModerationRepository().getReportedContentIds();
+
         return filteredDocs.map((doc) {
           final data = Map<String, dynamic>.from(doc.data());
           final authorId = data['userId'] as String?;
@@ -551,6 +631,14 @@ class ActionRepository {
           }
 
           return ActionModel.fromMap(data, doc.id, currentUserId: uid);
+        }).where((action) {
+          final authorProfile = userProfiles[action.userId];
+          final accStatus = (authorProfile?['accountStatus'] as String?) ?? 'active';
+          final isSuspendedOrBlocked = accStatus == 'suspended' || accStatus == 'blocked';
+          final isReportedByMe = reportedContentIds.contains(action.id);
+          final isAuthorBlockedByMe = blockedUserIds.contains(action.userId);
+
+          return action.isVisible && !isSuspendedOrBlocked && !isReportedByMe && !isAuthorBlockedByMe;
         }).toList();
       });
     });
@@ -1112,8 +1200,18 @@ class ActionRepository {
     final user = _auth.currentUser;
     if (user == null || commentText.trim().isEmpty) return;
 
+    // Abusive text check
+    final textError = await ModerationTextService().checkText(commentText);
+    if (textError != null) throw Exception(textError);
+
     final userDoc = await _firestore.collection('users').doc(user.uid).get();
     final userData = userDoc.data() ?? {};
+    final accountStatus = userData['accountStatus'] as String? ?? 'active';
+    if (accountStatus == 'suspended' || accountStatus == 'blocked') {
+      final reason = userData['suspensionReason'] as String?;
+      final reasonMsg = reason != null && reason.isNotEmpty ? ' Reason: $reason' : '';
+      throw Exception('Your account is $accountStatus by an administrator and cannot post comments.$reasonMsg');
+    }
     final userName = userData['name'] ?? user.displayName ?? 'User';
     final userAvatar = userData['avatarUrl'];
 
@@ -1126,6 +1224,7 @@ class ActionRepository {
       'userAvatar': userAvatar,
       'text': commentText.trim(),
       'createdAt': FieldValue.serverTimestamp(),
+      'moderationStatus': 'visible',
     });
 
     await actionRef.update({
@@ -1142,7 +1241,10 @@ class ActionRepository {
         .orderBy('createdAt', descending: false)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) => CommentModel.fromMap(doc.data(), doc.id)).toList();
+      return snapshot.docs
+          .map((doc) => CommentModel.fromMap(doc.data(), doc.id))
+          .where((comment) => comment.isVisible)
+          .toList();
     });
   }
 }

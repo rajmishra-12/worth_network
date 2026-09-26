@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +10,7 @@ import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
 import 'package:worth_network/core/utils/app_localizations.dart';
 import 'package:worth_network/pages/authentication/cubit/auth_cubit.dart';
+import 'package:worth_network/pages/profile/cubit/profile_cubit.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -145,6 +147,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return BlocBuilder<LocaleCubit, String>(
       builder: (context, localeCode) {
         final loc = AppLocalizations(localeCode);
+        final currentUserEmail = FirebaseAuth.instance.currentUser?.email?.toLowerCase();
+        final profileState = context.watch<ProfileCubit>().state;
+        final isAdmin = currentUserEmail == 'admin@gmail.com' ||
+            (profileState.profile != null &&
+                (profileState.profile!.roles.contains('admin') || profileState.profile!.accountType == 'admin'));
+
         return Scaffold(
           backgroundColor: AppColors.background,
           appBar: AppBar(
@@ -180,27 +188,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: AppSize.spacingL),
 
-              // // Privacy Section
-              // _buildSettingsHeader(loc.translate('sec_privacy')),
-              // _buildSwitchTile(
-              //   title: loc.translate('private_profile'),
-              //   subtitle: loc.translate('private_profile_desc'),
-              //   value: _profilePrivate,
-              //   onChanged: (val) => setState(() => _profilePrivate = val),
-              // ),
-              // _buildSwitchTile(
-              //   title: loc.translate('hide_reputation_score'),
-              //   subtitle: loc.translate('hide_reputation_desc'),
-              //   value: _hideScore,
-              //   onChanged: (val) => setState(() => _hideScore = val),
-              // ),
-              // _buildSwitchTile(
-              //   title: loc.translate('validation_invitations'),
-              //   subtitle: loc.translate('validation_invitations_desc'),
-              //   value: _allowInvites,
-              //   onChanged: (val) => setState(() => _allowInvites = val),
-              // ),
-              // const SizedBox(height: AppSize.spacingL),
+              // Safety & Moderation Section
+              _buildSettingsHeader('Safety & Moderation'),
+              _buildSettingsTile(
+                icon: Icons.block,
+                title: 'Blocked Users',
+                subtitle: 'Manage users you have blocked',
+                onTap: () {
+                  context.push('/blocked-users');
+                },
+              ),
+              if (isAdmin)
+                _buildSettingsTile(
+                  icon: Icons.admin_panel_settings,
+                  title: 'Admin Moderation Console',
+                  subtitle: 'Review reports, word filters & moderation logs',
+                  onTap: () {
+                    context.push('/admin');
+                  },
+                ),
+              const SizedBox(height: AppSize.spacingL),
 
               // About & Policy Settings
               _buildSettingsHeader(loc.translate('sec_general')),

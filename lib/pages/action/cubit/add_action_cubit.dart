@@ -16,12 +16,16 @@ class AddActionCubit extends Cubit<AddActionState> {
       : _repository = repository ?? ActionRepository(),
         super(AddActionState());
 
+  void clearErrorMessage() {
+    emit(state.copyWith(clearErrorMessage: true));
+  }
+
   void updateTitle(String title) {
-    emit(state.copyWith(title: title));
+    emit(state.copyWith(title: title, clearErrorMessage: true));
   }
 
   void updateDescription(String description) {
-    emit(state.copyWith(description: description));
+    emit(state.copyWith(description: description, clearErrorMessage: true));
   }
 
   void updateCategory(String category) {

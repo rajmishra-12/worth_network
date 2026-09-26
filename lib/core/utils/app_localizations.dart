@@ -139,6 +139,7 @@ class AppLocalizations {
       'nav_network': 'Network',
       'nav_action': 'Action',
       'nav_profile': 'Profile',
+      'profile_tab': 'Profile',
 
       // Validation Statuses
       'status_certified': 'Certified',
@@ -269,6 +270,39 @@ class AppLocalizations {
       'no_following_feed_title': 'No Following Actions',
       'no_following_feed_desc': 'Follow people in the Network tab to see their actions here.',
       'explore_network_btn': 'Explore Network',
+
+      // Moderation & Safety
+      'report_user': 'Report User',
+      'report_action': 'Report Action',
+      'report_comment': 'Report Comment',
+      'block_user': 'Block User',
+      'block_user_dialog_title': 'Block User?',
+      'block_user_dialog_desc': 'They will no longer be able to interact with your content, and their posts will be hidden from your feed.',
+      'block_user_success': 'User blocked successfully',
+      'select_report_reason': 'Select a reason for reporting:',
+      'reason_harassment': 'Harassment or Bullying',
+      'reason_hate_speech': 'Hate Speech or Discrimination',
+      'reason_inappropriate': 'Inappropriate or Offensive Content',
+      'reason_spam': 'Spam or Misleading',
+      'reason_false_info': 'False Information',
+      'reason_other': 'Other Issue',
+      'additional_details_optional': 'Additional Details (Optional):',
+      'report_hint_text': 'Describe why this content breaks community guidelines...',
+      'submit_report_btn': 'Submit Report',
+      'report_submitted_success': 'Report submitted successfully. Thank you for keeping WORTH safe!',
+      
+      // Admin & Management
+      'admin_console_title': 'Admin Console',
+      'reports_queue': 'Reports Queue',
+      'content_moderation': 'Content Moderation',
+      'user_moderation': 'User Moderation',
+      'hide_content': 'Hide Content',
+      'remove_content': 'Remove Content',
+      'restore_content': 'Restore Content',
+      'suspend_user': 'Suspend User',
+      'activate_user': 'Activate User',
+      'reason_for_moderation': 'Reason for moderation:',
+      'confirm_btn': 'Confirm',
     },
     'fr': {
       'app_title': 'RÉSEAU WORTH',
@@ -405,6 +439,7 @@ class AppLocalizations {
       'nav_network': 'Réseau',
       'nav_action': 'Action',
       'nav_profile': 'Profil',
+      'profile_tab': 'Profil',
 
       // Validation Statuses
       'status_certified': 'Certifié',
@@ -535,6 +570,39 @@ class AppLocalizations {
       'no_following_feed_title': 'Aucune action des abonnements',
       'no_following_feed_desc': 'Suivez des personnes dans l\'onglet Réseau pour voir leurs actions ici.',
       'explore_network_btn': 'Explorer le Réseau',
+
+      // Moderation & Safety
+      'report_user': 'Signaler l\'utilisateur',
+      'report_action': 'Signaler l\'action',
+      'report_comment': 'Signaler le commentaire',
+      'block_user': 'Bloquer l\'utilisateur',
+      'block_user_dialog_title': 'Bloquer l\'utilisateur ?',
+      'block_user_dialog_desc': 'Ils ne pourront plus interagir avec votre contenu et leurs publications seront masquées de votre fil.',
+      'block_user_success': 'Utilisateur bloqué avec succès',
+      'select_report_reason': 'Sélectionnez un motif de signalement :',
+      'reason_harassment': 'Harcèlement ou intimidation',
+      'reason_hate_speech': 'Discours haineux ou discrimination',
+      'reason_inappropriate': 'Contenu inapproprié ou offensant',
+      'reason_spam': 'Spam ou trompeur',
+      'reason_false_info': 'Fausse information',
+      'reason_other': 'Autre problème',
+      'additional_details_optional': 'Détails supplémentaires (Optionnel) :',
+      'report_hint_text': 'Décrivez pourquoi ce contenu enfreint les règles de la communauté...',
+      'submit_report_btn': 'Soumettre le signalement',
+      'report_submitted_success': 'Signalement soumis avec succès. Merci d\'aider à garder WORTH en sécurité !',
+
+      // Admin & Management
+      'admin_console_title': 'Console d\'administration',
+      'reports_queue': 'File des signalements',
+      'content_moderation': 'Modération des contenus',
+      'user_moderation': 'Modération des utilisateurs',
+      'hide_content': 'Masquer le contenu',
+      'remove_content': 'Supprimer le contenu',
+      'restore_content': 'Rétablir le contenu',
+      'suspend_user': 'Suspendre l\'utilisateur',
+      'activate_user': 'Activer l\'utilisateur',
+      'reason_for_moderation': 'Motif de la modération :',
+      'confirm_btn': 'Confirmer',
     }
   };
 

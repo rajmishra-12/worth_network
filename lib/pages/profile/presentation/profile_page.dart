@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -22,7 +23,8 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
+class _ProfileScreenState extends State<ProfileScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -115,61 +117,88 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary.withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(AppSize.radiusS),
-                                      border: Border.all(
-                                        color: AppColors.primary.withValues(alpha: 0.3),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      'REP ENGINE',
-                                      style: CustomTextStyle.size10W600(
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                  ),
                                 ],
                               ),
-                              Row(
-                                children: [
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: AppColors.grey900,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: AppColors.grey800),
-                                    ),
-                                    child: IconButton(
-                                      icon: const Icon(
-                                        Icons.settings_outlined,
-                                        size: 20,
-                                        color: AppColors.white100,
+                              Builder(
+                                builder: (context) {
+                                  final currentUserEmail = FirebaseAuth
+                                      .instance
+                                      .currentUser
+                                      ?.email
+                                      ?.toLowerCase();
+                                  final isAdmin =
+                                      currentUserEmail == 'admin@gmail.com' ||
+                                      (state.profile != null &&
+                                          (state.profile!.roles.contains(
+                                                'admin',
+                                              ) ||
+                                              state.profile!.accountType ==
+                                                  'admin'));
+                                  return Row(
+                                    children: [
+                                      if (isAdmin) ...[
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            color: AppColors.grey900,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: AppColors.grey800,
+                                            ),
+                                          ),
+                                          child: IconButton(
+                                            icon: const Icon(
+                                              Icons
+                                                  .admin_panel_settings_outlined,
+                                              size: 20,
+                                              color: AppColors.primary,
+                                            ),
+                                            tooltip: 'Admin Console',
+                                            onPressed: () =>
+                                                context.push('/admin'),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                      ],
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          color: AppColors.grey900,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: AppColors.grey800,
+                                          ),
+                                        ),
+                                        child: IconButton(
+                                          icon: const Icon(
+                                            Icons.settings_outlined,
+                                            size: 20,
+                                            color: AppColors.white100,
+                                          ),
+                                          onPressed: () =>
+                                              context.push('/settings'),
+                                        ),
                                       ),
-                                      onPressed: () => context.push('/settings'),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: AppColors.grey900,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: AppColors.grey800),
-                                    ),
-                                    child: IconButton(
-                                      icon: const Icon(
-                                        Icons.logout_rounded,
-                                        size: 20,
-                                        color: AppColors.error,
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          color: AppColors.grey900,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: AppColors.grey800,
+                                          ),
+                                        ),
+                                        child: IconButton(
+                                          icon: const Icon(
+                                            Icons.logout_rounded,
+                                            size: 20,
+                                            color: AppColors.error,
+                                          ),
+                                          onPressed: () =>
+                                              _showLogoutDialog(context, loc),
+                                        ),
                                       ),
-                                      onPressed: () => _showLogoutDialog(context, loc),
-                                    ),
-                                  ),
-                                ],
+                                    ],
+                                  );
+                                },
                               ),
                             ],
                           ),
@@ -185,7 +214,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                       SliverToBoxAdapter(
                         child: StatsCard(
                           totalActions: state.profile!.totalActions,
-                          validatedPercentage: state.profile!.validatedPercentage,
+                          validatedPercentage:
+                              state.profile!.validatedPercentage,
                           score: state.profile!.score,
                           level: state.profile!.level,
                           xp: state.profile!.xp,
@@ -213,10 +243,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                   },
                   body: TabBarView(
                     controller: _tabController,
-                    children: const [
-                      MyActionsTab(),
-                      ActionHistoryTab(),
-                    ],
+                    children: const [MyActionsTab(), ActionHistoryTab()],
                   ),
                 ),
               );
@@ -232,13 +259,14 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   final TabController tabController;
   final List<Tab> tabs;
 
-  const _TabBarDelegate({
-    required this.tabController,
-    required this.tabs,
-  });
+  const _TabBarDelegate({required this.tabController, required this.tabs});
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     return Container(
       color: AppColors.background,
       child: TabBar(
@@ -295,11 +323,7 @@ class _ErrorState extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.error_outline,
-                size: 64,
-                color: AppColors.grey500,
-              ),
+              Icon(Icons.error_outline, size: 64, color: AppColors.grey500),
               const SizedBox(height: AppSize.spacingM),
               Text(
                 'Failed to load profile',

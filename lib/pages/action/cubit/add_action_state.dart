@@ -54,6 +54,7 @@ class AddActionState extends Equatable {
     bool? isSubmitting,
     bool? isSuccess,
     String? errorMessage,
+    bool clearErrorMessage = false,
     bool? shouldRefreshHome,
   }) {
     return AddActionState(
@@ -73,7 +74,7 @@ class AddActionState extends Equatable {
       evidences: evidences ?? this.evidences,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       isSuccess: isSuccess ?? this.isSuccess,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
       shouldRefreshHome: shouldRefreshHome ?? this.shouldRefreshHome,
     );
   }

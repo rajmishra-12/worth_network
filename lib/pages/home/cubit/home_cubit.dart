@@ -258,6 +258,20 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
+  void removeActionsByBlockedUser(String blockedUserId) {
+    final filteredActions = state.actions.where((a) => a.userId != blockedUserId).toList();
+    final filteredFollowingActions = state.followingActions.where((a) => a.userId != blockedUserId).toList();
+
+    emit(state.copyWith(
+      actions: filteredActions,
+      followingActions: filteredFollowingActions,
+    ));
+
+    // Re-subscribe to feed streams to ensure background listeners reflect block rules
+    subscribeToFeed();
+    subscribeToFollowingFeed();
+  }
+
   @override
   Future<void> close() {
     _feedSubscription?.cancel();

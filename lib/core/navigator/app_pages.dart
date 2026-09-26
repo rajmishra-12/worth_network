@@ -13,9 +13,15 @@ import 'package:worth_network/pages/home/presentation/notifications_page.dart';
 import 'package:worth_network/pages/profile/presentation/settings_page.dart';
 import 'package:worth_network/pages/profile/presentation/edit_profile_page.dart';
 import 'package:worth_network/pages/profile/presentation/user_detail_page.dart';
+import 'package:worth_network/pages/profile/presentation/blocked_users_page.dart';
+import 'package:worth_network/pages/admin/presentation/admin_dashboard_page.dart';
+import 'package:worth_network/pages/admin/presentation/admin_reports_page.dart';
+import 'package:worth_network/pages/admin/presentation/admin_content_page.dart';
+import 'package:worth_network/pages/admin/presentation/admin_users_page.dart';
+import 'package:worth_network/pages/admin/presentation/admin_word_filter_page.dart';
+import 'package:worth_network/pages/admin/presentation/admin_audit_log_page.dart';
 import 'package:worth_network/pages/authentication/presentation/forget_password_page.dart';
 import 'package:worth_network/core/model/home/action_model.dart';
-
 import 'package:worth_network/pages/network/presentation/user_connections_page.dart';
 
 part 'app_router.dart';
@@ -94,6 +100,41 @@ class Pages {
         builder: (context, state) => const EditProfileScreen(),
       ),
       GoRoute(
+        path: '/blocked-users',
+        name: 'blocked-users',
+        builder: (context, state) => const BlockedUsersScreen(),
+      ),
+      GoRoute(
+        path: '/admin',
+        name: 'admin',
+        builder: (context, state) => const AdminDashboardPage(),
+      ),
+      GoRoute(
+        path: '/admin/reports',
+        name: 'admin-reports',
+        builder: (context, state) => const AdminReportsPage(),
+      ),
+      GoRoute(
+        path: '/admin/content',
+        name: 'admin-content',
+        builder: (context, state) => const AdminContentPage(),
+      ),
+      GoRoute(
+        path: '/admin/users',
+        name: 'admin-users',
+        builder: (context, state) => const AdminUsersPage(),
+      ),
+      GoRoute(
+        path: '/admin/word-filter',
+        name: 'admin-word-filter',
+        builder: (context, state) => const AdminWordFilterPage(),
+      ),
+      GoRoute(
+        path: '/admin/audit-log',
+        name: 'admin-audit-log',
+        builder: (context, state) => const AdminAuditLogPage(),
+      ),
+      GoRoute(
         path: '/user-detail',
         name: 'user-detail',
         builder: (context, state) {
@@ -120,6 +161,3 @@ class Pages {
     ],
   );
 }
-
-
-

@@ -115,12 +115,14 @@ class _AddActionScreenState extends State<AddActionScreen> {
                   Navigator.pop(context);
                 }
               } else if (state.errorMessage != null) {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(state.errorMessage!),
                     backgroundColor: AppColors.error,
                   ),
                 );
+                _cubit.clearErrorMessage();
               }
             },
             builder: (context, state) {

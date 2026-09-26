@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
 import 'package:worth_network/core/model/home/action_model.dart';
+import 'package:worth_network/core/repo/moderation_repo.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
 import 'package:worth_network/core/utils/app_localizations.dart';
+import 'package:worth_network/pages/home/cubit/home_cubit.dart';
 import 'package:worth_network/pages/home/widgets/empty_feed_widget.dart';
 import 'package:worth_network/pages/home/widgets/proof_card.dart';
+import 'package:worth_network/pages/moderation/widgets/report_dialog.dart';
 
 class ActionCard extends StatelessWidget {
   final ActionModel action;
@@ -55,6 +58,58 @@ class ActionCard extends StatelessWidget {
               loc.translate('delete_btn'),
               style: CustomTextStyle.size14W600(color: AppColors.error),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmBlockUser(BuildContext context, String userId, String userName, String? userAvatar, AppLocalizations loc) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.grey900,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSize.radiusL),
+          side: const BorderSide(color: AppColors.grey800),
+        ),
+        title: Text(loc.translate('block_user_dialog_title'), style: CustomTextStyle.size18W600(color: AppColors.white100)),
+        content: Text(
+          loc.translate('block_user_dialog_desc'),
+          style: CustomTextStyle.size14W400(color: AppColors.grey300),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(loc.translate('cancel'), style: CustomTextStyle.size14W500(color: AppColors.grey400)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              try {
+                await ModerationRepository().blockUser(
+                  targetUserId: userId,
+                  targetUserName: userName,
+                  targetUserAvatar: userAvatar,
+                );
+                if (context.mounted) {
+                  try {
+                    context.read<HomeCubit>().removeActionsByBlockedUser(userId);
+                  } catch (_) {}
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.translate('block_user_success')), backgroundColor: AppColors.success),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(e.toString().replaceFirst('Exception: ', '')), backgroundColor: AppColors.error),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: Text(loc.translate('block_user'), style: CustomTextStyle.size14W600(color: AppColors.white100)),
           ),
         ],
       ),
@@ -166,21 +221,32 @@ class ActionCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    if (onDeleteTap != null) ...[
-                      const SizedBox(width: 4),
-                      PopupMenuButton<String>(
-                        icon: const Icon(Icons.more_vert, color: AppColors.grey400, size: 20),
-                        color: AppColors.grey900,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSize.radiusS),
-                          side: const BorderSide(color: AppColors.grey800),
-                        ),
-                        onSelected: (value) {
-                          if (value == 'delete') {
-                            _showDeleteConfirmation(context, loc);
-                          }
-                        },
-                        itemBuilder: (context) => [
+                    const SizedBox(width: 4),
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert, color: AppColors.grey400, size: 20),
+                      color: AppColors.grey900,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppSize.radiusS),
+                        side: const BorderSide(color: AppColors.grey800),
+                      ),
+                      onSelected: (value) async {
+                        if (value == 'delete') {
+                          _showDeleteConfirmation(context, loc);
+                        } else if (value == 'report') {
+                          ReportDialog.show(
+                            context,
+                            reportedUserId: action.userId,
+                            reportedUserName: action.userName,
+                            contentId: action.id,
+                            contentType: 'action',
+                            contentPreview: '${action.title}\n${action.description}',
+                          );
+                        } else if (value == 'block') {
+                          _confirmBlockUser(context, action.userId, action.userName, action.userAvatar, loc);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        if (onDeleteTap != null)
                           PopupMenuItem(
                             value: 'delete',
                             child: Row(
@@ -190,10 +256,31 @@ class ActionCard extends StatelessWidget {
                                 Text(loc.translate('delete_btn'), style: CustomTextStyle.size14W500(color: AppColors.error)),
                               ],
                             ),
+                          )
+                        else ...[
+                          PopupMenuItem(
+                            value: 'report',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.flag_outlined, color: AppColors.warning, size: 18),
+                                const SizedBox(width: 8),
+                                Text(loc.translate('report_action'), style: CustomTextStyle.size14W500(color: AppColors.white100)),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'block',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.block_outlined, color: AppColors.error, size: 18),
+                                const SizedBox(width: 8),
+                                Text(loc.translate('block_user'), style: CustomTextStyle.size14W500(color: AppColors.error)),
+                              ],
+                            ),
                           ),
                         ],
-                      ),
-                    ],
+                      ],
+                    ),
                   ],
                 ),
               ),

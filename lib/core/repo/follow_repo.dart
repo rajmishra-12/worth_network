@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:worth_network/core/model/user/user_model.dart';
@@ -181,34 +182,62 @@ class FollowRepository {
     }
   }
 
-  /// Stream user metrics (followersCount, followingCount)
+  /// Stream user metrics (followersCount, followingCount) in real-time
   Stream<Map<String, int>> getUserMetricsStream(String userId) {
     if (userId.isEmpty) {
       return Stream.value({'followers': 0, 'following': 0});
     }
 
-    // Stream user doc for following count and query followers count
-    return _firestore.collection('users').doc(userId).snapshots().asyncMap((userSnap) async {
-      final followingCount = (userSnap.data()?['following'] as List<dynamic>?)?.length ?? 0;
-      
-      int followersCount = 0;
-      try {
-        final followersSnap = await _firestore
+    late StreamController<Map<String, int>> controller;
+    StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? userSub;
+    StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? followersSub;
+
+    int followingCount = 0;
+    int followersCount = 0;
+
+    void emitMetrics() {
+      if (!controller.isClosed) {
+        controller.add({
+          'followers': followersCount,
+          'following': followingCount,
+        });
+      }
+    }
+
+    controller = StreamController<Map<String, int>>(
+      onListen: () {
+        userSub = _firestore.collection('users').doc(userId).snapshots().listen(
+          (userSnap) {
+            final following = userSnap.data()?['following'] as List<dynamic>?;
+            followingCount = following?.length ?? 0;
+            emitMetrics();
+          },
+          onError: (error) {
+            print('Handled userSnap error in getUserMetricsStream: $error');
+          },
+        );
+
+        followersSub = _firestore
             .collection('users')
             .where('following', arrayContains: userId)
-            .get();
-        followersCount = followersSnap.docs.length;
-      } catch (e) {
-        print('Handled followers query error in getUserMetricsStream: $e');
-      }
+            .snapshots()
+            .listen(
+          (followersSnap) {
+            followersCount = followersSnap.docs.length;
+            emitMetrics();
+          },
+          onError: (error) {
+            print('Handled followersSnap error in getUserMetricsStream: $error');
+          },
+        );
+      },
+      onCancel: () {
+        userSub?.cancel();
+        followersSub?.cancel();
+      },
+    );
 
-      return {
-        'followers': followersCount,
-        'following': followingCount,
-      };
-    }).handleError((error) {
-      print('Handled error in getUserMetricsStream: $error');
-      return {'followers': 0, 'following': 0};
-    });
+    return controller.stream;
   }
 }
+

@@ -8,12 +8,15 @@ import 'package:worth_network/core/constants/profile_constants.dart';
 import 'package:worth_network/core/model/home/action_model.dart';
 import 'package:worth_network/core/model/profile/profile_model.dart';
 import 'package:worth_network/core/repo/action_repo.dart';
+import 'package:worth_network/core/repo/moderation_repo.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
 import 'package:worth_network/core/utils/app_localizations.dart';
 import 'package:worth_network/core/repo/follow_repo.dart';
+import 'package:worth_network/pages/home/cubit/home_cubit.dart';
 import 'package:worth_network/pages/home/widgets/action_cards.dart';
+import 'package:worth_network/pages/moderation/widgets/report_dialog.dart';
 import 'package:worth_network/pages/network/widgets/follow_button.dart';
 import 'package:worth_network/pages/profile/widgets/badge_section.dart';
 import 'package:worth_network/pages/profile/widgets/stats_card.dart';
@@ -191,11 +194,104 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
             ),
             actions: [
               Padding(
-                padding: const EdgeInsets.only(right: 12),
+                padding: const EdgeInsets.only(right: 4),
                 child: Center(
                   child: FollowButton(targetUserId: widget.userId),
                 ),
               ),
+              if (currentUserId != widget.userId)
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: AppColors.white100, size: 22),
+                  color: AppColors.grey900,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSize.radiusS),
+                    side: const BorderSide(color: AppColors.grey800),
+                  ),
+                  onSelected: (value) async {
+                    if (value == 'report') {
+                      ReportDialog.show(
+                        context,
+                        reportedUserId: widget.userId,
+                        reportedUserName: _username.isNotEmpty ? _username : _name,
+                        contentType: 'user',
+                        contentPreview: 'User Profile: @${_username.isNotEmpty ? _username : _name}',
+                      );
+                    } else if (value == 'block') {
+                      showDialog(
+                        context: context,
+                        builder: (dialogContext) => AlertDialog(
+                          backgroundColor: AppColors.grey900,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppSize.radiusL),
+                            side: const BorderSide(color: AppColors.grey800),
+                          ),
+                          title: Text(loc.translate('block_user_dialog_title'), style: CustomTextStyle.size18W600(color: AppColors.white100)),
+                          content: Text(
+                            loc.translate('block_user_dialog_desc'),
+                            style: CustomTextStyle.size14W400(color: AppColors.grey300),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(dialogContext),
+                              child: Text(loc.translate('cancel'), style: CustomTextStyle.size14W500(color: AppColors.grey400)),
+                            ),
+                            ElevatedButton(
+                              onPressed: () async {
+                                Navigator.pop(dialogContext);
+                                try {
+                                  await ModerationRepository().blockUser(
+                                    targetUserId: widget.userId,
+                                    targetUserName: _name,
+                                    targetUserAvatar: _avatarUrl,
+                                  );
+                                  if (context.mounted) {
+                                    try {
+                                      context.read<HomeCubit>().removeActionsByBlockedUser(widget.userId);
+                                    } catch (_) {}
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(loc.translate('block_user_success')), backgroundColor: AppColors.success),
+                                    );
+                                    context.pop();
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(e.toString().replaceFirst('Exception: ', '')), backgroundColor: AppColors.error),
+                                    );
+                                  }
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+                              child: Text(loc.translate('block_user'), style: CustomTextStyle.size14W600(color: AppColors.white100)),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'report',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.flag_outlined, color: AppColors.warning, size: 18),
+                          const SizedBox(width: 8),
+                          Text(loc.translate('report_user'), style: CustomTextStyle.size14W500(color: AppColors.white100)),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'block',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.block_outlined, color: AppColors.error, size: 18),
+                          const SizedBox(width: 8),
+                          Text(loc.translate('block_user'), style: CustomTextStyle.size14W500(color: AppColors.error)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
           body: _isLoading

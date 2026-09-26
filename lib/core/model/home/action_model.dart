@@ -33,6 +33,10 @@ class ActionModel extends Equatable {
   final List<String> likedBy;
   final DateTime createdAt;
   final bool isLikedByUser;
+  final String moderationStatus; // 'visible', 'hidden', 'removed'
+  final String? moderatedBy;
+  final DateTime? moderatedAt;
+  final String? moderationReason;
 
   const ActionModel({
     required this.id,
@@ -57,7 +61,15 @@ class ActionModel extends Equatable {
     this.likedBy = const [],
     required this.createdAt,
     this.isLikedByUser = false,
+    this.moderationStatus = 'visible',
+    this.moderatedBy,
+    this.moderatedAt,
+    this.moderationReason,
   });
+
+  bool get isVisible => moderationStatus == 'visible';
+  bool get isHidden => moderationStatus == 'hidden';
+  bool get isRemoved => moderationStatus == 'removed';
 
   ActionModel copyWith({
     String? id,
@@ -82,6 +94,10 @@ class ActionModel extends Equatable {
     List<String>? likedBy,
     DateTime? createdAt,
     bool? isLikedByUser,
+    String? moderationStatus,
+    String? moderatedBy,
+    DateTime? moderatedAt,
+    String? moderationReason,
   }) {
     return ActionModel(
       id: id ?? this.id,
@@ -106,6 +122,10 @@ class ActionModel extends Equatable {
       likedBy: likedBy ?? this.likedBy,
       createdAt: createdAt ?? this.createdAt,
       isLikedByUser: isLikedByUser ?? this.isLikedByUser,
+      moderationStatus: moderationStatus ?? this.moderationStatus,
+      moderatedBy: moderatedBy ?? this.moderatedBy,
+      moderatedAt: moderatedAt ?? this.moderatedAt,
+      moderationReason: moderationReason ?? this.moderationReason,
     );
   }
 
@@ -132,6 +152,10 @@ class ActionModel extends Equatable {
       'commentsCount': commentsCount,
       'likedBy': likedBy,
       'createdAt': FieldValue.serverTimestamp(),
+      'moderationStatus': moderationStatus,
+      'moderatedBy': moderatedBy,
+      'moderatedAt': moderatedAt != null ? Timestamp.fromDate(moderatedAt!) : null,
+      'moderationReason': moderationReason,
     };
   }
 
@@ -163,6 +187,11 @@ class ActionModel extends Equatable {
       createdDate = (map['createdAt'] as Timestamp).toDate();
     } else if (map['createdAt'] is String) {
       createdDate = DateTime.tryParse(map['createdAt']) ?? DateTime.now();
+    }
+
+    DateTime? modDate;
+    if (map['moderatedAt'] is Timestamp) {
+      modDate = (map['moderatedAt'] as Timestamp).toDate();
     }
 
     // Parse evidences array or synthesize fallback from legacy fields
@@ -208,6 +237,10 @@ class ActionModel extends Equatable {
       likedBy: likedByList,
       createdAt: createdDate,
       isLikedByUser: isLiked,
+      moderationStatus: map['moderationStatus'] ?? 'visible',
+      moderatedBy: map['moderatedBy'],
+      moderatedAt: modDate,
+      moderationReason: map['moderationReason'],
     );
   }
 
@@ -235,5 +268,9 @@ class ActionModel extends Equatable {
         likedBy,
         createdAt,
         isLikedByUser,
+        moderationStatus,
+        moderatedBy,
+        moderatedAt,
+        moderationReason,
       ];
 }

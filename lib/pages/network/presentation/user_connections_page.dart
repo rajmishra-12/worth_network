@@ -60,6 +60,7 @@ class _UserConnectionsScreenState extends State<UserConnectionsScreen> {
               backgroundColor: AppColors.background,
               appBar: AppBar(
                 backgroundColor: AppColors.background,
+                surfaceTintColor: Colors.transparent,
                 elevation: 0,
                 leading: IconButton(
                   icon: const Icon(Icons.arrow_back, color: AppColors.white100),
@@ -71,6 +72,8 @@ class _UserConnectionsScreenState extends State<UserConnectionsScreen> {
                 ),
                 bottom: TabBar(
                   indicatorColor: AppColors.primary,
+                  dividerColor: Colors.transparent,
+                  dividerHeight: 0,
                   labelColor: AppColors.primary,
                   unselectedLabelColor: AppColors.grey400,
                   labelStyle: CustomTextStyle.size14W600(color: AppColors.primary),
