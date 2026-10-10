@@ -314,6 +314,11 @@ class NotificationService {
       }
     }
 
+    if (type == 'independent_validation_request') {
+      Pages.appRouter.push('/admin/independent-validations');
+      return;
+    }
+
     if (actionId == null || actionId.isEmpty) {
       Pages.appRouter.push('/notifications');
       return;

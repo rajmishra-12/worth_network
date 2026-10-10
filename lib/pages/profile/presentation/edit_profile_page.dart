@@ -60,6 +60,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           final uname = data['username'] ?? prefs.username;
           _usernameController.text = uname.isNotEmpty ? '@$uname' : '@user';
           _currentAvatarUrl = data['avatarUrl'];
+          if (_currentAvatarUrl != null && _currentAvatarUrl!.contains('pravatar.cc')) {
+            _currentAvatarUrl = null;
+          }
           _selectedAccountType = data['accountType'];
           if (data['roles'] != null) {
             _selectedRoles.clear();
@@ -81,7 +84,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _pickAvatar() async {
     final loc = AppLocalizations(context.read<LocaleCubit>().state);
     final picker = ImagePicker();
-    final source = await showModalBottomSheet<ImageSource>(
+    final hasExistingAvatar = _newAvatarFile != null ||
+        (_currentAvatarUrl != null &&
+            _currentAvatarUrl!.isNotEmpty &&
+            !_currentAvatarUrl!.contains('pravatar.cc'));
+
+    final action = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: AppColors.grey900,
       shape: const RoundedRectangleBorder(
@@ -94,19 +102,34 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ListTile(
               leading: const Icon(Icons.camera_alt, color: AppColors.primary),
               title: Text(loc.translate('take_photo'), style: CustomTextStyle.size15W500(color: AppColors.white100)),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
+              onTap: () => Navigator.pop(context, 'camera'),
             ),
             ListTile(
               leading: const Icon(Icons.photo_library, color: AppColors.primary),
               title: Text(loc.translate('choose_from_gallery'), style: CustomTextStyle.size15W500(color: AppColors.white100)),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
+              onTap: () => Navigator.pop(context, 'gallery'),
             ),
+            if (hasExistingAvatar)
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: AppColors.error),
+                title: Text(loc.translate('remove_photo'), style: CustomTextStyle.size15W500(color: AppColors.error)),
+                onTap: () => Navigator.pop(context, 'remove'),
+              ),
           ],
         ),
       ),
     );
 
-    if (source != null) {
+    if (action == 'remove') {
+      setState(() {
+        _newAvatarFile = null;
+        _currentAvatarUrl = null;
+      });
+      return;
+    }
+
+    if (action == 'camera' || action == 'gallery') {
+      final source = action == 'camera' ? ImageSource.camera : ImageSource.gallery;
       final picked = await picker.pickImage(
         source: source,
         imageQuality: 70, // Compressed image quality
@@ -155,6 +178,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       // Update user profile and sync past actions in Firestore
       if (user != null) {
         final repo = AuthRepository();
+        final shouldRemoveAvatar = _newAvatarFile == null &&
+            (_currentAvatarUrl == null || _currentAvatarUrl!.isEmpty);
         await repo.updateProfile(
           uid: user.uid,
           username: newUsername,
@@ -163,6 +188,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           accountType: _selectedAccountType,
           roles: _selectedRoles,
           profileImage: _newAvatarFile,
+          removeAvatar: shouldRemoveAvatar,
         );
       }
 
@@ -268,16 +294,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     backgroundColor: AppColors.grey800,
                                     backgroundImage: _newAvatarFile != null
                                         ? FileImage(_newAvatarFile!)
-                                        : (_currentAvatarUrl != null && _currentAvatarUrl!.isNotEmpty
+                                        : (_currentAvatarUrl != null &&
+                                                _currentAvatarUrl!.isNotEmpty &&
+                                                !_currentAvatarUrl!.contains('pravatar.cc')
                                             ? NetworkImage(_currentAvatarUrl!)
                                             : null) as ImageProvider?,
+                                    onBackgroundImageError: (_newAvatarFile == null &&
+                                            _currentAvatarUrl != null &&
+                                            _currentAvatarUrl!.isNotEmpty &&
+                                            !_currentAvatarUrl!.contains('pravatar.cc'))
+                                        ? (_, __) {}
+                                        : null,
                                     child: _newAvatarFile == null &&
-                                            (_currentAvatarUrl == null || _currentAvatarUrl!.isEmpty)
-                                        ? Text(
-                                            _nameController.text.isNotEmpty
-                                                ? _nameController.text[0].toUpperCase()
-                                                : 'U',
-                                            style: CustomTextStyle.size30W600(color: AppColors.white100),
+                                            (_currentAvatarUrl == null ||
+                                                _currentAvatarUrl!.isEmpty ||
+                                                _currentAvatarUrl!.contains('pravatar.cc'))
+                                        ? const Icon(
+                                            Icons.person_rounded,
+                                            size: 54,
+                                            color: AppColors.grey400,
                                           )
                                         : null,
                                   ),

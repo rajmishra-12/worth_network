@@ -127,13 +127,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                                       ?.email
                                       ?.toLowerCase();
                                   final isAdmin =
+                                      (state.profile?.isAdmin ?? false) ||
                                       currentUserEmail == 'admin@gmail.com' ||
-                                      (state.profile != null &&
-                                          (state.profile!.roles.contains(
-                                                'admin',
-                                              ) ||
-                                              state.profile!.accountType ==
-                                                  'admin'));
+                                      currentUserEmail ==
+                                          'adribuellet@hotmail.com';
                                   return Row(
                                     children: [
                                       if (isAdmin) ...[

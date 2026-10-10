@@ -152,6 +152,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         iconColor = AppColors.primary;
         bgGradientColor = AppColors.primary.withValues(alpha: 0.15);
         break;
+      case 'independent_validation_request':
+        icon = Icons.fact_check_outlined;
+        iconColor = AppColors.accent;
+        bgGradientColor = AppColors.accent.withValues(alpha: 0.15);
+        break;
+      case 'independent_action_submitted':
+        icon = Icons.send_outlined;
+        iconColor = AppColors.primary;
+        bgGradientColor = AppColors.primary.withValues(alpha: 0.1);
+        break;
       default:
         icon = Icons.info_outline;
         iconColor = AppColors.grey400;
@@ -165,7 +175,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         if (!isRead && id.isNotEmpty) {
           await _actionRepo.toggleNotificationReadStatus(id, false);
         }
-        if (action != null) {
+        if (type == 'independent_validation_request') {
+          context.push('/admin/independent-validations');
+        } else if (action != null) {
           if (type == 'validation_requested' || type == 'validation_request') {
             context.push('/validation-request', extra: action);
           } else {

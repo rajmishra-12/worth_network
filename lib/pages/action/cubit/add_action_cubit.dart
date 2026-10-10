@@ -65,6 +65,30 @@ class AddActionCubit extends Cubit<AddActionState> {
     ));
   }
 
+  void setValidationType(String type) {
+    if (type == 'independent') {
+      emit(state.copyWith(
+        validationType: 'independent',
+        clearValidator: true,
+        personInvolved: null,
+      ));
+    } else {
+      emit(state.copyWith(
+        validationType: 'person',
+        requestIndependentValidation: false,
+      ));
+    }
+  }
+
+  void toggleIndependentValidation(bool request) {
+    emit(state.copyWith(
+      requestIndependentValidation: request,
+      validationType: request ? 'independent' : 'person',
+      clearValidator: request,
+      personInvolved: request ? null : state.personInvolved,
+    ));
+  }
+
   void addEvidence(EvidenceType type, File file) {
     String typeStr = 'photo';
     if (type == EvidenceType.document) typeStr = 'document';
@@ -188,6 +212,8 @@ class AddActionCubit extends Cubit<AddActionState> {
           break;
       }
 
+      final isIndependent = state.validationType == 'independent' || state.requestIndependentValidation;
+
       await _repository.publishAction(
         title: state.title,
         description: state.description,
@@ -196,7 +222,9 @@ class AddActionCubit extends Cubit<AddActionState> {
         proofFile: state.evidenceFile,
         textProof: state.textProof,
         evidences: state.evidences,
-        selectedValidator: state.selectedValidator,
+        selectedValidator: isIndependent ? null : state.selectedValidator,
+        validationType: isIndependent ? 'independent' : 'person',
+        requestIndependentValidation: isIndependent,
       );
 
       emit(state.copyWith(

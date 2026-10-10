@@ -320,13 +320,23 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                               child: CircleAvatar(
                                 radius: 46,
                                 backgroundColor: AppColors.grey800,
-                                backgroundImage: _avatarUrl != null && _avatarUrl!.isNotEmpty
+                                backgroundImage: _avatarUrl != null &&
+                                        _avatarUrl!.isNotEmpty &&
+                                        !_avatarUrl!.contains('pravatar.cc')
                                     ? NetworkImage(_avatarUrl!)
                                     : null,
-                                child: _avatarUrl == null || _avatarUrl!.isEmpty
-                                    ? Text(
-                                        _name.isNotEmpty ? _name[0].toUpperCase() : 'U',
-                                        style: CustomTextStyle.size24W600(color: AppColors.white100),
+                                onBackgroundImageError: _avatarUrl != null &&
+                                        _avatarUrl!.isNotEmpty &&
+                                        !_avatarUrl!.contains('pravatar.cc')
+                                    ? (_, __) {}
+                                    : null,
+                                child: _avatarUrl == null ||
+                                        _avatarUrl!.isEmpty ||
+                                        _avatarUrl!.contains('pravatar.cc')
+                                    ? const Icon(
+                                        Icons.person_rounded,
+                                        size: 48,
+                                        color: AppColors.grey400,
                                       )
                                     : null,
                               ),

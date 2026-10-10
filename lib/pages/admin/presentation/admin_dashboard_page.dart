@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
+import 'package:worth_network/core/model/home/action_model.dart';
 import 'package:worth_network/core/model/moderation/report_model.dart';
+import 'package:worth_network/core/repo/action_repo.dart';
 import 'package:worth_network/core/repo/moderation_repo.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
@@ -278,6 +280,35 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     ),
                     const SizedBox(height: AppSize.spacingM),
 
+                    // Dedicated Independent Validation Requests Tool with Real-time Pending Badge
+                    StreamBuilder<List<ActionModel>>(
+                      stream: ActionRepository().getIndependentValidationRequestsStream(statusFilter: 'pending'),
+                      builder: (context, indSnap) {
+                        final pendingCount = indSnap.data?.length ?? 0;
+                        return _buildToolButton(
+                          context,
+                          title: loc.translate('independent_validations_admin_title'),
+                          subtitle: loc.translate('independent_validations_admin_desc'),
+                          icon: Icons.fact_check_outlined,
+                          route: '/admin/independent-validations',
+                          trailing: pendingCount > 0
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.warning,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    '$pendingCount',
+                                    style: CustomTextStyle.size12W600(color: AppColors.black100),
+                                  ),
+                                )
+                              : null,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: AppSize.spacingM),
+
                     Row(
                       children: [
                         Expanded(
@@ -479,6 +510,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     required String subtitle,
     required IconData icon,
     required String route,
+    Widget? trailing,
   }) {
     return InkWell(
       onTap: () => context.push(route),
@@ -510,6 +542,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 ],
               ),
             ),
+            if (trailing != null) ...[
+              trailing,
+              const SizedBox(width: 8),
+            ],
+            const Icon(Icons.chevron_right, color: AppColors.grey500, size: 18),
           ],
         ),
       ),

@@ -139,6 +139,8 @@ class ActionRepository {
     String? textProof,
     List<EvidenceModel>? evidences,
     Map<String, dynamic>? selectedValidator,
+    String? validationType,
+    bool requestIndependentValidation = false,
   }) async {
     final user = _auth.currentUser;
     final prefs = Preferences();
@@ -212,7 +214,8 @@ class ActionRepository {
       }
     }
 
-    final hasValidator = selectedValidator != null && selectedValidator['uid'] != null;
+    final isIndependent = validationType == 'independent' || requestIndependentValidation;
+    final hasValidator = !isIndependent && selectedValidator != null && selectedValidator['uid'] != null;
     final firstEvidence = processedEvidences.isNotEmpty ? processedEvidences.first : null;
 
     final actionData = <String, dynamic>{
@@ -227,11 +230,16 @@ class ActionRepository {
       'proofUrl': firstEvidence?.url ?? proofFile?.path,
       'textProof': firstEvidence?.text ?? textProof,
       'evidences': processedEvidences.map((e) => e.toMap()).toList(),
+      'validationType': isIndependent ? 'independent' : 'person',
       'validationStatus': hasValidator ? 'pending' : 'declared',
-      'validatorId': selectedValidator?['uid'],
-      'validatorUsername': selectedValidator?['username'],
-      'validatorName': selectedValidator?['name'],
-      'validatorAvatar': selectedValidator?['avatarUrl'],
+      if (isIndependent) ...{
+        'independentReviewStatus': 'pending',
+        'independentSubmittedAt': FieldValue.serverTimestamp(),
+      },
+      'validatorId': (hasValidator && selectedValidator != null) ? selectedValidator['uid'] : null,
+      'validatorUsername': (hasValidator && selectedValidator != null) ? selectedValidator['username'] : null,
+      'validatorName': (hasValidator && selectedValidator != null) ? selectedValidator['name'] : null,
+      'validatorAvatar': (hasValidator && selectedValidator != null) ? selectedValidator['avatarUrl'] : null,
       'score': 50,
       'likesCount': 0,
       'commentsCount': 0,
@@ -265,6 +273,44 @@ class ActionRepository {
         );
       } catch (e) {
         print('Notification dispatch warning: $e');
+      }
+    } else if (validationType == 'independent') {
+      // 1. Notify publisher that action is submitted for review
+      try {
+        await NotificationService().sendNotification(
+          targetUserId: uid,
+          title: 'Independent Action Submitted',
+          body: 'Your action "$title" has been submitted for admin validation.',
+          type: 'independent_action_submitted',
+          actionId: actionId,
+          extraData: {
+            'actionTitle': title,
+            'isIndependent': true,
+          },
+        );
+      } catch (e) {
+        print('Publisher submission notification warning: $e');
+      }
+
+      // 2. Notify all administrators of new independent validation request
+      try {
+        final adminIds = await ModerationRepository().getAdminUserIds();
+        for (final adminId in adminIds) {
+          await NotificationService().sendNotification(
+            targetUserId: adminId,
+            title: 'Independent Validation Request',
+            body: '$userName submitted an independent action "$title" for admin review.',
+            type: 'independent_validation_request',
+            actionId: actionId,
+            extraData: {
+              'requesterName': userName,
+              'actionTitle': title,
+              'isIndependent': true,
+            },
+          );
+        }
+      } catch (e) {
+        print('Admin notification dispatch warning: $e');
       }
     }
 
@@ -791,6 +837,19 @@ class ActionRepository {
           }
         }
 
+        // If this was an independent validation request but action is already reviewed
+        if (type == 'independent_validation_request' && action != null) {
+          if (action.independentReviewStatus == 'approved') {
+            type = 'approved';
+            title = 'Independent Validation Approved';
+            description = 'Action "${action.title}" was approved by @${action.reviewedByAdminName ?? 'Admin'}';
+          } else if (action.independentReviewStatus == 'rejected') {
+            type = 'rejected';
+            title = 'Independent Validation Rejected';
+            description = 'Action "${action.title}" was rejected by @${action.reviewedByAdminName ?? 'Admin'}';
+          }
+        }
+
         notifications.add({
           'id': id,
           'type': type,
@@ -1246,6 +1305,246 @@ class ActionRepository {
           .where((comment) => comment.isVisible)
           .toList();
     });
+  }
+
+  // ==================== INDEPENDENT VALIDATION (ADMIN) ====================
+
+  /// Stream of independent validation requests
+  Stream<List<ActionModel>> getIndependentValidationRequestsStream({String? statusFilter}) {
+    return _firestore
+        .collection('actions')
+        .where('validationType', isEqualTo: 'independent')
+        .snapshots()
+        .map((snapshot) {
+      final list = snapshot.docs
+          .map((doc) => ActionModel.fromMap(doc.data(), doc.id, currentUserId: currentUserId))
+          .where((action) {
+            if (statusFilter == null || statusFilter == 'all') return true;
+            final currentStatus = action.independentReviewStatus ?? 'pending';
+            return currentStatus == statusFilter;
+          })
+          .toList();
+
+      // Sort in-memory: pending first, then by submission/creation date descending
+      list.sort((a, b) {
+        final aPending = (a.independentReviewStatus ?? 'pending') == 'pending';
+        final bPending = (b.independentReviewStatus ?? 'pending') == 'pending';
+        if (aPending && !bPending) return -1;
+        if (!aPending && bPending) return 1;
+        final aDate = a.independentSubmittedAt ?? a.createdAt;
+        final bDate = b.independentSubmittedAt ?? b.createdAt;
+        return bDate.compareTo(aDate);
+      });
+
+      return list;
+    });
+  }
+
+  /// Get count of pending independent validation requests
+  Future<int> getPendingIndependentValidationCount() async {
+    try {
+      final snap = await _firestore
+          .collection('actions')
+          .where('validationType', isEqualTo: 'independent')
+          .where('independentReviewStatus', isEqualTo: 'pending')
+          .get();
+      return snap.docs.length;
+    } catch (e) {
+      print('Warning: error getting pending independent validations count: $e');
+      return 0;
+    }
+  }
+
+  /// Approve an independent validation request (Atomic transaction)
+  Future<void> approveIndependentValidation({
+    required String actionId,
+    String? adminNote,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('Administrator not authenticated.');
+
+    final isAdmin = await ModerationRepository().isCurrentUserAdmin();
+    if (!isAdmin) {
+      throw Exception('Access Denied: Only administrators can approve independent actions.');
+    }
+
+    final adminId = user.uid;
+    final prefs = Preferences();
+    final adminName = user.displayName ?? (prefs.name.isNotEmpty ? prefs.name : 'Administrator');
+
+    final actionRef = _firestore.collection('actions').doc(actionId);
+
+    String publisherId = '';
+    String actionTitle = 'Action';
+    int awardScore = 50;
+
+    await _firestore.runTransaction((transaction) async {
+      final actionSnap = await transaction.get(actionRef);
+      if (!actionSnap.exists) {
+        throw Exception('Action not found.');
+      }
+
+      final actionData = actionSnap.data()!;
+      publisherId = (actionData['userId'] ?? '') as String;
+      actionTitle = (actionData['title'] ?? 'Action') as String;
+      awardScore = (actionData['score'] as num?)?.toInt() ?? 50;
+
+      // 1. Prevent creator from validating their own action
+      if (publisherId == adminId) {
+        throw Exception('Security violation: Administrators cannot validate their own actions.');
+      }
+
+      // 2. Prevent duplicate approval
+      final currentReviewStatus = actionData['independentReviewStatus'] as String?;
+      if (currentReviewStatus == 'approved') {
+        throw Exception('This action has already been approved.');
+      }
+
+      // 3. Read publisher profile document (ALL READS MUST PRECEDE ALL WRITES)
+      DocumentReference<Map<String, dynamic>>? publisherRef;
+      DocumentSnapshot<Map<String, dynamic>>? pubSnap;
+      if (publisherId.isNotEmpty) {
+        publisherRef = _firestore.collection('users').doc(publisherId);
+        pubSnap = await transaction.get(publisherRef);
+      }
+
+      // ==========================================
+      // ALL READS ARE COMPLETE. NOW EXECUTE WRITES
+      // ==========================================
+
+      // WRITE 1: Update action document atomically
+      final updates = <String, dynamic>{
+        'validationStatus': 'confirmed',
+        'independentReviewStatus': 'approved',
+        'reviewedByAdminId': adminId,
+        'reviewedByAdminName': adminName,
+        'reviewedAt': FieldValue.serverTimestamp(),
+      };
+      if (adminNote != null && adminNote.trim().isNotEmpty) {
+        updates['adminNote'] = adminNote.trim();
+      }
+
+      transaction.update(actionRef, updates);
+
+      // WRITE 2: Award points to publisher profile exactly once
+      if (publisherRef != null && pubSnap != null && pubSnap.exists) {
+        final pData = pubSnap.data()!;
+        final currentScore = (pData['score'] ?? 0) as int;
+        final currentXp = (pData['xp'] ?? 0) as int;
+        final currentTotalActions = (pData['totalActions'] ?? 0) as int;
+
+        final newScore = currentScore + awardScore;
+        final newXp = currentXp + awardScore;
+        final newLevel = (newXp / 100).floor() + 1;
+        final newTotalActions = currentTotalActions + 1;
+
+        transaction.update(publisherRef, {
+          'score': newScore,
+          'xp': newXp,
+          'level': newLevel,
+          'totalActions': newTotalActions,
+        });
+      }
+    });
+
+    // 5. Notify publisher of approval
+    if (publisherId.isNotEmpty) {
+      try {
+        await NotificationService().sendNotification(
+          targetUserId: publisherId,
+          title: 'Action Validated!',
+          body: 'Your independent action "$actionTitle" has been approved by admin (+$awardScore Worth Score).',
+          type: 'approved',
+          actionId: actionId,
+        );
+      } catch (e) {
+        print('Warning sending approval notification: $e');
+      }
+    }
+
+    // 6. Log moderation audit record
+    try {
+      await ModerationRepository().logModerationAction(
+        actionType: 'approve_independent_action',
+        contentId: actionId,
+        contentType: 'action',
+        reason: adminNote ?? 'Approved by administrator $adminName',
+      );
+    } catch (e) {
+      print('Warning logging moderation action: $e');
+    }
+  }
+
+  /// Reject an independent validation request
+  Future<void> rejectIndependentValidation({
+    required String actionId,
+    String? reason,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('Administrator not authenticated.');
+
+    final isAdmin = await ModerationRepository().isCurrentUserAdmin();
+    if (!isAdmin) {
+      throw Exception('Access Denied: Only administrators can reject independent actions.');
+    }
+
+    final adminId = user.uid;
+    final prefs = Preferences();
+    final adminName = user.displayName ?? (prefs.name.isNotEmpty ? prefs.name : 'Administrator');
+
+    final actionRef = _firestore.collection('actions').doc(actionId);
+    final actionDoc = await actionRef.get();
+    if (!actionDoc.exists) throw Exception('Action not found.');
+
+    final actionData = actionDoc.data()!;
+    final publisherId = (actionData['userId'] ?? '') as String;
+    final actionTitle = (actionData['title'] ?? 'Action') as String;
+
+    // Prevent creator from rejecting or validating their own action
+    if (publisherId == adminId) {
+      throw Exception('Security violation: Administrators cannot review their own actions.');
+    }
+
+    final trimmedReason = reason?.trim();
+
+    // Update action status: remains unvalidated, marked as rejected review, 0 points awarded
+    await actionRef.update({
+      'independentReviewStatus': 'rejected',
+      'rejectionReason': trimmedReason,
+      'reviewedByAdminId': adminId,
+      'reviewedByAdminName': adminName,
+      'reviewedAt': FieldValue.serverTimestamp(),
+    });
+
+    // Notify publisher of rejection
+    if (publisherId.isNotEmpty) {
+      try {
+        final reasonMsg = trimmedReason != null && trimmedReason.isNotEmpty
+            ? ' Reason: $trimmedReason'
+            : '';
+        await NotificationService().sendNotification(
+          targetUserId: publisherId,
+          title: 'Independent Validation Rejected',
+          body: 'Your independent validation request for "$actionTitle" was not approved.$reasonMsg',
+          type: 'rejected',
+          actionId: actionId,
+        );
+      } catch (e) {
+        print('Warning sending rejection notification: $e');
+      }
+    }
+
+    // Log moderation audit record
+    try {
+      await ModerationRepository().logModerationAction(
+        actionType: 'reject_independent_action',
+        contentId: actionId,
+        contentType: 'action',
+        reason: trimmedReason ?? 'Rejected by administrator $adminName',
+      );
+    } catch (e) {
+      print('Warning logging moderation action: $e');
+    }
   }
 }
 

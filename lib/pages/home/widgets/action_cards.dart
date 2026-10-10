@@ -150,15 +150,23 @@ class ActionCard extends StatelessWidget {
                       child: CircleAvatar(
                         radius: 20,
                         backgroundColor: AppColors.grey800,
-                        backgroundImage: action.userAvatar != null
+                        backgroundImage: (action.userAvatar != null &&
+                                action.userAvatar!.isNotEmpty &&
+                                !action.userAvatar!.contains('pravatar.cc'))
                             ? NetworkImage(action.userAvatar!)
                             : null,
-                        child: action.userAvatar == null
-                            ? Text(
-                                action.userName.isNotEmpty ? action.userName[0] : 'U',
-                                style: CustomTextStyle.size14W500(
-                                  color: AppColors.white100,
-                                ),
+                        onBackgroundImageError: (action.userAvatar != null &&
+                                action.userAvatar!.isNotEmpty &&
+                                !action.userAvatar!.contains('pravatar.cc'))
+                            ? (_, __) {}
+                            : null,
+                        child: (action.userAvatar == null ||
+                                action.userAvatar!.isEmpty ||
+                                action.userAvatar!.contains('pravatar.cc'))
+                            ? const Icon(
+                                Icons.person_rounded,
+                                size: 22,
+                                color: AppColors.grey400,
                               )
                             : null,
                       ),
@@ -195,30 +203,66 @@ class ActionCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSize.paddingS,
-                        vertical: AppSize.paddingXS,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.grey800,
-                        borderRadius: BorderRadius.circular(AppSize.radiusM),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.star,
-                            color: AppColors.accent,
-                            size: 14,
+                    InkWell(
+                      onTap: () => showScoreInfoSheet(context, action, loc),
+                      borderRadius: BorderRadius.circular(AppSize.radiusM),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSize.paddingS + 2,
+                          vertical: AppSize.paddingXS + 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.grey800,
+                          borderRadius: BorderRadius.circular(AppSize.radiusM),
+                          border: Border.all(
+                            color: action.isValidated
+                                ? AppColors.accent.withValues(alpha: 0.4)
+                                : action.validationStatus == ValidationStatus.rejected
+                                    ? AppColors.error.withValues(alpha: 0.4)
+                                    : AppColors.warning.withValues(alpha: 0.4),
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${action.score}',
-                            style: CustomTextStyle.size14W500(
-                              color: AppColors.white100,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              action.isValidated
+                                  ? Icons.star
+                                  : action.validationStatus == ValidationStatus.rejected
+                                      ? Icons.cancel_outlined
+                                      : Icons.star_outline_rounded,
+                              color: action.isValidated
+                                  ? AppColors.accent
+                                  : action.validationStatus == ValidationStatus.rejected
+                                      ? AppColors.error
+                                      : AppColors.warning,
+                              size: 14,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 4),
+                            Text(
+                              action.validationStatus == ValidationStatus.rejected
+                                  ? '0'
+                                  : '+${action.score}',
+                              style: CustomTextStyle.size13W600(
+                                color: action.isValidated
+                                    ? AppColors.accent
+                                    : action.validationStatus == ValidationStatus.rejected
+                                        ? AppColors.error
+                                        : AppColors.warning,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.info_outline_rounded,
+                              size: 12,
+                              color: action.isValidated
+                                  ? AppColors.accent.withValues(alpha: 0.7)
+                                  : action.validationStatus == ValidationStatus.rejected
+                                      ? AppColors.error.withValues(alpha: 0.7)
+                                      : AppColors.warning.withValues(alpha: 0.7),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(width: 4),
@@ -431,5 +475,99 @@ class ActionCard extends StatelessWidget {
       default:
         return AppColors.grey400;
     }
+  }
+
+  static void showScoreInfoSheet(BuildContext context, ActionModel action, AppLocalizations loc) {
+    final isVal = action.isValidated;
+    final isRej = action.validationStatus == ValidationStatus.rejected;
+    final badgeColor = isVal
+        ? AppColors.accent
+        : isRej
+            ? AppColors.error
+            : AppColors.warning;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.grey900,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSize.radiusL)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(AppSize.paddingL, AppSize.paddingM, AppSize.paddingL, AppSize.paddingL),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.grey700,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: AppSize.spacingL),
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: badgeColor.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isVal
+                      ? Icons.verified
+                      : isRej
+                          ? Icons.cancel_outlined
+                          : Icons.stars_rounded,
+                  color: badgeColor,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(height: AppSize.spacingM),
+              Text(
+                isVal
+                    ? '${loc.translate('earned_reward_label')}: +${action.score} ${loc.translate('points_label')}'
+                    : isRej
+                        ? loc.translate('validation_rejected_label')
+                        : '${loc.translate('potential_reward_label')}: +${action.score} ${loc.translate('points_label')}',
+                style: CustomTextStyle.size18W600(color: AppColors.white100),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSize.spacingS),
+              Text(
+                isVal
+                    ? loc.translate('action_validated_reward_earned')
+                    : isRej
+                        ? (action.rejectionReason != null && action.rejectionReason!.isNotEmpty
+                            ? '${loc.translate('rejection_reason_prefix')}: ${action.rejectionReason}'
+                            : loc.translate('action_rejected_no_points'))
+                        : loc.translate('points_awarded_after_validation'),
+                style: CustomTextStyle.size14W400(color: AppColors.grey400),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSize.spacingXL),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSize.radiusM),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () => Navigator.pop(sheetContext),
+                  child: Text(
+                    loc.translate('dismiss'),
+                    style: CustomTextStyle.size14W600(color: AppColors.black100),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

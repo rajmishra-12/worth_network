@@ -20,6 +20,7 @@ import 'package:worth_network/pages/admin/presentation/admin_content_page.dart';
 import 'package:worth_network/pages/admin/presentation/admin_users_page.dart';
 import 'package:worth_network/pages/admin/presentation/admin_word_filter_page.dart';
 import 'package:worth_network/pages/admin/presentation/admin_audit_log_page.dart';
+import 'package:worth_network/pages/admin/presentation/admin_independent_validations_page.dart';
 import 'package:worth_network/pages/authentication/presentation/forget_password_page.dart';
 import 'package:worth_network/core/model/home/action_model.dart';
 import 'package:worth_network/pages/network/presentation/user_connections_page.dart';
@@ -133,6 +134,11 @@ class Pages {
         path: '/admin/audit-log',
         name: 'admin-audit-log',
         builder: (context, state) => const AdminAuditLogPage(),
+      ),
+      GoRoute(
+        path: '/admin/independent-validations',
+        name: 'admin-independent-validations',
+        builder: (context, state) => const AdminIndependentValidationsPage(),
       ),
       GoRoute(
         path: '/user-detail',

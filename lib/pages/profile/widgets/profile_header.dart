@@ -43,18 +43,30 @@ class ProfileHeader extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: CircleAvatar(
-                    radius: 42,
-                    backgroundColor: AppColors.grey900,
-                    backgroundImage: profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty
-                        ? NetworkImage(profile.avatarUrl!)
-                        : null,
-                    child: profile.avatarUrl == null || profile.avatarUrl!.isEmpty
-                        ? Text(
-                            profile.name.isNotEmpty ? profile.name[0].toUpperCase() : 'U',
-                            style: CustomTextStyle.size24W600(color: AppColors.white100),
-                          )
-                        : null,
+                  child: Builder(
+                    builder: (context) {
+                      final hasValidAvatar = profile.avatarUrl != null &&
+                          profile.avatarUrl!.isNotEmpty &&
+                          !profile.avatarUrl!.contains('pravatar.cc');
+
+                      return CircleAvatar(
+                        radius: 42,
+                        backgroundColor: AppColors.grey800,
+                        backgroundImage: hasValidAvatar
+                            ? NetworkImage(profile.avatarUrl!)
+                            : null,
+                        onBackgroundImageError: hasValidAvatar
+                            ? (_, __) {}
+                            : null,
+                        child: !hasValidAvatar
+                            ? const Icon(
+                                Icons.person_rounded,
+                                size: 44,
+                                color: AppColors.grey400,
+                              )
+                            : null,
+                      );
+                    },
                   ),
                 ),
                 Positioned(

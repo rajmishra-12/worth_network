@@ -36,6 +36,8 @@ class ProfileModel extends Equatable {
     required this.badges,
   });
 
+  bool get isAdmin => roles.contains('admin') || accountType == 'admin';
+
   @override
   List<Object?> get props => [
     id,

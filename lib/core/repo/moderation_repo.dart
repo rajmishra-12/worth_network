@@ -272,7 +272,7 @@ class ModerationRepository {
   Future<bool> isCurrentUserAdmin() async {
     final user = _auth.currentUser;
     if (user == null) return false;
-    if (user.email?.toLowerCase() == 'admin@gmail.com') return true;
+    if (user.email?.toLowerCase() == 'admin@gmail.com' || user.email?.toLowerCase() == 'adribuellet@hotmail.com') return true;
 
     try {
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
@@ -293,6 +293,43 @@ class ModerationRepository {
     }
 
     return false;
+  }
+
+  /// Get all user UIDs with administrator privileges
+  Future<List<String>> getAdminUserIds() async {
+    final Set<String> adminUids = {};
+    try {
+      final snap = await _firestore.collection('users').get();
+      for (var doc in snap.docs) {
+        final data = doc.data();
+        final email = (data['email'] as String? ?? '').toLowerCase().trim();
+        final accountType = (data['accountType'] as String? ?? '').toLowerCase().trim();
+        final roles = (data['roles'] as List<dynamic>?)
+                ?.map((e) => e.toString().toLowerCase().trim())
+                .toList() ??
+            [];
+
+        if (email == 'admin@gmail.com' ||
+            email == 'adribuellet@hotmail.com' ||
+            accountType == 'admin' ||
+            roles.contains('admin')) {
+          adminUids.add(doc.id);
+        }
+      }
+    } catch (e) {
+      print('Error fetching admin user IDs: $e');
+    }
+
+    // Ensure currently authenticated admin is included
+    final currentUser = _auth.currentUser;
+    if (currentUser != null) {
+      final currentEmail = currentUser.email?.toLowerCase().trim();
+      if (currentEmail == 'admin@gmail.com' || currentEmail == 'adribuellet@hotmail.com') {
+        adminUids.add(currentUser.uid);
+      }
+    }
+
+    return adminUids.toList();
   }
 
   // ==================== CONTENT MODERATION (ADMIN) ====================

@@ -15,7 +15,7 @@ service cloud.firestore {
     // Safe Admin helper check
     function isAdmin() {
       return isAuthenticated() && (
-        (request.auth.token != null && 'email' in request.auth.token && request.auth.token.email == 'admin@gmail.com') ||
+        (request.auth.token != null && 'email' in request.auth.token && (request.auth.token.email.lower() == 'admin@gmail.com' || request.auth.token.email.lower() == 'adribuellet@hotmail.com')) ||
         (request.auth.token != null && 'admin' in request.auth.token && request.auth.token.admin == true) ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
          'accountType' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data &&
@@ -54,11 +54,24 @@ service cloud.firestore {
 
     // Actions Collection Rules
     match /actions/{actionId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create: if isActiveUser();
       allow update: if isAuthenticated() && (
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['moderationStatus', 'moderatedBy', 'moderatedAt', 'moderationReason']) ||
-        isAdmin()
+        // Case 1: Admin moderation or independent review (strictly prevent self-validation)
+        (isAdmin() && resource.data.userId != request.auth.uid) ||
+        // Case 2: Regular user interaction or person-based validator
+        (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'moderationStatus', 'moderatedBy', 'moderatedAt', 'moderationReason',
+            'independentReviewStatus', 'reviewedByAdminId', 'reviewedByAdminName', 'reviewedAt', 'rejectionReason'
+          ]) &&
+          (
+            // Normal interaction (likes, comments, content updates without tampering validationStatus)
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['validationStatus']) ||
+            // Or designated external person validator
+            (resource.data.validatorId != null && resource.data.validatorId == request.auth.uid)
+          )
+        )
       );
       allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
 
@@ -81,7 +94,8 @@ service cloud.firestore {
 
     // Moderation Settings Collection (Blocked Words)
     match /moderationSettings/{docId} {
-      allow read, write: if isAuthenticated();
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     // Notifications Collection Rules

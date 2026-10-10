@@ -149,9 +149,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         final loc = AppLocalizations(localeCode);
         final currentUserEmail = FirebaseAuth.instance.currentUser?.email?.toLowerCase();
         final profileState = context.watch<ProfileCubit>().state;
-        final isAdmin = currentUserEmail == 'admin@gmail.com' ||
-            (profileState.profile != null &&
-                (profileState.profile!.roles.contains('admin') || profileState.profile!.accountType == 'admin'));
+        final isAdmin = (profileState.profile?.isAdmin ?? false) ||
+            currentUserEmail == 'admin@gmail.com' ||
+            currentUserEmail == 'adribuellet@hotmail.com';
 
         return Scaffold(
           backgroundColor: AppColors.background,

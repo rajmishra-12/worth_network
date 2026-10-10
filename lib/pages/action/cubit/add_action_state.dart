@@ -17,6 +17,8 @@ class AddActionState extends Equatable {
   final bool isSuccess;
   final String? errorMessage;
   final bool shouldRefreshHome;
+  final String validationType; // 'person' or 'independent'
+  final bool requestIndependentValidation;
 
   AddActionState({
     this.title = '',
@@ -35,6 +37,8 @@ class AddActionState extends Equatable {
     this.isSuccess = false,
     this.errorMessage,
     this.shouldRefreshHome = false,
+    this.validationType = 'person',
+    this.requestIndependentValidation = false,
   }) : date = date ?? DateTime.now();
 
   AddActionState copyWith({
@@ -56,6 +60,8 @@ class AddActionState extends Equatable {
     String? errorMessage,
     bool clearErrorMessage = false,
     bool? shouldRefreshHome,
+    String? validationType,
+    bool? requestIndependentValidation,
   }) {
     return AddActionState(
       title: title ?? this.title,
@@ -76,6 +82,9 @@ class AddActionState extends Equatable {
       isSuccess: isSuccess ?? this.isSuccess,
       errorMessage: clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
       shouldRefreshHome: shouldRefreshHome ?? this.shouldRefreshHome,
+      validationType: validationType ?? this.validationType,
+      requestIndependentValidation:
+          requestIndependentValidation ?? this.requestIndependentValidation,
     );
   }
 
@@ -97,5 +106,7 @@ class AddActionState extends Equatable {
     isSuccess,
     errorMessage,
     shouldRefreshHome,
+    validationType,
+    requestIndependentValidation,
   ];
 }

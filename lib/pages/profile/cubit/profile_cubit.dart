@@ -28,6 +28,19 @@ class ProfileCubit extends Cubit<ProfileState> {
 
         if (doc.exists) {
           final data = doc.data()!;
+          final userEmail = (data['email'] ?? currentUser.email ?? '').toString().toLowerCase();
+          if (userEmail == 'adribuellet@hotmail.com' || userEmail == 'admin@gmail.com') {
+            final roles = List<String>.from(data['roles'] ?? []);
+            if (!roles.contains('admin') || data['accountType'] != 'admin') {
+              if (!roles.contains('admin')) roles.add('admin');
+              data['roles'] = roles;
+              data['accountType'] = 'admin';
+              doc.reference.update({
+                'accountType': 'admin',
+                'roles': roles,
+              }).catchError((_) {});
+            }
+          }
           
           // 2. Fetch user's published actions & validations performed for others
           final List<ActionModel> myActions = [];
@@ -133,12 +146,24 @@ class ProfileCubit extends Cubit<ProfileState> {
           ];
 
           final avatarUrlVal = data['avatarUrl'] as String?;
+          final hasCustomAvatar = avatarUrlVal != null &&
+              avatarUrlVal.trim().isNotEmpty &&
+              !avatarUrlVal.contains('pravatar.cc');
+
+          // Clean up old dummy pravatar URL from Firestore if previously assigned
+          if (avatarUrlVal != null && avatarUrlVal.contains('pravatar.cc')) {
+            try {
+              FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(currentUser.uid)
+                  .update({'avatarUrl': ''});
+            } catch (_) {}
+          }
+
           final profile = ProfileModel(
             id: currentUser.uid,
             name: data['name'] ?? currentUser.displayName ?? 'User',
-            avatarUrl: (avatarUrlVal != null && avatarUrlVal.isNotEmpty)
-                ? avatarUrlVal
-                : 'https://i.pravatar.cc/150?img=10',
+            avatarUrl: hasCustomAvatar ? avatarUrlVal : null,
             bio: data['bio'] ?? 'Building worth through real actions.',
             accountType: data['accountType'] as String?,
             roles: (data['roles'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
@@ -218,7 +243,7 @@ class ProfileCubit extends Cubit<ProfileState> {
     final profile = ProfileModel(
       id: prefs.userId.isNotEmpty ? prefs.userId : '1',
       name: prefs.name.isNotEmpty ? prefs.name : 'Guest User',
-      avatarUrl: 'https://i.pravatar.cc/150?img=10',
+      avatarUrl: null,
       bio: 'Building worth through real actions.',
       score: 0,
       level: 1,

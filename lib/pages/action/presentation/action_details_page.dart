@@ -9,6 +9,7 @@ import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
 import 'package:worth_network/core/utils/app_localizations.dart';
+import 'package:worth_network/pages/home/widgets/action_cards.dart';
 import 'package:worth_network/pages/home/widgets/empty_feed_widget.dart';
 import 'package:worth_network/pages/home/widgets/proof_card.dart';
 
@@ -155,11 +156,11 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Validation Requested',
+                                  loc.translate('validation_requested_title'),
                                   style: CustomTextStyle.size15W600(color: AppColors.white100),
                                 ),
                                 Text(
-                                  'You are requested to validate this action',
+                                  loc.translate('validation_requested_subtitle'),
                                   style: CustomTextStyle.size12W400(color: AppColors.grey400),
                                 ),
                               ],
@@ -176,7 +177,7 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                               context.push('/validation-request', extra: action);
                             },
                             child: Text(
-                              'Validate',
+                              loc.translate('validate_btn'),
                               style: CustomTextStyle.size13W600(color: AppColors.black100),
                             ),
                           ),
@@ -228,22 +229,63 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                         ),
                       ),
                       const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.grey900,
-                          borderRadius: BorderRadius.circular(AppSize.radiusS),
-                          border: Border.all(color: AppColors.grey800),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.star, color: AppColors.primary, size: 16),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${action.score}',
-                              style: CustomTextStyle.size14W600(color: AppColors.primary),
+                      InkWell(
+                        onTap: () => ActionCard.showScoreInfoSheet(context, action, loc),
+                        borderRadius: BorderRadius.circular(AppSize.radiusM),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.grey900,
+                            borderRadius: BorderRadius.circular(AppSize.radiusM),
+                            border: Border.all(
+                              color: action.isValidated
+                                  ? AppColors.accent.withValues(alpha: 0.4)
+                                  : action.validationStatus == ValidationStatus.rejected
+                                      ? AppColors.error.withValues(alpha: 0.4)
+                                      : AppColors.warning.withValues(alpha: 0.4),
                             ),
-                          ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                action.isValidated
+                                    ? Icons.star
+                                    : action.validationStatus == ValidationStatus.rejected
+                                        ? Icons.cancel_outlined
+                                        : Icons.star_outline_rounded,
+                                color: action.isValidated
+                                    ? AppColors.accent
+                                    : action.validationStatus == ValidationStatus.rejected
+                                        ? AppColors.error
+                                        : AppColors.warning,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                action.validationStatus == ValidationStatus.rejected
+                                    ? '0'
+                                    : '+${action.score}',
+                                style: CustomTextStyle.size14W600(
+                                  color: action.isValidated
+                                  ? AppColors.accent
+                                  : action.validationStatus == ValidationStatus.rejected
+                                      ? AppColors.error
+                                      : AppColors.warning,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.info_outline_rounded,
+                                size: 13,
+                                color: action.isValidated
+                                    ? AppColors.accent.withValues(alpha: 0.7)
+                                    : action.validationStatus == ValidationStatus.rejected
+                                        ? AppColors.error.withValues(alpha: 0.7)
+                                        : AppColors.warning.withValues(alpha: 0.7),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -276,6 +318,103 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                       ValidationBadge(status: action.validationStatus),
                     ],
                   ),
+                  const SizedBox(height: AppSize.spacingM),
+
+                  // Dedicated Potential / Earned / Rejected Reward Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(AppSize.paddingM),
+                    decoration: BoxDecoration(
+                      color: action.isValidated
+                          ? AppColors.accent.withValues(alpha: 0.1)
+                          : action.validationStatus == ValidationStatus.rejected
+                              ? AppColors.error.withValues(alpha: 0.1)
+                              : AppColors.warning.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppSize.radiusM),
+                      border: Border.all(
+                        color: action.isValidated
+                            ? AppColors.accent.withValues(alpha: 0.3)
+                            : action.validationStatus == ValidationStatus.rejected
+                                ? AppColors.error.withValues(alpha: 0.3)
+                                : AppColors.warning.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          action.isValidated
+                              ? Icons.verified
+                              : action.validationStatus == ValidationStatus.rejected
+                                  ? Icons.cancel_outlined
+                                  : Icons.stars_rounded,
+                          color: action.isValidated
+                              ? AppColors.accent
+                              : action.validationStatus == ValidationStatus.rejected
+                                  ? AppColors.error
+                                  : AppColors.warning,
+                          size: 24,
+                        ),
+                        const SizedBox(width: AppSize.spacingM),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                action.isValidated
+                                    ? '${loc.translate('earned_reward_label')}: +${action.score} ${loc.translate('points_label')}'
+                                    : action.validationStatus == ValidationStatus.rejected
+                                        ? loc.translate('validation_rejected_label')
+                                        : '${loc.translate('potential_reward_label')}: +${action.score} ${loc.translate('points_label')}',
+                                style: CustomTextStyle.size15W600(
+                                  color: action.isValidated
+                                      ? AppColors.accent
+                                      : action.validationStatus == ValidationStatus.rejected
+                                          ? AppColors.error
+                                          : AppColors.warning,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                action.isValidated
+                                    ? loc.translate('action_validated_reward_earned')
+                                    : action.validationStatus == ValidationStatus.rejected
+                                        ? (action.rejectionReason != null && action.rejectionReason!.isNotEmpty
+                                            ? '${loc.translate('rejection_reason_prefix')}: ${action.rejectionReason}'
+                                            : loc.translate('action_rejected_no_points'))
+                                        : loc.translate('points_awarded_after_validation'),
+                                style: CustomTextStyle.size12W400(
+                                  color: AppColors.grey300,
+                                ),
+                              ),
+                              if (action.isIndependent && action.isPendingIndependentReview) ...[
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.grey900,
+                                    borderRadius: BorderRadius.circular(AppSize.radiusS),
+                                    border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.shield_outlined, size: 12, color: AppColors.warning),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        loc.translate('independent_review_pending_badge'),
+                                        style: CustomTextStyle.size11W500(color: AppColors.warning),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: AppSize.spacingL),
 
                   // Validator Info
@@ -292,7 +431,7 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                           const Icon(Icons.person_search_outlined, color: AppColors.primary, size: 16),
                           const SizedBox(width: 8),
                           Text(
-                            'Requested Validator: ${action.validatorName} (@${action.validatorUsername ?? ''})',
+                            '${loc.translate('requested_validator_prefix')}: ${action.validatorName} (@${action.validatorUsername ?? ''})',
                             style: CustomTextStyle.size12W400(color: AppColors.grey400),
                           ),
                         ],
@@ -330,7 +469,7 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                '${action.likesCount} ${action.likesCount == 1 ? "Like" : "Likes"}',
+                                '${action.likesCount} ${action.likesCount == 1 ? loc.translate('like_count_singular') : loc.translate('likes_count')}',
                                 style: CustomTextStyle.size13W600(
                                   color: action.isLikedByUser ? AppColors.error : AppColors.white100,
                                 ),
@@ -357,7 +496,7 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              '${action.commentsCount} Comments',
+                              '${action.commentsCount} ${loc.translate('comments_label')}',
                               style: CustomTextStyle.size13W600(color: AppColors.white100),
                             ),
                           ],
@@ -368,9 +507,8 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                   const SizedBox(height: AppSize.spacingL),
 
                   // Description
-
                   Text(
-                    'Description',
+                    loc.translate('description_label'),
                     style: CustomTextStyle.size15W600(color: AppColors.white100),
                   ),
                   const SizedBox(height: AppSize.spacingS),
@@ -382,7 +520,7 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
 
                   // Evidence / Proof Section
                   Text(
-                    'Uploaded Proof (Credibility Evidence)',
+                    loc.translate('uploaded_proof_label'),
                     style: CustomTextStyle.size15W600(color: AppColors.white100),
                   ),
                   const SizedBox(height: AppSize.spacingS),
@@ -400,7 +538,7 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                           Row(
                             children: [
                               Text(
-                                'Comments',
+                                loc.translate('comments_label'),
                                 style: CustomTextStyle.size15W600(color: AppColors.white100),
                               ),
                               const SizedBox(width: AppSize.spacingS),
@@ -422,7 +560,7 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                             Padding(
                               padding: const EdgeInsets.symmetric(vertical: AppSize.paddingM),
                               child: Text(
-                                'No comments yet. Be the first to comment!',
+                                loc.translate('no_comments_yet'),
                                 style: CustomTextStyle.size13W400(color: AppColors.grey500),
                               ),
                             )
@@ -513,7 +651,7 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                         controller: _commentController,
                         style: CustomTextStyle.size14W400(color: AppColors.white100),
                         decoration: InputDecoration(
-                          hintText: 'Add a comment...',
+                          hintText: loc.translate('write_comment_hint'),
                           hintStyle: CustomTextStyle.size14W400(color: AppColors.grey500),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(vertical: 10),

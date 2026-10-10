@@ -61,9 +61,26 @@ class ActionCardSmall extends StatelessWidget {
                   children: [
                     ValidationBadge(status: action.validationStatus),
                     const SizedBox(width: AppSize.spacingS),
-                    Text(
-                      '${action.score} pts',
-                      style: CustomTextStyle.size11W500(color: AppColors.primary),
+                    BlocBuilder<LocaleCubit, String>(
+                      builder: (context, localeCode) {
+                        final loc = AppLocalizations(localeCode);
+                        final String pointsText;
+                        final Color pointsColor;
+                        if (action.isValidated) {
+                          pointsText = '+${action.score} pts';
+                          pointsColor = AppColors.primary;
+                        } else if (action.validationStatus == ValidationStatus.rejected) {
+                          pointsText = '0 pts';
+                          pointsColor = AppColors.error;
+                        } else {
+                          pointsText = '+${action.score} pts';
+                          pointsColor = AppColors.warning;
+                        }
+                        return Text(
+                          pointsText,
+                          style: CustomTextStyle.size11W500(color: pointsColor),
+                        );
+                      },
                     ),
                   ],
                 ),

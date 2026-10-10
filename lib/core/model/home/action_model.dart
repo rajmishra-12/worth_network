@@ -37,6 +37,12 @@ class ActionModel extends Equatable {
   final String? moderatedBy;
   final DateTime? moderatedAt;
   final String? moderationReason;
+  final String? validationType; // 'person' or 'independent'
+  final String? independentReviewStatus; // 'pending', 'approved', 'rejected'
+  final DateTime? independentSubmittedAt;
+  final String? reviewedByAdminId;
+  final String? reviewedByAdminName;
+  final String? rejectionReason;
 
   const ActionModel({
     required this.id,
@@ -65,11 +71,23 @@ class ActionModel extends Equatable {
     this.moderatedBy,
     this.moderatedAt,
     this.moderationReason,
+    this.validationType,
+    this.independentReviewStatus,
+    this.independentSubmittedAt,
+    this.reviewedByAdminId,
+    this.reviewedByAdminName,
+    this.rejectionReason,
   });
 
   bool get isVisible => moderationStatus == 'visible';
   bool get isHidden => moderationStatus == 'hidden';
   bool get isRemoved => moderationStatus == 'removed';
+  bool get isIndependent => validationType == 'independent';
+  bool get isPendingIndependentReview =>
+      validationType == 'independent' && independentReviewStatus == 'pending';
+  bool get isValidated =>
+      validationStatus == ValidationStatus.confirmed ||
+      validationStatus == ValidationStatus.certified;
 
   ActionModel copyWith({
     String? id,
@@ -98,6 +116,12 @@ class ActionModel extends Equatable {
     String? moderatedBy,
     DateTime? moderatedAt,
     String? moderationReason,
+    String? validationType,
+    String? independentReviewStatus,
+    DateTime? independentSubmittedAt,
+    String? reviewedByAdminId,
+    String? reviewedByAdminName,
+    String? rejectionReason,
   }) {
     return ActionModel(
       id: id ?? this.id,
@@ -126,6 +150,12 @@ class ActionModel extends Equatable {
       moderatedBy: moderatedBy ?? this.moderatedBy,
       moderatedAt: moderatedAt ?? this.moderatedAt,
       moderationReason: moderationReason ?? this.moderationReason,
+      validationType: validationType ?? this.validationType,
+      independentReviewStatus: independentReviewStatus ?? this.independentReviewStatus,
+      independentSubmittedAt: independentSubmittedAt ?? this.independentSubmittedAt,
+      reviewedByAdminId: reviewedByAdminId ?? this.reviewedByAdminId,
+      reviewedByAdminName: reviewedByAdminName ?? this.reviewedByAdminName,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
     );
   }
 
@@ -156,6 +186,14 @@ class ActionModel extends Equatable {
       'moderatedBy': moderatedBy,
       'moderatedAt': moderatedAt != null ? Timestamp.fromDate(moderatedAt!) : null,
       'moderationReason': moderationReason,
+      'validationType': validationType,
+      'independentReviewStatus': independentReviewStatus,
+      'independentSubmittedAt': independentSubmittedAt != null
+          ? Timestamp.fromDate(independentSubmittedAt!)
+          : null,
+      'reviewedByAdminId': reviewedByAdminId,
+      'reviewedByAdminName': reviewedByAdminName,
+      'rejectionReason': rejectionReason,
     };
   }
 
@@ -192,6 +230,13 @@ class ActionModel extends Equatable {
     DateTime? modDate;
     if (map['moderatedAt'] is Timestamp) {
       modDate = (map['moderatedAt'] as Timestamp).toDate();
+    }
+
+    DateTime? indSubmittedDate;
+    if (map['independentSubmittedAt'] is Timestamp) {
+      indSubmittedDate = (map['independentSubmittedAt'] as Timestamp).toDate();
+    } else if (map['independentSubmittedAt'] is String) {
+      indSubmittedDate = DateTime.tryParse(map['independentSubmittedAt']);
     }
 
     // Parse evidences array or synthesize fallback from legacy fields
@@ -241,6 +286,12 @@ class ActionModel extends Equatable {
       moderatedBy: map['moderatedBy'],
       moderatedAt: modDate,
       moderationReason: map['moderationReason'],
+      validationType: map['validationType'],
+      independentReviewStatus: map['independentReviewStatus'],
+      independentSubmittedAt: indSubmittedDate,
+      reviewedByAdminId: map['reviewedByAdminId'],
+      reviewedByAdminName: map['reviewedByAdminName'],
+      rejectionReason: map['rejectionReason'],
     );
   }
 
@@ -272,5 +323,11 @@ class ActionModel extends Equatable {
         moderatedBy,
         moderatedAt,
         moderationReason,
+        validationType,
+        independentReviewStatus,
+        independentSubmittedAt,
+        reviewedByAdminId,
+        reviewedByAdminName,
+        rejectionReason,
       ];
 }

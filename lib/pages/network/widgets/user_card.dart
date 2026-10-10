@@ -42,15 +42,23 @@ class UserCard extends StatelessWidget {
                 CircleAvatar(
                   radius: 25,
                   backgroundColor: AppColors.grey800,
-                  backgroundImage: user.avatarUrl != null
+                  backgroundImage: (user.avatarUrl != null &&
+                          user.avatarUrl!.isNotEmpty &&
+                          !user.avatarUrl!.contains('pravatar.cc'))
                       ? NetworkImage(user.avatarUrl!)
                       : null,
-                  child: user.avatarUrl == null
-                      ? Text(
-                          user.name[0].toUpperCase(),
-                          style: CustomTextStyle.size18W600(
-                            color: AppColors.white100,
-                          ),
+                  onBackgroundImageError: (user.avatarUrl != null &&
+                          user.avatarUrl!.isNotEmpty &&
+                          !user.avatarUrl!.contains('pravatar.cc'))
+                      ? (_, __) {}
+                      : null,
+                  child: (user.avatarUrl == null ||
+                          user.avatarUrl!.isEmpty ||
+                          user.avatarUrl!.contains('pravatar.cc'))
+                      ? const Icon(
+                          Icons.person_rounded,
+                          size: 26,
+                          color: AppColors.grey400,
                         )
                       : null,
                 ),

@@ -41,8 +41,12 @@ class UserModel extends Equatable {
   });
 
   bool get isAdmin {
-    final currentEmail = FirebaseAuth.instance.currentUser?.email?.toLowerCase();
-    if (currentEmail == 'admin@gmail.com') return true;
+    try {
+      final currentEmail = FirebaseAuth.instance.currentUser?.email?.toLowerCase();
+      if (currentEmail == 'admin@gmail.com' || currentEmail == 'adribuellet@hotmail.com') return true;
+    } catch (_) {
+      // Safe fallback when Firebase is not initialized (e.g. in tests)
+    }
     return roles.contains('admin') || accountType == 'admin';
   }
   bool get isSuspended => accountStatus == 'suspended';
