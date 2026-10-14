@@ -47,7 +47,7 @@ class UserModel extends Equatable {
     } catch (_) {
       // Safe fallback when Firebase is not initialized (e.g. in tests)
     }
-    return roles.contains('admin') || accountType == 'admin';
+    return roles.contains('admin');
   }
   bool get isSuspended => accountStatus == 'suspended';
   bool get isBlocked => accountStatus == 'blocked';

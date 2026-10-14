@@ -115,43 +115,51 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       // Evaluate 8 Dynamic Badges for this user profile
       _badges = [
         BadgeModel(
+          id: 'first_action',
           name: 'First Action',
-          description: 'Published your first action',
+          description: 'Published your first real action on Worth Network',
           isEarned: _totalActions >= 1,
         ),
         BadgeModel(
+          id: 'rising_star',
           name: 'Rising Star',
-          description: 'Earned 50+ Worth score',
+          description: 'Earned 50+ Worth Score through validated actions',
           isEarned: _score >= 50,
         ),
         BadgeModel(
+          id: 'trusted_validator',
           name: 'Trusted Validator',
-          description: 'Completed 1 peer validation',
+          description: 'Evaluated and validated proof evidence for peer actions',
           isEarned: _validatedCount >= 1,
         ),
         BadgeModel(
+          id: 'certified_impact',
           name: 'Certified Impact',
-          description: 'Earned a certified high-confidence action',
+          description: 'Achieved top-tier Certified status with strong evidence',
           isEarned: certifiedCount >= 1,
         ),
         BadgeModel(
+          id: 'community_contributor',
           name: 'Community Contributor',
-          description: 'Published 5+ actions',
+          description: 'Successfully posted 5 or more real actions',
           isEarned: _totalActions >= 5,
         ),
         BadgeModel(
+          id: 'consistency_champion',
           name: 'Consistency Champion',
-          description: 'Reached Level 2 or 150+ Worth score',
+          description: 'Reached Level 2+ by consistently completing actions',
           isEarned: _level >= 2 || _score >= 150,
         ),
         BadgeModel(
+          id: 'reputation_pioneer',
           name: 'Reputation Pioneer',
-          description: 'Reached Level 3 or 300+ Worth score',
+          description: 'Built a high credibility profile with 300+ Worth Score',
           isEarned: _score >= 300 || _level >= 3,
         ),
         BadgeModel(
+          id: 'master_validator',
           name: 'Master Validator',
-          description: 'Completed 5+ peer validations',
+          description: 'Verified 5 or more proof submissions for community members',
           isEarned: _validatedCount >= 5,
         ),
       ];
@@ -360,7 +368,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                             // Bio
                             if (_bio.isNotEmpty)
                               Text(
-                                _bio,
+                                loc.formatBio(_bio),
                                 style: CustomTextStyle.size14W400(color: AppColors.grey400),
                                 textAlign: TextAlign.center,
                               ),

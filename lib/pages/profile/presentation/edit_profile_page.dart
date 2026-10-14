@@ -48,22 +48,42 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     _nameController.text = prefs.name;
     _emailController.text = user?.email ?? prefs.email;
-    _usernameController.text = prefs.username.isNotEmpty ? '@${prefs.username}' : '@user';
+    _usernameController.text = prefs.username.isNotEmpty
+        ? '@${prefs.username}'
+        : '@user';
 
     if (user != null) {
       try {
-        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
         if (doc.exists) {
           final data = doc.data()!;
           _nameController.text = data['name'] ?? _nameController.text;
-          _bioController.text = data['bio'] ?? '';
+          final rawBio = data['bio'] as String?;
+          if (rawBio != null && AppLocalizations.isDefaultBio(rawBio)) {
+            if (mounted) {
+              final loc = AppLocalizations(context.read<LocaleCubit>().state);
+              _bioController.text = loc.translate('default_bio');
+            }
+          } else {
+            _bioController.text = rawBio ?? '';
+          }
           final uname = data['username'] ?? prefs.username;
           _usernameController.text = uname.isNotEmpty ? '@$uname' : '@user';
           _currentAvatarUrl = data['avatarUrl'];
-          if (_currentAvatarUrl != null && _currentAvatarUrl!.contains('pravatar.cc')) {
+          if (_currentAvatarUrl != null &&
+              _currentAvatarUrl!.contains('pravatar.cc')) {
             _currentAvatarUrl = null;
           }
-          _selectedAccountType = data['accountType'];
+          final rawAccountType = data['accountType'] as String?;
+          if (rawAccountType != null &&
+              rawAccountType.trim().toLowerCase() == 'admin') {
+            _selectedAccountType = null;
+          } else {
+            _selectedAccountType = rawAccountType;
+          }
           if (data['roles'] != null) {
             _selectedRoles.clear();
             _selectedRoles.addAll(List<String>.from(data['roles']));
@@ -84,7 +104,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _pickAvatar() async {
     final loc = AppLocalizations(context.read<LocaleCubit>().state);
     final picker = ImagePicker();
-    final hasExistingAvatar = _newAvatarFile != null ||
+    final hasExistingAvatar =
+        _newAvatarFile != null ||
         (_currentAvatarUrl != null &&
             _currentAvatarUrl!.isNotEmpty &&
             !_currentAvatarUrl!.contains('pravatar.cc'));
@@ -93,7 +114,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       context: context,
       backgroundColor: AppColors.grey900,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSize.radiusL)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSize.radiusL),
+        ),
       ),
       builder: (context) => SafeArea(
         child: Column(
@@ -101,18 +124,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt, color: AppColors.primary),
-              title: Text(loc.translate('take_photo'), style: CustomTextStyle.size15W500(color: AppColors.white100)),
+              title: Text(
+                loc.translate('take_photo'),
+                style: CustomTextStyle.size15W500(color: AppColors.white100),
+              ),
               onTap: () => Navigator.pop(context, 'camera'),
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library, color: AppColors.primary),
-              title: Text(loc.translate('choose_from_gallery'), style: CustomTextStyle.size15W500(color: AppColors.white100)),
+              leading: const Icon(
+                Icons.photo_library,
+                color: AppColors.primary,
+              ),
+              title: Text(
+                loc.translate('choose_from_gallery'),
+                style: CustomTextStyle.size15W500(color: AppColors.white100),
+              ),
               onTap: () => Navigator.pop(context, 'gallery'),
             ),
             if (hasExistingAvatar)
               ListTile(
-                leading: const Icon(Icons.delete_outline, color: AppColors.error),
-                title: Text(loc.translate('remove_photo'), style: CustomTextStyle.size15W500(color: AppColors.error)),
+                leading: const Icon(
+                  Icons.delete_outline,
+                  color: AppColors.error,
+                ),
+                title: Text(
+                  loc.translate('remove_photo'),
+                  style: CustomTextStyle.size15W500(color: AppColors.error),
+                ),
                 onTap: () => Navigator.pop(context, 'remove'),
               ),
           ],
@@ -129,7 +167,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
 
     if (action == 'camera' || action == 'gallery') {
-      final source = action == 'camera' ? ImageSource.camera : ImageSource.gallery;
+      final source = action == 'camera'
+          ? ImageSource.camera
+          : ImageSource.gallery;
       final picked = await picker.pickImage(
         source: source,
         imageQuality: 70, // Compressed image quality
@@ -178,14 +218,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       // Update user profile and sync past actions in Firestore
       if (user != null) {
         final repo = AuthRepository();
-        final shouldRemoveAvatar = _newAvatarFile == null &&
+        final shouldRemoveAvatar =
+            _newAvatarFile == null &&
             (_currentAvatarUrl == null || _currentAvatarUrl!.isEmpty);
+        final safeAccountType =
+            (_selectedAccountType != null &&
+                _selectedAccountType!.trim().isNotEmpty &&
+                _selectedAccountType!.trim().toLowerCase() != 'admin')
+            ? _selectedAccountType!.trim()
+            : null;
         await repo.updateProfile(
           uid: user.uid,
           username: newUsername,
           bio: newBio,
           name: newName,
-          accountType: _selectedAccountType,
+          accountType: safeAccountType,
           roles: _selectedRoles,
           profileImage: _newAvatarFile,
           removeAvatar: shouldRemoveAvatar,
@@ -210,10 +257,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (mounted) {
         final errorMsg = e.toString().replaceFirst('Exception: ', '');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMsg),
-            backgroundColor: AppColors.error,
-          ),
+          SnackBar(content: Text(errorMsg), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -260,17 +304,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
+                        ),
                       )
                     : Text(
                         loc.translate('save_btn'),
-                        style: CustomTextStyle.size15W600(color: AppColors.primary),
+                        style: CustomTextStyle.size15W600(
+                          color: AppColors.primary,
+                        ),
                       ),
               ),
             ],
           ),
           body: _isLoading
-              ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+              ? const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                )
               : SingleChildScrollView(
                   padding: const EdgeInsets.all(AppSize.paddingL),
                   child: Form(
@@ -287,7 +338,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 Container(
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: AppColors.primary, width: 2),
+                                    border: Border.all(
+                                      color: AppColors.primary,
+                                      width: 2,
+                                    ),
                                   ),
                                   child: CircleAvatar(
                                     radius: 50,
@@ -295,20 +349,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     backgroundImage: _newAvatarFile != null
                                         ? FileImage(_newAvatarFile!)
                                         : (_currentAvatarUrl != null &&
-                                                _currentAvatarUrl!.isNotEmpty &&
-                                                !_currentAvatarUrl!.contains('pravatar.cc')
-                                            ? NetworkImage(_currentAvatarUrl!)
-                                            : null) as ImageProvider?,
-                                    onBackgroundImageError: (_newAvatarFile == null &&
+                                                      _currentAvatarUrl!
+                                                          .isNotEmpty &&
+                                                      !_currentAvatarUrl!
+                                                          .contains(
+                                                            'pravatar.cc',
+                                                          )
+                                                  ? NetworkImage(
+                                                      _currentAvatarUrl!,
+                                                    )
+                                                  : null)
+                                              as ImageProvider?,
+                                    onBackgroundImageError:
+                                        (_newAvatarFile == null &&
                                             _currentAvatarUrl != null &&
                                             _currentAvatarUrl!.isNotEmpty &&
-                                            !_currentAvatarUrl!.contains('pravatar.cc'))
-                                        ? (_, __) {}
+                                            !_currentAvatarUrl!.contains(
+                                              'pravatar.cc',
+                                            ))
+                                        ? (error, stackTrace) {}
                                         : null,
-                                    child: _newAvatarFile == null &&
+                                    child:
+                                        _newAvatarFile == null &&
                                             (_currentAvatarUrl == null ||
                                                 _currentAvatarUrl!.isEmpty ||
-                                                _currentAvatarUrl!.contains('pravatar.cc'))
+                                                _currentAvatarUrl!.contains(
+                                                  'pravatar.cc',
+                                                ))
                                         ? const Icon(
                                             Icons.person_rounded,
                                             size: 54,
@@ -326,7 +393,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       color: AppColors.primary,
                                       shape: BoxShape.circle,
                                     ),
-                                    child: const Icon(Icons.camera_alt, size: 16, color: AppColors.black100),
+                                    child: const Icon(
+                                      Icons.camera_alt,
+                                      size: 16,
+                                      color: AppColors.black100,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -336,7 +407,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         const SizedBox(height: 8),
                         Text(
                           loc.translate('tap_to_change_avatar'),
-                          style: CustomTextStyle.size12W400(color: AppColors.grey500),
+                          style: CustomTextStyle.size12W400(
+                            color: AppColors.grey500,
+                          ),
                         ),
                         const SizedBox(height: AppSize.spacingXL),
 
@@ -346,8 +419,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           controller: _nameController,
                           enabled: true,
                           loc: loc,
-                          validator: (val) =>
-                              val == null || val.trim().isEmpty ? loc.translate('full_name_required') : null,
+                          validator: (val) => val == null || val.trim().isEmpty
+                              ? loc.translate('full_name_required')
+                              : null,
                         ),
                         const SizedBox(height: AppSize.spacingL),
 
@@ -371,60 +445,187 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               children: [
                                 Text(
                                   loc.translate('account_type_label'),
-                                  style: CustomTextStyle.size14W600(color: AppColors.white100),
+                                  style: CustomTextStyle.size14W600(
+                                    color: AppColors.white100,
+                                  ),
                                 ),
                                 Text(
                                   loc.translate('optional'),
-                                  style: CustomTextStyle.size11W400(color: AppColors.grey500),
+                                  style: CustomTextStyle.size11W400(
+                                    color: AppColors.grey500,
+                                  ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 8),
-                            DropdownButtonFormField<String>(
-                              initialValue: _selectedAccountType,
-                              dropdownColor: AppColors.grey900,
-                              style: CustomTextStyle.size14W400(color: AppColors.white100),
-                              decoration: InputDecoration(
-                                hintText: loc.translate('select_account_type_hint'),
-                                hintStyle: CustomTextStyle.size14W400(color: AppColors.grey600),
-                                filled: true,
-                                fillColor: AppColors.grey900,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(AppSize.radiusM),
-                                  borderSide: const BorderSide(color: AppColors.grey800),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(AppSize.radiusM),
-                                  borderSide: const BorderSide(color: AppColors.grey800),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(AppSize.radiusM),
-                                  borderSide: const BorderSide(color: AppColors.primary),
-                                ),
-                              ),
-                              items: [
-                                DropdownMenuItem<String>(
-                                  value: null,
-                                  child: Text(loc.translate('not_specified'), style: const TextStyle(color: AppColors.grey500)),
-                                ),
-                                ...ProfileConstants.accountTypes.map(
-                                  (type) => DropdownMenuItem<String>(
-                                    value: type.key,
-                                    child: Row(
-                                      children: [
-                                        Icon(type.icon, size: 18, color: AppColors.primary),
-                                        const SizedBox(width: 8),
-                                        Text(type.getLocalizedLabel(loc), style: const TextStyle(color: AppColors.white100)),
-                                      ],
+                            Builder(
+                              builder: (context) {
+                                final rawVal =
+                                    (_selectedAccountType != null &&
+                                        _selectedAccountType!
+                                            .trim()
+                                            .isNotEmpty &&
+                                        _selectedAccountType!
+                                                .trim()
+                                                .toLowerCase() !=
+                                            'admin')
+                                    ? _selectedAccountType!.trim()
+                                    : null;
+
+                                // Find matching predefined account type (by key or label, case-insensitive)
+                                String? effectiveVal = rawVal;
+                                if (rawVal != null) {
+                                  final matched = ProfileConstants.accountTypes
+                                      .cast<AccountTypeOption?>()
+                                      .firstWhere(
+                                        (t) =>
+                                            t != null &&
+                                            (t.key.toLowerCase() ==
+                                                    rawVal.toLowerCase() ||
+                                                t.label.toLowerCase() ==
+                                                    rawVal.toLowerCase()),
+                                        orElse: () => null,
+                                      );
+                                  if (matched != null) {
+                                    effectiveVal = matched.key;
+                                  }
+                                }
+
+                                final itemsList = <DropdownMenuItem<String>>[
+                                  DropdownMenuItem<String>(
+                                    value: null,
+                                    child: Text(
+                                      loc.translate('not_specified'),
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: AppColors.grey500,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
-                              onChanged: (val) {
-                                setState(() {
-                                  _selectedAccountType = val;
-                                });
+                                  ...ProfileConstants.accountTypes.map(
+                                    (type) => DropdownMenuItem<String>(
+                                      value: type.key,
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            type.icon,
+                                            size: 18,
+                                            color: AppColors.primary,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              type.getLocalizedLabel(loc),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                              style: const TextStyle(
+                                                color: AppColors.white100,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ];
+
+                                // If effectiveVal is a custom value not in predefined items, add it (never allow admin)
+                                if (effectiveVal != null &&
+                                    effectiveVal.toLowerCase() != 'admin' &&
+                                    !itemsList.any(
+                                      (i) => i.value == effectiveVal,
+                                    )) {
+                                  itemsList.add(
+                                    DropdownMenuItem<String>(
+                                      value: effectiveVal,
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.person_outline,
+                                            size: 18,
+                                            color: AppColors.primary,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              effectiveVal,
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                              style: const TextStyle(
+                                                color: AppColors.white100,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }
+
+                                // Guarantee exactly 1 match in itemsList, else safely fallback to null
+                                if (effectiveVal != null &&
+                                    itemsList
+                                            .where(
+                                              (i) => i.value == effectiveVal,
+                                            )
+                                            .length !=
+                                        1) {
+                                  effectiveVal = null;
+                                }
+
+                                return DropdownButtonFormField<String>(
+                                  key: ValueKey(effectiveVal),
+                                  initialValue: effectiveVal,
+                                  isExpanded: true,
+                                  dropdownColor: AppColors.grey900,
+                                  style: CustomTextStyle.size14W400(
+                                    color: AppColors.white100,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: loc.translate(
+                                      'select_account_type_hint',
+                                    ),
+                                    hintStyle: CustomTextStyle.size14W400(
+                                      color: AppColors.grey600,
+                                    ),
+                                    filled: true,
+                                    fillColor: AppColors.grey900,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 14,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        AppSize.radiusM,
+                                      ),
+                                      borderSide: const BorderSide(
+                                        color: AppColors.grey800,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        AppSize.radiusM,
+                                      ),
+                                      borderSide: const BorderSide(
+                                        color: AppColors.grey800,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        AppSize.radiusM,
+                                      ),
+                                      borderSide: const BorderSide(
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                  items: itemsList,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      _selectedAccountType = val;
+                                    });
+                                  },
+                                );
                               },
                             ),
                           ],
@@ -440,11 +641,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               children: [
                                 Text(
                                   loc.translate('roles_domains_label'),
-                                  style: CustomTextStyle.size14W600(color: AppColors.white100),
+                                  style: CustomTextStyle.size14W600(
+                                    color: AppColors.white100,
+                                  ),
                                 ),
                                 Text(
                                   loc.translate('optional_multi_select'),
-                                  style: CustomTextStyle.size11W400(color: AppColors.grey500),
+                                  style: CustomTextStyle.size11W400(
+                                    color: AppColors.grey500,
+                                  ),
                                 ),
                               ],
                             ),
@@ -453,7 +658,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               spacing: 8,
                               runSpacing: 8,
                               children: ProfileConstants.roles.map((role) {
-                                final isSelected = _selectedRoles.contains(role.key);
+                                final isSelected = _selectedRoles.contains(
+                                  role.key,
+                                );
                                 return FilterChip(
                                   label: Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -461,7 +668,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       Icon(
                                         role.icon,
                                         size: 14,
-                                        color: isSelected ? AppColors.black100 : AppColors.primary,
+                                        color: isSelected
+                                            ? AppColors.black100
+                                            : AppColors.primary,
                                       ),
                                       const SizedBox(width: 6),
                                       Text(role.getLocalizedLabel(loc)),
@@ -472,10 +681,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   backgroundColor: AppColors.grey900,
                                   checkmarkColor: AppColors.black100,
                                   labelStyle: CustomTextStyle.size12W500(
-                                    color: isSelected ? AppColors.black100 : AppColors.white100,
+                                    color: isSelected
+                                        ? AppColors.black100
+                                        : AppColors.white100,
                                   ),
                                   side: BorderSide(
-                                    color: isSelected ? AppColors.primary : AppColors.grey800,
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : AppColors.grey800,
                                   ),
                                   onSelected: (selected) {
                                     setState(() {
@@ -546,7 +759,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             if (lockIcon)
               Row(
                 children: [
-                  const Icon(Icons.lock_outline, size: 14, color: AppColors.grey500),
+                  const Icon(
+                    Icons.lock_outline,
+                    size: 14,
+                    color: AppColors.grey500,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     loc.translate('read_only'),
@@ -569,8 +786,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             hintText: hint,
             hintStyle: CustomTextStyle.size14W400(color: AppColors.grey600),
             filled: true,
-            fillColor: enabled ? AppColors.grey900 : AppColors.grey900.withValues(alpha: 0.5),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            fillColor: enabled
+                ? AppColors.grey900
+                : AppColors.grey900.withValues(alpha: 0.5),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSize.radiusM),
               borderSide: const BorderSide(color: AppColors.grey800),
@@ -581,7 +803,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSize.radiusM),
-              borderSide: BorderSide(color: AppColors.grey800.withValues(alpha: 0.5)),
+              borderSide: BorderSide(
+                color: AppColors.grey800.withValues(alpha: 0.5),
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSize.radiusM),

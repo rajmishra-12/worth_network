@@ -176,98 +176,125 @@ class _AddActionScreenState extends State<AddActionScreen> {
                       // Validation Method Selection
                       _buildLabel(loc.translate('validation_method_label')),
                       const SizedBox(height: AppSize.spacingS),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                _cubit.setValidationType('person');
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                                decoration: BoxDecoration(
-                                  color: state.validationType == 'person'
-                                      ? AppColors.primary.withValues(alpha: 0.15)
-                                      : AppColors.grey900,
-                                  borderRadius: BorderRadius.circular(AppSize.radiusM),
-                                  border: Border.all(
+                      IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  _personController.clear();
+                                  _cubit.setValidationType('person');
+                                  _cubit.toggleIndependentValidation(false);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                                  decoration: BoxDecoration(
                                     color: state.validationType == 'person'
-                                        ? AppColors.primary
-                                        : AppColors.grey800,
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Icon(
-                                      Icons.people_alt_outlined,
-                                      size: 20,
+                                        ? AppColors.primary.withValues(alpha: 0.15)
+                                        : AppColors.grey900,
+                                    borderRadius: BorderRadius.circular(AppSize.radiusM),
+                                    border: Border.all(
                                       color: state.validationType == 'person'
                                           ? AppColors.primary
-                                          : AppColors.grey500,
+                                          : AppColors.grey800,
+                                      width: 1.5,
                                     ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      loc.translate('validation_type_person'),
-                                      textAlign: TextAlign.center,
-                                      style: CustomTextStyle.size12W600(
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.people_alt_outlined,
+                                        size: 22,
                                         color: state.validationType == 'person'
-                                            ? AppColors.white100
-                                            : AppColors.grey400,
+                                            ? AppColors.primary
+                                            : AppColors.grey500,
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: AppSize.spacingM),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                _personController.clear();
-                                _cubit.setValidationType('independent');
-                                _cubit.toggleIndependentValidation(true);
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                                decoration: BoxDecoration(
-                                  color: state.validationType == 'independent'
-                                      ? AppColors.primary.withValues(alpha: 0.15)
-                                      : AppColors.grey900,
-                                  borderRadius: BorderRadius.circular(AppSize.radiusM),
-                                  border: Border.all(
-                                    color: state.validationType == 'independent'
-                                        ? AppColors.primary
-                                        : AppColors.grey800,
-                                    width: 1.5,
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        loc.translate('validation_type_person_title'),
+                                        textAlign: TextAlign.center,
+                                        style: CustomTextStyle.size13W600(
+                                          color: state.validationType == 'person'
+                                              ? AppColors.white100
+                                              : AppColors.grey300,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        loc.translate('validation_type_person'),
+                                        textAlign: TextAlign.center,
+                                        style: CustomTextStyle.size11W400(
+                                          color: state.validationType == 'person'
+                                              ? AppColors.primary
+                                              : AppColors.grey500,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                child: Column(
-                                  children: [
-                                    Icon(
-                                      Icons.verified_outlined,
-                                      size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: AppSize.spacingM),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  _personController.clear();
+                                  _cubit.setValidationType('independent');
+                                  _cubit.toggleIndependentValidation(true);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    color: state.validationType == 'independent'
+                                        ? AppColors.primary.withValues(alpha: 0.15)
+                                        : AppColors.grey900,
+                                    borderRadius: BorderRadius.circular(AppSize.radiusM),
+                                    border: Border.all(
                                       color: state.validationType == 'independent'
                                           ? AppColors.primary
-                                          : AppColors.grey500,
+                                          : AppColors.grey800,
+                                      width: 1.5,
                                     ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      loc.translate('validation_type_independent'),
-                                      textAlign: TextAlign.center,
-                                      style: CustomTextStyle.size12W600(
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.verified_outlined,
+                                        size: 22,
                                         color: state.validationType == 'independent'
-                                            ? AppColors.white100
-                                            : AppColors.grey400,
+                                            ? AppColors.primary
+                                            : AppColors.grey500,
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        loc.translate('validation_type_independent_title'),
+                                        textAlign: TextAlign.center,
+                                        style: CustomTextStyle.size13W600(
+                                          color: state.validationType == 'independent'
+                                              ? AppColors.white100
+                                              : AppColors.grey300,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        loc.translate('validation_type_independent'),
+                                        textAlign: TextAlign.center,
+                                        style: CustomTextStyle.size11W400(
+                                          color: state.validationType == 'independent'
+                                              ? AppColors.primary
+                                              : AppColors.grey500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       const SizedBox(height: AppSize.spacingM),
 

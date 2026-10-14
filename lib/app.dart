@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
 import 'package:worth_network/core/bloc_observer/root_bloc_injector.dart';
 import 'package:worth_network/core/navigator/app_pages.dart';
 import 'package:worth_network/core/theme/app_size.dart';
@@ -39,16 +42,27 @@ class _AppState extends State<App> {
             return OrientationBuilder(
               builder: (BuildContext context, Orientation orientation) {
                 AppScreenUtil().init(constraints, orientation);
-                return
-                 RootBlocInjection(
-                  child:
-                   MaterialApp.router(
-                    title: 'Title',
-                    theme: AppTheme.lightTheme,
-                    darkTheme: AppTheme.lightTheme,
-                    debugShowCheckedModeBanner: false,
-                    routerConfig: Pages.appRouter,
-                    locale: const Locale("en"),
+                return RootBlocInjection(
+                  child: BlocBuilder<LocaleCubit, String>(
+                    builder: (context, localeCode) {
+                      return MaterialApp.router(
+                        title: 'Worth Network',
+                        theme: AppTheme.lightTheme,
+                        darkTheme: AppTheme.lightTheme,
+                        debugShowCheckedModeBanner: false,
+                        routerConfig: Pages.appRouter,
+                        locale: Locale(localeCode),
+                        supportedLocales: const [
+                          Locale('en'),
+                          Locale('fr'),
+                        ],
+                        localizationsDelegates: const [
+                          GlobalMaterialLocalizations.delegate,
+                          GlobalWidgetsLocalizations.delegate,
+                          GlobalCupertinoLocalizations.delegate,
+                        ],
+                      );
+                    },
                   ),
                 );
               },

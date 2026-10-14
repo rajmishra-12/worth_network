@@ -477,7 +477,7 @@ class _AdminIndependentValidationsPageState
     final isRejected = reviewStatus == 'rejected';
 
     final submittedDate = action.independentSubmittedAt ?? action.createdAt;
-    final dateStr = DateFormat.yMMMd().add_jm().format(submittedDate);
+    final dateStr = DateFormat.yMMMd(loc.localeCode).add_jm().format(submittedDate);
 
     Color statusColor = AppColors.warning;
     String statusText = loc.translate('pending_review');
@@ -579,7 +579,7 @@ class _AdminIndependentValidationsPageState
                         borderRadius: BorderRadius.circular(AppSize.radiusS),
                       ),
                       child: Text(
-                        action.category,
+                        loc.translateCategory(action.category),
                         style: CustomTextStyle.size12W600(color: AppColors.primary),
                       ),
                     ),

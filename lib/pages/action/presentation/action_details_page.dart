@@ -37,9 +37,13 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
       _commentController.clear();
       FocusScope.of(context).unfocus();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add comment: $e')),
-      );
+      if (mounted) {
+        final localeCode = context.read<LocaleCubit>().state;
+        final loc = AppLocalizations(localeCode);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${loc.translate('failed_to_add_comment')}$e')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isSubmittingComment = false);
     }
@@ -220,7 +224,7 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  DateFormat('MMMM dd, yyyy').format(action.createdAt),
+                                  DateFormat.yMMMMd(localeCode).format(action.createdAt),
                                   style: CustomTextStyle.size12W400(color: AppColors.grey500),
                                 ),
                               ],
@@ -310,7 +314,7 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                           borderRadius: BorderRadius.circular(AppSize.radiusM),
                         ),
                         child: Text(
-                          action.category,
+                          loc.translateCategory(action.category),
                           style: CustomTextStyle.size13W500(color: AppColors.primary),
                         ),
                       ),
@@ -600,7 +604,7 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                                                 style: CustomTextStyle.size13W600(color: AppColors.white100),
                                               ),
                                               Text(
-                                                DateFormat('MMM dd, HH:mm').format(c.createdAt),
+                                                DateFormat.MMMd(localeCode).add_Hm().format(c.createdAt),
                                                 style: CustomTextStyle.size11W400(color: AppColors.grey500),
                                               ),
                                             ],

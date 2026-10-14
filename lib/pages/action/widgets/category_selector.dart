@@ -39,8 +39,7 @@ class CategorySelector extends StatelessWidget {
           runSpacing: AppSize.spacingS,
           children: categories.map((category) {
             final isSelected = selectedCategory == category;
-            final localized = loc.translate('category_${category.toLowerCase()}');
-            final displayCategory = localized.startsWith('category_') ? category : localized;
+            final displayCategory = loc.translateCategory(category);
 
             return GestureDetector(
               onTap: () => onCategorySelected(category),
@@ -84,49 +83,54 @@ class DatePickerField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: selectedDate,
-          firstDate: DateTime(2020),
-          lastDate: DateTime.now(),
-          builder: (context, child) {
-            return Theme(
-              data: Theme.of(context).copyWith(
-                colorScheme: const ColorScheme.dark(
-                  primary: AppColors.primary,
-                  onPrimary: AppColors.black100,
-                  surface: AppColors.grey900,
-                  onSurface: AppColors.white100,
-                ),
-              ),
-              child: child!,
+    return BlocBuilder<LocaleCubit, String>(
+      builder: (context, localeCode) {
+        return GestureDetector(
+          onTap: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: selectedDate,
+              firstDate: DateTime(2020),
+              lastDate: DateTime.now(),
+              locale: Locale(localeCode),
+              builder: (context, child) {
+                return Theme(
+                  data: Theme.of(context).copyWith(
+                    colorScheme: const ColorScheme.dark(
+                      primary: AppColors.primary,
+                      onPrimary: AppColors.black100,
+                      surface: AppColors.grey900,
+                      onSurface: AppColors.white100,
+                    ),
+                  ),
+                  child: child!,
+                );
+              },
             );
+            if (picked != null && picked != selectedDate) {
+              onDateSelected(picked);
+            }
           },
-        );
-        if (picked != null && picked != selectedDate) {
-          onDateSelected(picked);
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.all(AppSize.paddingM),
-        decoration: BoxDecoration(
-          color: AppColors.grey900,
-          borderRadius: BorderRadius.circular(AppSize.radiusM),
-          border: Border.all(color: AppColors.grey800),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              DateFormat('MMMM dd, yyyy').format(selectedDate),
-              style: CustomTextStyle.size15W400(color: AppColors.white100),
+          child: Container(
+            padding: const EdgeInsets.all(AppSize.paddingM),
+            decoration: BoxDecoration(
+              color: AppColors.grey900,
+              borderRadius: BorderRadius.circular(AppSize.radiusM),
+              border: Border.all(color: AppColors.grey800),
             ),
-            Icon(Icons.calendar_today, color: AppColors.primary, size: 20),
-          ],
-        ),
-      ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  DateFormat.yMMMMd(localeCode).format(selectedDate),
+                  style: CustomTextStyle.size15W400(color: AppColors.white100),
+                ),
+                const Icon(Icons.calendar_today, color: AppColors.primary, size: 20),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

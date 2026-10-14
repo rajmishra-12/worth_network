@@ -522,7 +522,7 @@ class _AudioProofPlayerState extends State<_AudioProofPlayer> {
               ),
               const SizedBox(width: AppSize.spacingM),
               Text(
-                'Loading audio...',
+                widget.loc.translate('loading_audio'),
                 style: CustomTextStyle.size13W500(color: AppColors.grey400),
               ),
             ],
@@ -757,7 +757,7 @@ class _LinkProofViewer extends StatelessWidget {
                           onPressed: () => _launchUrl(targetUrl),
                           icon: const Icon(Icons.open_in_new, size: 12),
                           label: Text(
-                            'Open Link',
+                            loc.translate('open_link_btn'),
                             style: CustomTextStyle.size11W600(color: AppColors.black100),
                           ),
                           style: ElevatedButton.styleFrom(

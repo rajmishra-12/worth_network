@@ -150,7 +150,7 @@ class _ValidationRequestScreenState extends State<ValidationRequestScreen> {
                                   style: CustomTextStyle.size14W600(color: AppColors.white100),
                                 ),
                                 Text(
-                                  DateFormat('MMM dd, yyyy').format(action.createdAt),
+                                  DateFormat.yMMMd(localeCode).format(action.createdAt),
                                   style: CustomTextStyle.size12W400(color: AppColors.grey400),
                                 ),
                               ],
@@ -163,7 +163,7 @@ class _ValidationRequestScreenState extends State<ValidationRequestScreen> {
                               borderRadius: BorderRadius.circular(AppSize.radiusS),
                             ),
                             child: Text(
-                              action.category,
+                              loc.translateCategory(action.category),
                               style: CustomTextStyle.size12W500(color: AppColors.primary),
                             ),
                           ),

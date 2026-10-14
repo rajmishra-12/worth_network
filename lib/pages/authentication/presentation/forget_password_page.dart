@@ -3,9 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worth_network/components/common/common_button.dart';
 import 'package:worth_network/components/common/custom_textfield.dart';
+import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
+import 'package:worth_network/core/utils/app_localizations.dart';
 import 'package:worth_network/pages/authentication/cubit/auth_cubit.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
@@ -26,103 +28,111 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.white100),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          'Reset Password',
-          style: CustomTextStyle.size18W600(color: AppColors.white100),
-        ),
-      ),
-      body: SafeArea(
-        child: BlocListener<AuthCubit, AuthState>(
-          listenWhen: (previous, current) =>
-              previous.isResetSuccess != current.isResetSuccess ||
-              previous.resetError != current.resetError,
-          listener: (context, state) {
-            if (state.isResetSuccess) {
-              ScaffoldMessenger.of(context)
-                ..hideCurrentSnackBar()
-                ..showSnackBar(
-                  const SnackBar(
-                    content: Text('📩 Reset email sent! Please check your inbox.'),
-                    backgroundColor: AppColors.success,
-                  ),
-                );
-              context.pop();
-            } else if (state.resetError != null && state.resetError!.isNotEmpty) {
-              ScaffoldMessenger.of(context)
-                ..hideCurrentSnackBar()
-                ..showSnackBar(
-                  SnackBar(
-                    content: Text(state.resetError!),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-            }
-          },
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSize.paddingL,
-              vertical: AppSize.paddingXL,
+    return BlocBuilder<LocaleCubit, String>(
+      builder: (context, localeCode) {
+        final loc = AppLocalizations(localeCode);
+
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            backgroundColor: AppColors.background,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: AppColors.white100),
+              onPressed: () => context.pop(),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Recover Account',
-                  style: CustomTextStyle.size22W500(color: AppColors.white100),
-                ),
-                const SizedBox(height: AppSize.spacingS),
-                Text(
-                  'Enter your email address and we will send you a link to reset your password.',
-                  style: CustomTextStyle.size14W400(color: AppColors.grey400),
-                ),
-                const SizedBox(height: 40),
-
-                // Email Field
-                Text(
-                  'Email Address',
-                  style: CustomTextStyle.size14W500(color: AppColors.white100),
-                ),
-                const SizedBox(height: AppSize.spacingS),
-                CustomTextField(
-                  controller: _emailController,
-                  hintText: 'Enter your registered email',
-                  useLabelText: false,
-                  borderColor: AppColors.grey800,
-                  backgroundColor: AppColors.grey900,
-                  textStyle: CustomTextStyle.size15W400(color: AppColors.white100),
-                  hintTextStyle: CustomTextStyle.size14W400(color: AppColors.grey500),
-                  keyboardType: TextInputType.emailAddress,
-                  prefixIcon: const Icon(Icons.email_outlined, color: AppColors.primary),
-                ),
-                const SizedBox(height: 40),
-
-                // Submit Button
-                BlocBuilder<AuthCubit, AuthState>(
-                  builder: (context, state) {
-                    return CustomButton(
-                      text: state.isLoading ? 'Sending Link...' : 'Send Reset Link',
-                      isLoading: state.isLoading,
-                      textStyle: CustomTextStyle.size16W600(color: AppColors.black100),
-                      onTap: () {
-                        context.read<AuthCubit>().resetPassword(_emailController.text);
-                      },
-                    );
-                  },
-                ),
-              ],
+            title: Text(
+              loc.translate('reset_password_title'),
+              style: CustomTextStyle.size18W600(color: AppColors.white100),
             ),
           ),
-        ),
-      ),
+          body: SafeArea(
+            child: BlocListener<AuthCubit, AuthState>(
+              listenWhen: (previous, current) =>
+                  previous.isResetSuccess != current.isResetSuccess ||
+                  previous.resetError != current.resetError,
+              listener: (context, state) {
+                if (state.isResetSuccess) {
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(
+                      SnackBar(
+                        content: Text(loc.translate('reset_email_sent_success')),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                  context.pop();
+                } else if (state.resetError != null && state.resetError!.isNotEmpty) {
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(
+                      SnackBar(
+                        content: Text(state.resetError!),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
+                }
+              },
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSize.paddingL,
+                  vertical: AppSize.paddingXL,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      loc.translate('recover_account_title'),
+                      style: CustomTextStyle.size22W500(color: AppColors.white100),
+                    ),
+                    const SizedBox(height: AppSize.spacingS),
+                    Text(
+                      loc.translate('recover_account_desc'),
+                      style: CustomTextStyle.size14W400(color: AppColors.grey400),
+                    ),
+                    const SizedBox(height: 40),
+
+                    // Email Field
+                    Text(
+                      loc.translate('email_title'),
+                      style: CustomTextStyle.size14W500(color: AppColors.white100),
+                    ),
+                    const SizedBox(height: AppSize.spacingS),
+                    CustomTextField(
+                      controller: _emailController,
+                      hintText: loc.translate('enter_registered_email_hint'),
+                      useLabelText: false,
+                      borderColor: AppColors.grey800,
+                      backgroundColor: AppColors.grey900,
+                      textStyle: CustomTextStyle.size15W400(color: AppColors.white100),
+                      hintTextStyle: CustomTextStyle.size14W400(color: AppColors.grey500),
+                      keyboardType: TextInputType.emailAddress,
+                      prefixIcon: const Icon(Icons.email_outlined, color: AppColors.primary),
+                    ),
+                    const SizedBox(height: 40),
+
+                    // Submit Button
+                    BlocBuilder<AuthCubit, AuthState>(
+                      builder: (context, state) {
+                        return CustomButton(
+                          text: state.isLoading
+                              ? loc.translate('sending_link_btn')
+                              : loc.translate('send_reset_link_btn'),
+                          isLoading: state.isLoading,
+                          textStyle: CustomTextStyle.size16W600(color: AppColors.black100),
+                          onTap: () {
+                            context.read<AuthCubit>().resetPassword(_emailController.text);
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -47,8 +47,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             children: [
               _buildDetailRow(loc.translate('reported_by'), '@${report.reporterName ?? report.reporterId}'),
               _buildDetailRow(loc.translate('reported_user'), '@${report.reportedUserName ?? report.reportedUserId}'),
-              _buildDetailRow(loc.translate('content_type_label'), report.contentType.toUpperCase()),
-              _buildDetailRow(loc.translate('reason_label'), report.reason),
+              _buildDetailRow(loc.translate('content_type_label'), loc.translateContentType(report.contentType)),
+              _buildDetailRow(loc.translate('reason_label'), loc.translateReason(report.reason)),
               if (report.contentPreview != null) ...[
                 const SizedBox(height: 8),
                 Text(loc.translate('content_preview_label'), style: CustomTextStyle.size12W600(color: AppColors.grey400)),
@@ -429,7 +429,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                   ),
                                 ),
                                 title: Text(
-                                  '${report.contentType.toUpperCase()}: ${report.reason}',
+                                  '${loc.translateContentType(report.contentType)}: ${loc.translateReason(report.reason)}',
                                   style: CustomTextStyle.size14W600(color: AppColors.white100),
                                 ),
                                 subtitle: Text(

@@ -18,81 +18,82 @@ class ActionCardSmall extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSize.paddingM),
-      decoration: BoxDecoration(
-        color: AppColors.grey900,
-        borderRadius: BorderRadius.circular(AppSize.radiusM),
-        border: Border.all(color: AppColors.grey800),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
-              borderRadius: BorderRadius.circular(AppSize.radiusM),
-            ),
-            child: const Icon(
-              Icons.check_circle_outline,
-              color: AppColors.black100,
-              size: 30,
-            ),
+    return BlocBuilder<LocaleCubit, String>(
+      builder: (context, localeCode) {
+        final loc = AppLocalizations(localeCode);
+        final String pointsText;
+        final Color pointsColor;
+        if (action.isValidated) {
+          pointsText = '+${action.score} pts';
+          pointsColor = AppColors.primary;
+        } else if (action.validationStatus == ValidationStatus.rejected) {
+          pointsText = '0 pts';
+          pointsColor = AppColors.error;
+        } else {
+          pointsText = '+${action.score} pts';
+          pointsColor = AppColors.warning;
+        }
+
+        return Container(
+          padding: const EdgeInsets.all(AppSize.paddingM),
+          decoration: BoxDecoration(
+            color: AppColors.grey900,
+            borderRadius: BorderRadius.circular(AppSize.radiusM),
+            border: Border.all(color: AppColors.grey800),
           ),
-          const SizedBox(width: AppSize.spacingM),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  action.title,
-                  style: CustomTextStyle.size14W600(color: AppColors.white100),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+          child: Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(AppSize.radiusM),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  action.category,
-                  style: CustomTextStyle.size11W400(color: AppColors.grey400),
+                child: const Icon(
+                  Icons.check_circle_outline,
+                  color: AppColors.black100,
+                  size: 30,
                 ),
-                const SizedBox(height: 4),
-                Row(
+              ),
+              const SizedBox(width: AppSize.spacingM),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ValidationBadge(status: action.validationStatus),
-                    const SizedBox(width: AppSize.spacingS),
-                    BlocBuilder<LocaleCubit, String>(
-                      builder: (context, localeCode) {
-                        final loc = AppLocalizations(localeCode);
-                        final String pointsText;
-                        final Color pointsColor;
-                        if (action.isValidated) {
-                          pointsText = '+${action.score} pts';
-                          pointsColor = AppColors.primary;
-                        } else if (action.validationStatus == ValidationStatus.rejected) {
-                          pointsText = '0 pts';
-                          pointsColor = AppColors.error;
-                        } else {
-                          pointsText = '+${action.score} pts';
-                          pointsColor = AppColors.warning;
-                        }
-                        return Text(
+                    Text(
+                      action.title,
+                      style: CustomTextStyle.size14W600(color: AppColors.white100),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      loc.translateCategory(action.category),
+                      style: CustomTextStyle.size11W400(color: AppColors.grey400),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        ValidationBadge(status: action.validationStatus),
+                        const SizedBox(width: AppSize.spacingS),
+                        Text(
                           pointsText,
                           style: CustomTextStyle.size11W500(color: pointsColor),
-                        );
-                      },
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: AppColors.grey500,
+              ),
+            ],
           ),
-          Icon(
-            Icons.chevron_right,
-            color: AppColors.grey500,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -107,9 +108,13 @@ class HistoryCard extends StatelessWidget {
     return BlocBuilder<LocaleCubit, String>(
       builder: (context, localeCode) {
         final loc = AppLocalizations(localeCode);
-        final statusKey = 'status_${history.status.toLowerCase()}';
+        final statusKey = 'status_${history.status.toLowerCase().replaceAll(' ', '_')}';
         final translatedStatus = loc.translate(statusKey);
         final displayStatus = translatedStatus.startsWith('status_') ? history.status : translatedStatus;
+
+        final displayTitle = (history.title == 'Joined Worth Network')
+            ? loc.translate('joined_worth_title')
+            : history.title;
 
         return Container(
           padding: const EdgeInsets.all(AppSize.paddingM),
@@ -139,14 +144,14 @@ class HistoryCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      history.title,
+                      displayTitle,
                       style: CustomTextStyle.size14W600(color: AppColors.white100),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      DateFormat('MMM dd, yyyy').format(history.date),
+                      DateFormat.yMMMd(localeCode).format(history.date),
                       style: CustomTextStyle.size11W400(color: AppColors.grey500),
                     ),
                   ],

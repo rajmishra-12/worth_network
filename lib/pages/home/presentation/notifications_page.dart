@@ -42,9 +42,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   await _actionRepo.markAllNotificationsAsRead();
                 },
                 icon: const Icon(Icons.done_all, size: 16, color: AppColors.primary),
-                label: const Text(
-                  'Mark all read',
-                  style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600),
+                label: Text(
+                  loc.translate('mark_all_read'),
+                  style: const TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ),
               const SizedBox(width: 8),
@@ -117,10 +117,60 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget _buildNotificationCard(Map<String, dynamic> item, AppLocalizations loc) {
     final String id = item['id'] as String? ?? '';
     final type = item['type'] as String;
-    final title = item['title'] as String;
-    final description = item['description'] as String;
-    final time = item['time'] as String;
+    String title = item['title'] as String? ?? '';
+    String description = item['description'] as String? ?? '';
+    String time = item['time'] as String? ?? '';
     final bool isRead = item['isRead'] ?? false;
+    final createdAt = item['createdAt'];
+
+    if (type == 'level_up') {
+      title = loc.translate('notif_level_up_title');
+      final match = RegExp(r'\d+').firstMatch(description);
+      final level = match?.group(0) ?? (id.startsWith('level_up_') ? id.replaceFirst('level_up_', '') : '2');
+      description = loc.translateFormatted('notif_level_up_desc', {'level': level});
+      time = '${loc.translate('level_prefix')} $level';
+    } else if (type == 'badge_unlocked') {
+      title = loc.translate('notif_badge_unlocked_title');
+      final match = RegExp(r'["«]([^"»]+)["»]').firstMatch(description);
+      final badgeRaw = match?.group(1) ?? '';
+      final translatedBadge = loc.translateBadgeName(badgeRaw);
+      description = loc.translateFormatted('notif_badge_unlocked_desc', {'badge': translatedBadge});
+      time = loc.translate('notif_time_unlocked');
+    } else if (type == 'validation_requested' || type == 'validation_request') {
+      title = loc.translate('notif_val_requested_title');
+      if (createdAt is DateTime) {
+        time = loc.formatTimeAgo(createdAt);
+      }
+    } else if (type == 'independent_validation_request') {
+      title = loc.translate('notif_independent_request_title');
+      description = loc.translate('notif_independent_request_desc');
+      if (createdAt is DateTime) {
+        time = loc.formatTimeAgo(createdAt);
+      }
+    } else if (type == 'independent_action_submitted') {
+      title = loc.translate('notif_independent_submitted_title');
+      if (createdAt is DateTime) {
+        time = loc.formatTimeAgo(createdAt);
+      }
+    } else if (type == 'approved') {
+      if (title.contains('Certified')) {
+        title = loc.translate('notif_action_certified_title');
+      } else {
+        title = loc.translate('notif_action_confirmed_title');
+      }
+      if (createdAt is DateTime) {
+        time = loc.formatTimeAgo(createdAt);
+      }
+    } else if (type == 'rejected') {
+      title = loc.translate('notif_val_rejected_title');
+      if (createdAt is DateTime) {
+        time = loc.formatTimeAgo(createdAt);
+      }
+    } else {
+      if (createdAt is DateTime) {
+        time = loc.formatTimeAgo(createdAt);
+      }
+    }
 
     IconData icon;
     Color iconColor;
@@ -175,6 +225,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         if (!isRead && id.isNotEmpty) {
           await _actionRepo.toggleNotificationReadStatus(id, false);
         }
+        if (!mounted) return;
         if (type == 'independent_validation_request') {
           context.push('/admin/independent-validations');
         } else if (action != null) {
@@ -282,6 +333,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           if (!isRead && id.isNotEmpty) {
                             await _actionRepo.toggleNotificationReadStatus(id, false);
                           }
+                          if (!mounted) return;
                           context.push('/validation-request', extra: action);
                         },
                         style: ElevatedButton.styleFrom(

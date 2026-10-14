@@ -278,13 +278,12 @@ class ModerationRepository {
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
       if (userDoc.exists) {
         final data = userDoc.data()!;
-        final accountType = data['accountType'] as String?;
         final roles =
             (data['roles'] as List<dynamic>?)
-                ?.map((e) => e.toString())
+                ?.map((e) => e.toString().toLowerCase().trim())
                 .toList() ??
             [];
-        if (accountType == 'admin' || roles.contains('admin')) {
+        if (roles.contains('admin')) {
           return true;
         }
       }
@@ -303,7 +302,6 @@ class ModerationRepository {
       for (var doc in snap.docs) {
         final data = doc.data();
         final email = (data['email'] as String? ?? '').toLowerCase().trim();
-        final accountType = (data['accountType'] as String? ?? '').toLowerCase().trim();
         final roles = (data['roles'] as List<dynamic>?)
                 ?.map((e) => e.toString().toLowerCase().trim())
                 .toList() ??
@@ -311,7 +309,6 @@ class ModerationRepository {
 
         if (email == 'admin@gmail.com' ||
             email == 'adribuellet@hotmail.com' ||
-            accountType == 'admin' ||
             roles.contains('admin')) {
           adminUids.add(doc.id);
         }

@@ -104,12 +104,17 @@ class ProfileHeader extends StatelessWidget {
           // Bio
           if (profile.bio != null && profile.bio!.isNotEmpty) ...[
             const SizedBox(height: 4),
-            Text(
-              profile.bio!,
-              style: CustomTextStyle.size13W400(color: AppColors.grey400),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+            BlocBuilder<LocaleCubit, String>(
+              builder: (context, localeCode) {
+                final loc = AppLocalizations(localeCode);
+                return Text(
+                  loc.formatBio(profile.bio),
+                  style: CustomTextStyle.size13W400(color: AppColors.grey400),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                );
+              },
             ),
           ],
 

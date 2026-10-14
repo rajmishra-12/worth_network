@@ -1,5 +1,6 @@
 // lib/models/profile_model.dart
 import 'package:equatable/equatable.dart';
+import 'package:worth_network/core/utils/app_localizations.dart';
 
 class ProfileModel extends Equatable {
   final String id;
@@ -36,7 +37,7 @@ class ProfileModel extends Equatable {
     required this.badges,
   });
 
-  bool get isAdmin => roles.contains('admin') || accountType == 'admin';
+  bool get isAdmin => roles.contains('admin');
 
   @override
   List<Object?> get props => [
@@ -60,16 +61,26 @@ class ProfileModel extends Equatable {
 
 
 class BadgeModel extends Equatable {
+  final String id;
   final String name;
   final String description;
   final bool isEarned;
 
   const BadgeModel({
+    this.id = '',
     required this.name,
     required this.description,
     required this.isEarned,
   });
 
+  String localizedName(AppLocalizations loc) {
+    return loc.translateBadgeName(id.isNotEmpty ? id : name);
+  }
+
+  String localizedDescription(AppLocalizations loc) {
+    return loc.translateBadgeDescription(id.isNotEmpty ? id : name, fallback: description);
+  }
+
   @override
-  List<Object?> get props => [name, description, isEarned];
+  List<Object?> get props => [id, name, description, isEarned];
 }

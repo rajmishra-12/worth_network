@@ -82,7 +82,7 @@ class StatsCard extends StatelessWidget {
                         const Icon(Icons.bolt, size: 16, color: AppColors.black100),
                         const SizedBox(width: 4),
                         Text(
-                          'LVL $level',
+                          '${loc.translate('level_badge')} $level',
                           style: CustomTextStyle.size12W600(
                             color: AppColors.black100,
                           ),

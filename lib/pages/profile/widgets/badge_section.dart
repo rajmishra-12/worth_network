@@ -46,7 +46,7 @@ class BadgesSection extends StatelessWidget {
                   separatorBuilder: (_, __) => const SizedBox(width: AppSize.spacingM),
                   itemBuilder: (context, index) {
                     final badge = badges[index];
-                    return _BadgeItem(badge: badge);
+                    return _BadgeItem(badge: badge, loc: loc);
                   },
                 ),
               ),
@@ -60,13 +60,17 @@ class BadgesSection extends StatelessWidget {
 
 class _BadgeItem extends StatelessWidget {
   final BadgeModel badge;
+  final AppLocalizations loc;
 
-  const _BadgeItem({required this.badge});
+  const _BadgeItem({required this.badge, required this.loc});
 
   @override
   Widget build(BuildContext context) {
+    final localizedName = badge.localizedName(loc);
+    final localizedDesc = badge.localizedDescription(loc);
+
     return Tooltip(
-      message: '${badge.name}\n${badge.description}',
+      message: '$localizedName\n$localizedDesc',
       child: SizedBox(
         width: 72,
         child: Column(
@@ -93,14 +97,14 @@ class _BadgeItem extends StatelessWidget {
                     : null,
               ),
               child: Icon(
-                _getBadgeIcon(badge.name),
+                _getBadgeIcon(badge.id.isNotEmpty ? badge.id : badge.name),
                 size: 22,
                 color: badge.isEarned ? AppColors.black100 : AppColors.grey600,
               ),
             ),
             const SizedBox(height: 6),
             Text(
-              badge.name,
+              localizedName,
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -114,18 +118,17 @@ class _BadgeItem extends StatelessWidget {
     );
   }
 
-
-
   IconData _getBadgeIcon(String badgeName) {
     final nameLower = badgeName.toLowerCase();
-    if (nameLower.contains('first action')) return Icons.rocket_launch;
-    if (nameLower.contains('rising star')) return Icons.star_rounded;
-    if (nameLower.contains('trusted validator')) return Icons.verified_user_outlined;
-    if (nameLower.contains('certified impact')) return Icons.diamond_outlined;
-    if (nameLower.contains('community contributor') || nameLower.contains('5 actions')) return Icons.groups_outlined;
-    if (nameLower.contains('consistency champion') || nameLower.contains('consistency')) return Icons.bolt;
-    if (nameLower.contains('reputation pioneer')) return Icons.workspace_premium;
-    if (nameLower.contains('master validator')) return Icons.shield;
+    if (nameLower.contains('first action') || nameLower.contains('première action') || nameLower.contains('first_action')) return Icons.rocket_launch;
+    if (nameLower.contains('rising star') || nameLower.contains('étoile montante') || nameLower.contains('rising_star')) return Icons.star_rounded;
+    if (nameLower.contains('trusted validator') || nameLower.contains('validateur de confiance') || nameLower.contains('trusted_validator')) return Icons.verified_user_outlined;
+    if (nameLower.contains('certified impact') || nameLower.contains('impact certifié') || nameLower.contains('certified_impact')) return Icons.diamond_outlined;
+    if (nameLower.contains('community contributor') || nameLower.contains('pilier de la communauté') || nameLower.contains('community_contributor') || nameLower.contains('5 actions')) return Icons.groups_outlined;
+    if (nameLower.contains('consistency champion') || nameLower.contains('champion de la régularité') || nameLower.contains('consistency_champion')) return Icons.bolt;
+    if (nameLower.contains('reputation pioneer') || nameLower.contains('pionnier de la confiance') || nameLower.contains('reputation_pioneer')) return Icons.workspace_premium;
+    if (nameLower.contains('master validator') || nameLower.contains('expert en validation') || nameLower.contains('master_validator')) return Icons.shield;
+    if (nameLower.contains('early contributor') || nameLower.contains('contributeur pionnier') || nameLower.contains('early_contributor')) return Icons.emoji_events;
 
     return Icons.military_tech_rounded;
   }

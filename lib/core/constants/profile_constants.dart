@@ -65,6 +65,13 @@ class ProfileConstants {
 
   static AccountTypeOption? getAccountType(String? key) {
     if (key == null || key.isEmpty) return null;
+    if (key.toLowerCase() == 'admin') {
+      return const AccountTypeOption(
+        key: 'admin',
+        label: 'Administrator',
+        icon: Icons.admin_panel_settings_outlined,
+      );
+    }
     try {
       return accountTypes.firstWhere(
         (e) => e.key.toLowerCase() == key.toLowerCase() || e.label.toLowerCase() == key.toLowerCase(),

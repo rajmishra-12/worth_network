@@ -3,6 +3,8 @@ class AppLocalizations {
 
   AppLocalizations(this.languageCode);
 
+  String get localeCode => languageCode;
+
   static final Map<String, Map<String, String>> _localizedValues = {
     'en': {
       'app_title': 'WORTH NETWORK',
@@ -201,7 +203,7 @@ class AppLocalizations {
       'title_placeholder': 'e.g., Helped a friend move',
       'category_label': 'Category *',
       'date_label': 'Date *',
-      'request_validation_label': 'Request Validation from Person Involved',
+      'request_validation_label': 'Request confirmation from the person helped',
       'description_label': 'Description *',
       'describe_placeholder': 'Describe what you did...',
       'add_proof_title': 'Add Proof (Recommended)',
@@ -453,6 +455,7 @@ class AppLocalizations {
       'account_type_foundation': 'Foundation / NGO',
       'account_type_institution': 'Institution / Community',
       'account_type_public_service': 'Public Establishment / Service',
+      'account_type_admin': 'Administrator',
       'account_type_other': 'Other',
 
       // Roles & Domains
@@ -516,12 +519,14 @@ class AppLocalizations {
 
       // Independent Validation & Potential Reward
       'validation_method_label': 'Validation Method',
-      'validation_type_person': 'Person-based Validator',
-      'validation_type_independent': 'Independent Action',
+      'validation_type_person': 'Confirm with the person helped',
+      'validation_type_independent': 'Verify with the WORTH team',
+      'validation_type_person_title': 'Person Helped',
+      'validation_type_independent_title': 'WORTH Team',
       'validation_person_desc': 'Select a beneficiary or person involved to review and validate your action.',
-      'validation_independent_desc': 'Action performed alone with no specific beneficiary. Will be reviewed independently by an administrator.',
-      'request_independent_validation': 'Request Independent Validation',
-      'request_independent_validation_desc': 'Submit this action with evidence to the Independent Validation queue for admin review.',
+      'validation_independent_desc': 'Action performed alone with no specific beneficiary. Will be reviewed independently by the WORTH team.',
+      'request_independent_validation': 'Verify with the WORTH team',
+      'request_independent_validation_desc': 'The WORTH team reviews the evidence of your action. Points are awarded only after validation.',
       'potential_reward_label': 'Potential reward',
       'points_awarded_after_validation': 'Points are awarded only after validation.',
       'potential_short': 'Potential',
@@ -570,6 +575,70 @@ class AppLocalizations {
       'no_comments_yet': 'No comments yet. Be the first to comment!',
       'write_comment_hint': 'Write a comment...',
       'uploaded_proof_label': 'Uploaded Proof (Credibility Evidence)',
+
+      // Level & Badges
+      'level_badge': 'LVL',
+      'level_prefix': 'Level',
+      'default_bio': 'New to Worth Network! 🚀',
+      'badge_first_action_name': 'First Action',
+      'badge_rising_star_name': 'Rising Star',
+      'badge_trusted_validator_name': 'Trusted Validator',
+      'badge_certified_impact_name': 'Certified Impact',
+      'badge_community_contributor_name': 'Community Contributor',
+      'badge_consistency_champion_name': 'Consistency Champion',
+      'badge_reputation_pioneer_name': 'Reputation Pioneer',
+      'badge_master_validator_name': 'Master Validator',
+      'badge_early_contributor_name': 'Early Contributor',
+      'badge_first_action_desc': 'Published your first real action on Worth Network',
+      'badge_rising_star_desc': 'Earned 50+ Worth Score through validated actions',
+      'badge_trusted_validator_desc': 'Evaluated and validated proof evidence for peer actions',
+      'badge_certified_impact_desc': 'Achieved top-tier Certified status with strong evidence',
+      'badge_community_contributor_desc': 'Successfully posted 5 or more real actions',
+      'badge_consistency_champion_desc': 'Reached Level 2+ by consistently completing actions',
+      'badge_reputation_pioneer_desc': 'Built a high credibility profile with 300+ Worth Score',
+      'badge_master_validator_desc': 'Verified 5 or more proof submissions for community members',
+      'badge_early_contributor_desc': 'Contributed early to building the Worth Network community',
+
+      // Notifications
+      'mark_all_read': 'Mark all read',
+      'notif_level_up_title': 'Level Up!',
+      'notif_level_up_desc': 'You have advanced to Level {level}. Keep building your reputation!',
+      'notif_badge_unlocked_title': 'Badge Unlocked',
+      'notif_badge_unlocked_desc': 'Congratulations! You unlocked the "{badge}" badge.',
+      'notif_val_requested_title': 'Validation Request',
+      'notif_action_certified_title': 'Action Certified!',
+      'notif_action_confirmed_title': 'Action Confirmed!',
+      'notif_val_rejected_title': 'Validation Rejected',
+      'notif_time_unlocked': 'Unlocked',
+      'notif_independent_request_title': 'Independent Validation Request',
+      'notif_independent_submitted_title': 'Independent Action Submitted',
+      'notif_independent_request_desc': 'New independent action submitted for admin review.',
+
+      // Additional UI strings & Errors
+      'loading_audio': 'Loading audio...',
+      'failed_to_add_comment': 'Failed to add comment: ',
+      'failed_to_update_profile': 'Failed to update profile: ',
+      'reset_password_title': 'Reset Password',
+      'recover_account_title': 'Recover Account',
+      'recover_account_desc': 'Enter your email address and we will send you a link to reset your password.',
+      'enter_registered_email_hint': 'Enter your registered email',
+      'send_reset_link_btn': 'Send Reset Link',
+      'sending_link_btn': 'Sending Link...',
+      'reset_email_sent_success': '📩 Reset email sent! Please check your inbox.',
+      'joined_worth_title': 'Joined Worth Network',
+      'joined_worth_desc': 'Created account and started credibility building!',
+      'status_validated': 'Validated',
+      'status_partially_validated': 'Partially Validated',
+
+      // Time units
+      'time_week_short': 'w',
+      'time_day_short': 'd',
+      'time_hour_short': 'h',
+      'time_minute_short': 'm',
+      'time_ago_just_now': 'just now',
+      'time_ago_minutes': '{count}m ago',
+      'time_ago_hours': '{count}h ago',
+      'time_ago_days': '{count}d ago',
     },
     'fr': {
       'app_title': 'RÉSEAU WORTH',
@@ -672,7 +741,7 @@ class AppLocalizations {
       'bio_title': 'Bio',
       'bio_placeholder': 'Parlez de vous à la communauté...',
       'continue_btn': 'Continuer',
-      'profile_completed_success': 'Profil complété avec succès !',
+      'profile_completed_success': 'Profil mis à jour avec succès !',
       
       // Edit Profile Page
       'edit_profile': 'Modifier le profil',
@@ -768,7 +837,7 @@ class AppLocalizations {
       'title_placeholder': 'ex: Aidé un ami à déménager',
       'category_label': 'Catégorie *',
       'date_label': 'Date *',
-      'request_validation_label': 'Demander la validation à la personne concernée',
+      'request_validation_label': 'Demander la confirmation à la personne aidée',
       'description_label': 'Description *',
       'describe_placeholder': 'Décrivez ce que vous avez fait...',
       'add_proof_title': 'Ajouter une preuve (Recommandé)',
@@ -1020,6 +1089,7 @@ class AppLocalizations {
       'account_type_foundation': 'Fondation / ONG',
       'account_type_institution': 'Institution / Collectivité',
       'account_type_public_service': 'Établissement / Service public',
+      'account_type_admin': 'Administrateur',
       'account_type_other': 'Autre',
 
       // Roles & Domains
@@ -1083,14 +1153,16 @@ class AppLocalizations {
 
       // Independent Validation & Potential Reward
       'validation_method_label': 'Méthode de validation',
-      'validation_type_person': 'Validateur bénéficiaire',
-      'validation_type_independent': 'Action indépendante',
-      'validation_person_desc': 'Sélectionnez un bénéficiaire ou une personne concernée pour valider votre action.',
-      'validation_independent_desc': 'Action réalisée seul sans bénéficiaire direct. Sera examinée de manière indépendante par un administrateur.',
-      'request_independent_validation': 'Demander une validation indépendante',
-      'request_independent_validation_desc': 'Soumettre cette action avec preuves à la file de validation indépendante pour examen par l\'administrateur.',
+      'validation_type_person': 'Faire confirmer par la personne aidée',
+      'validation_type_independent': 'Faire vérifier par l’équipe WORTH',
+      'validation_type_person_title': 'Personne aidée',
+      'validation_type_independent_title': 'Équipe WORTH',
+      'validation_person_desc': 'Sélectionnez la personne aidée pour confirmer votre action.',
+      'validation_independent_desc': 'Action réalisée de manière autonome. Sera vérifiée par l’équipe WORTH.',
+      'request_independent_validation': 'Faire vérifier par l’équipe WORTH',
+      'request_independent_validation_desc': 'L’équipe WORTH examine les preuves de votre action. Les points sont attribués uniquement après validation.',
       'potential_reward_label': 'Récompense potentielle',
-      'points_awarded_after_validation': 'Les points ne sont attribués qu\'après validation.',
+      'points_awarded_after_validation': 'Les points sont attribués uniquement après validation.',
       'potential_short': 'Potentiel',
       'points_label': 'points',
       'earned_reward_label': 'Récompense obtenue',
@@ -1137,6 +1209,70 @@ class AppLocalizations {
       'no_comments_yet': 'Aucun commentaire pour le moment. Soyez le premier !',
       'write_comment_hint': 'Écrire un commentaire...',
       'uploaded_proof_label': 'Preuve téléchargée (Preuve de crédibilité)',
+
+      // Level & Badges
+      'level_badge': 'Niveau',
+      'level_prefix': 'Niveau',
+      'default_bio': 'Nouveau sur Worth Network ! 🚀',
+      'badge_first_action_name': 'Première action',
+      'badge_rising_star_name': 'Étoile montante',
+      'badge_trusted_validator_name': 'Validateur de confiance',
+      'badge_certified_impact_name': 'Impact certifié',
+      'badge_community_contributor_name': 'Pilier de la communauté',
+      'badge_consistency_champion_name': 'Champion de la régularité',
+      'badge_reputation_pioneer_name': 'Pionnier de la confiance',
+      'badge_master_validator_name': 'Expert en validation',
+      'badge_early_contributor_name': 'Contributeur pionnier',
+      'badge_first_action_desc': 'Première action concrète publiée sur le Réseau Worth',
+      'badge_rising_star_desc': '50+ points de score Worth obtenus grâce à des actions validées',
+      'badge_trusted_validator_desc': 'Preuves évaluées et validées pour les actions de vos pairs',
+      'badge_certified_impact_desc': 'Statut Certifié obtenu avec des preuves solides',
+      'badge_community_contributor_desc': '5 actions concrètes ou plus publiées avec succès',
+      'badge_consistency_champion_desc': 'Niveau 2+ atteint en accomplissant régulièrement des actions',
+      'badge_reputation_pioneer_desc': 'Profil de haute crédibilité bâti avec un score Worth de 300+',
+      'badge_master_validator_desc': '5 preuves ou plus vérifiées pour les membres de la communauté',
+      'badge_early_contributor_desc': 'Contribution précoce au développement de la communauté Worth Network',
+
+      // Notifications
+      'mark_all_read': 'Tout marquer comme lu',
+      'notif_level_up_title': 'Passage de niveau !',
+      'notif_level_up_desc': 'Vous avez atteint le Niveau {level}. Continuez à développer votre réputation !',
+      'notif_badge_unlocked_title': 'Badge débloqué !',
+      'notif_badge_unlocked_desc': 'Félicitations ! Vous avez débloqué le badge « {badge} ».',
+      'notif_val_requested_title': 'Demande de validation',
+      'notif_action_certified_title': 'Action certifiée !',
+      'notif_action_confirmed_title': 'Action confirmée !',
+      'notif_val_rejected_title': 'Validation rejetée',
+      'notif_time_unlocked': 'Débloqué',
+      'notif_independent_request_title': 'Demande de validation indépendante',
+      'notif_independent_submitted_title': 'Action indépendante soumise',
+      'notif_independent_request_desc': 'Nouvelle action indépendante soumise pour examen administrateur.',
+
+      // Additional UI strings & Errors
+      'loading_audio': 'Chargement de l\'audio...',
+      'failed_to_add_comment': 'Échec de l\'ajout du commentaire : ',
+      'failed_to_update_profile': 'Échec de la mise à jour du profil : ',
+      'reset_password_title': 'Réinitialiser le mot de passe',
+      'recover_account_title': 'Récupérer le compte',
+      'recover_account_desc': 'Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.',
+      'enter_registered_email_hint': 'Entrez votre email enregistré',
+      'send_reset_link_btn': 'Envoyer le lien de réinitialisation',
+      'sending_link_btn': 'Envoi du lien en cours...',
+      'reset_email_sent_success': '📩 Email de réinitialisation envoyé ! Veuillez vérifier votre boîte de réception.',
+      'joined_worth_title': 'A rejoint le Réseau Worth',
+      'joined_worth_desc': 'Compte créé et début de la construction de crédibilité !',
+      'status_validated': 'Validé',
+      'status_partially_validated': 'Partiellement validé',
+
+      // Time units
+      'time_week_short': 'sem',
+      'time_day_short': 'j',
+      'time_hour_short': 'h',
+      'time_minute_short': 'min',
+      'time_ago_just_now': 'À l\'instant',
+      'time_ago_minutes': 'Il y a {count} min',
+      'time_ago_hours': 'Il y a {count} h',
+      'time_ago_days': 'Il y a {count} j',
     }
   };
 
@@ -1145,5 +1281,190 @@ class AppLocalizations {
         _localizedValues['fr']?[key] ??
         _localizedValues['en']?[key] ??
         key;
+  }
+
+  String translateFormatted(String key, Map<String, String> params) {
+    var text = translate(key);
+    params.forEach((paramKey, paramVal) {
+      text = text.replaceAll('{$paramKey}', paramVal);
+    });
+    return text;
+  }
+
+  String translateCategory(String category) {
+    final clean = category.trim();
+    final lower = clean.toLowerCase();
+    switch (lower) {
+      case 'health':
+      case 'santé':
+      case 'sante':
+        return translate('category_health');
+      case 'support':
+      case 'soutien':
+        return translate('category_support');
+      case 'work':
+      case 'travail':
+        return translate('category_work');
+      case 'community':
+      case 'communauté':
+      case 'communaute':
+        return translate('category_community');
+      case 'education':
+      case 'éducation':
+        return translate('category_education');
+      case 'environment':
+      case 'environnement':
+        return translate('category_environment');
+      case 'other':
+      case 'autre':
+        return translate('category_other');
+      default:
+        final key = 'category_$lower';
+        final val = translate(key);
+        return val.startsWith('category_') ? clean : val;
+    }
+  }
+
+  String translateBadgeName(String badgeKeyOrName) {
+    final lower = badgeKeyOrName.trim().toLowerCase().replaceAll(' ', '_');
+    if (lower.contains('first_action') || lower.contains('premiere_action') || lower.contains('première_action')) {
+      return translate('badge_first_action_name');
+    }
+    if (lower.contains('rising_star') || lower.contains('etoile_montante') || lower.contains('étoile_montante')) {
+      return translate('badge_rising_star_name');
+    }
+    if (lower.contains('trusted_validator') || lower.contains('validateur_de_confiance')) {
+      return translate('badge_trusted_validator_name');
+    }
+    if (lower.contains('certified_impact') || lower.contains('impact_certifie') || lower.contains('impact_certifié')) {
+      return translate('badge_certified_impact_name');
+    }
+    if (lower.contains('community_contributor') || lower.contains('pilier_de_la_communaute') || lower.contains('pilier_de_la_communauté') || lower.contains('5_actions')) {
+      return translate('badge_community_contributor_name');
+    }
+    if (lower.contains('consistency_champion') || lower.contains('champion_de_la_regularite') || lower.contains('champion_de_la_régularité')) {
+      return translate('badge_consistency_champion_name');
+    }
+    if (lower.contains('reputation_pioneer') || lower.contains('pionnier_de_la_confiance')) {
+      return translate('badge_reputation_pioneer_name');
+    }
+    if (lower.contains('master_validator') || lower.contains('expert_en_validation')) {
+      return translate('badge_master_validator_name');
+    }
+    if (lower.contains('early_contributor') || lower.contains('contributeur_pionnier')) {
+      return translate('badge_early_contributor_name');
+    }
+
+    final directKey = 'badge_${lower}_name';
+    final translated = translate(directKey);
+    return translated.startsWith('badge_') ? badgeKeyOrName : translated;
+  }
+
+  String translateBadgeDescription(String badgeKeyOrName, {String? fallback}) {
+    final lower = badgeKeyOrName.trim().toLowerCase().replaceAll(' ', '_');
+    if (lower.contains('first_action') || lower.contains('premiere_action') || lower.contains('première_action')) {
+      return translate('badge_first_action_desc');
+    }
+    if (lower.contains('rising_star') || lower.contains('etoile_montante') || lower.contains('étoile_montante')) {
+      return translate('badge_rising_star_desc');
+    }
+    if (lower.contains('trusted_validator') || lower.contains('validateur_de_confiance')) {
+      return translate('badge_trusted_validator_desc');
+    }
+    if (lower.contains('certified_impact') || lower.contains('impact_certifie') || lower.contains('impact_certifié')) {
+      return translate('badge_certified_impact_desc');
+    }
+    if (lower.contains('community_contributor') || lower.contains('pilier_de_la_communaute') || lower.contains('pilier_de_la_communauté') || lower.contains('5_actions')) {
+      return translate('badge_community_contributor_desc');
+    }
+    if (lower.contains('consistency_champion') || lower.contains('champion_de_la_regularite') || lower.contains('champion_de_la_régularité')) {
+      return translate('badge_consistency_champion_desc');
+    }
+    if (lower.contains('reputation_pioneer') || lower.contains('pionnier_de_la_confiance')) {
+      return translate('badge_reputation_pioneer_desc');
+    }
+    if (lower.contains('master_validator') || lower.contains('expert_en_validation')) {
+      return translate('badge_master_validator_desc');
+    }
+    if (lower.contains('early_contributor') || lower.contains('contributeur_pionnier')) {
+      return translate('badge_early_contributor_desc');
+    }
+
+    final directKey = 'badge_${lower}_desc';
+    final translated = translate(directKey);
+    if (!translated.startsWith('badge_')) return translated;
+    return fallback ?? badgeKeyOrName;
+  }
+
+  static bool isDefaultBio(String? bio) {
+    if (bio == null) return false;
+    final clean = bio.trim();
+    return clean == 'New to Worth Network! 🚀' ||
+        clean == 'Nouveau sur Worth Network ! 🚀' ||
+        clean == 'Building worth through real actions.' ||
+        clean == 'Bâtir sa valeur grâce à des actions concrètes.';
+  }
+
+  String formatBio(String? bio) {
+    if (bio == null || bio.trim().isEmpty) return '';
+    final clean = bio.trim();
+    if (isDefaultBio(clean)) {
+      return translate('default_bio');
+    }
+    return clean;
+  }
+
+  String translateReason(String reason) {
+    final lower = reason.trim().toLowerCase();
+    if (lower.contains('harassment') || lower.contains('bullying') || lower.contains('harcèlement')) {
+      return translate('reason_harassment');
+    }
+    if (lower.contains('hate') || lower.contains('discrimination') || lower.contains('haineux')) {
+      return translate('reason_hate_speech');
+    }
+    if (lower.contains('inappropriate') || lower.contains('offensive') || lower.contains('inapproprié')) {
+      return translate('reason_inappropriate');
+    }
+    if (lower.contains('spam') || lower.contains('misleading') || lower.contains('trompeur')) {
+      return translate('reason_spam');
+    }
+    if (lower.contains('false') || lower.contains('information') || lower.contains('fausse')) {
+      return translate('reason_false_info');
+    }
+    if (lower.contains('other') || lower.contains('autre')) {
+      return translate('reason_other');
+    }
+    return reason;
+  }
+
+  String translateContentType(String type) {
+    final lower = type.trim().toLowerCase();
+    switch (lower) {
+      case 'action':
+        return translate('type_actions').toUpperCase();
+      case 'comment':
+      case 'comments':
+        return translate('type_comments').toUpperCase();
+      case 'user':
+      case 'users':
+        return translate('type_users').toUpperCase();
+      default:
+        return type.toUpperCase();
+    }
+  }
+
+  String formatTimeAgo(DateTime dateTime) {
+    final diff = DateTime.now().difference(dateTime);
+    if (diff.inSeconds < 60) {
+      return translate('time_ago_just_now');
+    } else if (diff.inMinutes < 60) {
+      return translateFormatted('time_ago_minutes', {'count': diff.inMinutes.toString()});
+    } else if (diff.inHours < 24) {
+      return translateFormatted('time_ago_hours', {'count': diff.inHours.toString()});
+    } else if (diff.inDays < 7) {
+      return translateFormatted('time_ago_days', {'count': diff.inDays.toString()});
+    } else {
+      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+    }
   }
 }

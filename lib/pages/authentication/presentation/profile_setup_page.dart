@@ -48,9 +48,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       if (doc.exists && mounted) {
         final data = doc.data();
         if (data != null) {
+          final rawBio = data['bio'] as String?;
           setState(() {
             _usernameController.text = data['username'] ?? '';
-            _bioController.text = data['bio'] ?? '';
+            if (rawBio != null && AppLocalizations.isDefaultBio(rawBio)) {
+              final loc = AppLocalizations(context.read<LocaleCubit>().state);
+              _bioController.text = loc.translate('default_bio');
+            } else {
+              _bioController.text = rawBio ?? '';
+            }
             _currentAvatarUrl = data['avatarUrl'];
             _selectedAccountType = data['accountType'];
             if (data['roles'] != null) {
@@ -157,11 +163,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   }
 
   Future<void> _handleContinue() async {
+    final localeCode = context.read<LocaleCubit>().state;
+    final loc = AppLocalizations(localeCode);
+
     final username = _usernameController.text.trim();
     if (username.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Username is required'),
+        SnackBar(
+          content: Text(loc.translate('username_required')),
           backgroundColor: AppColors.error,
         ),
       );
@@ -186,8 +195,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         if (mounted) {
           context.read<ProfileCubit>().loadProfile();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Profile completed successfully!'),
+            SnackBar(
+              content: Text(loc.translate('profile_completed_success')),
               backgroundColor: AppColors.success,
             ),
           );
@@ -198,7 +207,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update profile: $e'),
+            content: Text('${loc.translate('failed_to_update_profile')}$e'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -375,51 +384,118 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     ],
                   ),
                   const SizedBox(height: AppSize.spacingS),
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedAccountType,
-                    dropdownColor: AppColors.grey900,
-                    style: CustomTextStyle.size14W400(color: AppColors.white100),
-                    decoration: InputDecoration(
-                      hintText: loc.translate('select_account_type_hint'),
-                      hintStyle: CustomTextStyle.size14W400(color: AppColors.grey500),
-                      filled: true,
-                      fillColor: AppColors.grey900,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppSize.radiusM),
-                        borderSide: const BorderSide(color: AppColors.grey800),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppSize.radiusM),
-                        borderSide: const BorderSide(color: AppColors.grey800),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppSize.radiusM),
-                        borderSide: const BorderSide(color: AppColors.primary),
-                      ),
-                    ),
-                    items: [
-                      DropdownMenuItem<String>(
-                        value: null,
-                        child: Text(loc.translate('not_specified'), style: const TextStyle(color: AppColors.grey500)),
-                      ),
-                      ...ProfileConstants.accountTypes.map(
-                        (type) => DropdownMenuItem<String>(
-                          value: type.key,
-                          child: Row(
-                            children: [
-                              Icon(type.icon, size: 18, color: AppColors.primary),
-                              const SizedBox(width: 8),
-                              Text(type.getLocalizedLabel(loc), style: const TextStyle(color: AppColors.white100)),
-                            ],
+                  Builder(
+                    builder: (context) {
+                      final rawVal = (_selectedAccountType != null &&
+                              _selectedAccountType!.trim().isNotEmpty &&
+                              _selectedAccountType!.trim().toLowerCase() != 'admin')
+                          ? _selectedAccountType!.trim()
+                          : null;
+
+                      // Find matching predefined account type (by key or label, case-insensitive)
+                      String? effectiveVal = rawVal;
+                      if (rawVal != null) {
+                        final matched = ProfileConstants.accountTypes.cast<AccountTypeOption?>().firstWhere(
+                          (t) => t != null && (t.key.toLowerCase() == rawVal.toLowerCase() || t.label.toLowerCase() == rawVal.toLowerCase()),
+                          orElse: () => null,
+                        );
+                        if (matched != null) {
+                          effectiveVal = matched.key;
+                        }
+                      }
+
+                      final itemsList = <DropdownMenuItem<String>>[
+                        DropdownMenuItem<String>(
+                          value: null,
+                          child: Text(
+                            loc.translate('not_specified'),
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: AppColors.grey500),
                           ),
                         ),
-                      ),
-                    ],
-                    onChanged: (val) {
-                      setState(() {
-                        _selectedAccountType = val;
-                      });
+                        ...ProfileConstants.accountTypes.map(
+                          (type) => DropdownMenuItem<String>(
+                            value: type.key,
+                            child: Row(
+                              children: [
+                                Icon(type.icon, size: 18, color: AppColors.primary),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    type.getLocalizedLabel(loc),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                    style: const TextStyle(color: AppColors.white100),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ];
+
+                      // If effectiveVal is a custom value not in predefined items, add it (never allow admin)
+                      if (effectiveVal != null &&
+                          effectiveVal.toLowerCase() != 'admin' &&
+                          !itemsList.any((i) => i.value == effectiveVal)) {
+                        itemsList.add(
+                          DropdownMenuItem<String>(
+                            value: effectiveVal,
+                            child: Row(
+                              children: [
+                                const Icon(Icons.person_outline, size: 18, color: AppColors.primary),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    effectiveVal,
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                    style: const TextStyle(color: AppColors.white100),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      // Guarantee exactly 1 match in itemsList, else safely fallback to null
+                      if (effectiveVal != null && itemsList.where((i) => i.value == effectiveVal).length != 1) {
+                        effectiveVal = null;
+                      }
+
+                      return DropdownButtonFormField<String>(
+                        key: ValueKey(effectiveVal),
+                        initialValue: effectiveVal,
+                        isExpanded: true,
+                        dropdownColor: AppColors.grey900,
+                        style: CustomTextStyle.size14W400(color: AppColors.white100),
+                        decoration: InputDecoration(
+                          hintText: loc.translate('select_account_type_hint'),
+                          hintStyle: CustomTextStyle.size14W400(color: AppColors.grey500),
+                          filled: true,
+                          fillColor: AppColors.grey900,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppSize.radiusM),
+                            borderSide: const BorderSide(color: AppColors.grey800),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppSize.radiusM),
+                            borderSide: const BorderSide(color: AppColors.grey800),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppSize.radiusM),
+                            borderSide: const BorderSide(color: AppColors.primary),
+                          ),
+                        ),
+                        items: itemsList,
+                        onChanged: (val) {
+                          setState(() {
+                            _selectedAccountType = val;
+                          });
+                        },
+                      );
                     },
                   ),
                   const SizedBox(height: AppSize.spacingL),

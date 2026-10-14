@@ -28,20 +28,22 @@ class ProfileCubit extends Cubit<ProfileState> {
 
         if (doc.exists) {
           final data = doc.data()!;
-          final userEmail = (data['email'] ?? currentUser.email ?? '').toString().toLowerCase();
-          if (userEmail == 'adribuellet@hotmail.com' || userEmail == 'admin@gmail.com') {
+          final userEmail = (data['email'] ?? currentUser.email ?? '')
+              .toString()
+              .toLowerCase();
+          if (userEmail == 'adribuellet@hotmail.com' ||
+              userEmail == 'admin@gmail.com') {
             final roles = List<String>.from(data['roles'] ?? []);
             if (!roles.contains('admin') || data['accountType'] != 'admin') {
               if (!roles.contains('admin')) roles.add('admin');
               data['roles'] = roles;
               data['accountType'] = 'admin';
-              doc.reference.update({
-                'accountType': 'admin',
-                'roles': roles,
-              }).catchError((_) {});
+              doc.reference
+                  .update({'accountType': 'admin', 'roles': roles})
+                  .catchError((_) {});
             }
           }
-          
+
           // 2. Fetch user's published actions & validations performed for others
           final List<ActionModel> myActions = [];
           int validatedForOthersCount = 0;
@@ -64,21 +66,25 @@ class ProfileCubit extends Cubit<ProfileState> {
               }
               if (statusStr == 'rejected') status = ValidationStatus.rejected;
 
-              myActions.add(ActionModel(
-                id: doc.id,
-                userId: currentUser.uid,
-                userName: data['name'] ?? currentUser.displayName ?? 'User',
-                userAvatar: data['avatarUrl'],
-                title: actionData['title'] ?? '',
-                description: actionData['description'] ?? '',
-                category: actionData['category'] ?? 'Support',
-                validationStatus: status,
-                score: actionData['score'] ?? 0,
-                likesCount: actionData['likesCount'] ?? 0,
-                commentsCount: actionData['commentsCount'] ?? 0,
-                createdAt: (actionData['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-                isLikedByUser: false,
-              ));
+              myActions.add(
+                ActionModel(
+                  id: doc.id,
+                  userId: currentUser.uid,
+                  userName: data['name'] ?? currentUser.displayName ?? 'User',
+                  userAvatar: data['avatarUrl'],
+                  title: actionData['title'] ?? '',
+                  description: actionData['description'] ?? '',
+                  category: actionData['category'] ?? 'Support',
+                  validationStatus: status,
+                  score: actionData['score'] ?? 0,
+                  likesCount: actionData['likesCount'] ?? 0,
+                  commentsCount: actionData['commentsCount'] ?? 0,
+                  createdAt:
+                      (actionData['createdAt'] as Timestamp?)?.toDate() ??
+                      DateTime.now(),
+                  isLikedByUser: false,
+                ),
+              );
             }
 
             // Fetch validations completed for others
@@ -91,7 +97,6 @@ class ProfileCubit extends Cubit<ProfileState> {
               final st = d.data()['validationStatus'];
               return st == 'confirmed' || st == 'certified' || st == 'rejected';
             }).length;
-
           } catch (e, stack) {
             print("Failed to fetch user actions or validations: $e");
             print(stack);
@@ -104,49 +109,63 @@ class ProfileCubit extends Cubit<ProfileState> {
           // 3. Dynamically evaluate all 8 badges
           final List<BadgeModel> dynamicBadges = [
             BadgeModel(
+              id: 'first_action',
               name: 'First Action',
               description: 'Published your first real action on Worth Network',
               isEarned: totalActionsCount >= 1,
             ),
             BadgeModel(
+              id: 'rising_star',
               name: 'Rising Star',
               description: 'Earned 50+ Worth Score through validated actions',
               isEarned: userScore >= 50,
             ),
             BadgeModel(
+              id: 'trusted_validator',
               name: 'Trusted Validator',
-              description: 'Evaluated and validated proof evidence for peer actions',
+              description:
+                  'Evaluated and validated proof evidence for peer actions',
               isEarned: validatedForOthersCount >= 1,
             ),
             BadgeModel(
+              id: 'certified_impact',
               name: 'Certified Impact',
-              description: 'Achieved top-tier Certified status with strong evidence',
+              description:
+                  'Achieved top-tier Certified status with strong evidence',
               isEarned: hasCertifiedAction,
             ),
             BadgeModel(
+              id: 'community_contributor',
               name: 'Community Contributor',
               description: 'Successfully posted 5 or more real actions',
               isEarned: totalActionsCount >= 5,
             ),
             BadgeModel(
+              id: 'consistency_champion',
               name: 'Consistency Champion',
-              description: 'Reached Level 2+ by consistently completing actions',
+              description:
+                  'Reached Level 2+ by consistently completing actions',
               isEarned: userLevel >= 2 || userScore >= 150,
             ),
             BadgeModel(
+              id: 'reputation_pioneer',
               name: 'Reputation Pioneer',
-              description: 'Built a high credibility profile with 300+ Worth Score',
+              description:
+                  'Built a high credibility profile with 300+ Worth Score',
               isEarned: userScore >= 300 || userLevel >= 3,
             ),
             BadgeModel(
+              id: 'master_validator',
               name: 'Master Validator',
-              description: 'Verified 5 or more proof submissions for community members',
+              description:
+                  'Verified 5 or more proof submissions for community members',
               isEarned: validatedForOthersCount >= 5,
             ),
           ];
 
           final avatarUrlVal = data['avatarUrl'] as String?;
-          final hasCustomAvatar = avatarUrlVal != null &&
+          final hasCustomAvatar =
+              avatarUrlVal != null &&
               avatarUrlVal.trim().isNotEmpty &&
               !avatarUrlVal.contains('pravatar.cc');
 
@@ -166,33 +185,40 @@ class ProfileCubit extends Cubit<ProfileState> {
             avatarUrl: hasCustomAvatar ? avatarUrlVal : null,
             bio: data['bio'] ?? 'Building worth through real actions.',
             accountType: data['accountType'] as String?,
-            roles: (data['roles'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+            roles:
+                (data['roles'] as List<dynamic>?)
+                    ?.map((e) => e.toString())
+                    .toList() ??
+                const [],
             score: userScore,
             level: userLevel,
             xp: data['xp'] ?? 0,
             nextLevelXp: data['nextLevelXp'] ?? 100,
             totalActions: totalActionsCount,
-            validatedPercentage: (data['validatedPercentage'] as num?)?.toDouble() ?? 0.0,
+            validatedPercentage:
+                (data['validatedPercentage'] as num?)?.toDouble() ?? 0.0,
             badges: dynamicBadges,
           );
 
-
           // Fallback to default action if list is empty
           if (myActions.isEmpty) {
-            myActions.add(ActionModel(
-              id: 'first_action_id',
-              userId: currentUser.uid,
-              userName: profile.name,
-              title: 'Joined Worth Network',
-              description: 'Created account and started credibility building!',
-              category: 'General',
-              validationStatus: ValidationStatus.certified,
-              score: 10,
-              likesCount: 1,
-              commentsCount: 0,
-              createdAt: DateTime.now(),
-              isLikedByUser: false,
-            ));
+            myActions.add(
+              ActionModel(
+                id: 'first_action_id',
+                userId: currentUser.uid,
+                userName: profile.name,
+                title: 'Joined Worth Network',
+                description:
+                    'Created account and started credibility building!',
+                category: 'General',
+                validationStatus: ValidationStatus.certified,
+                score: 10,
+                likesCount: 1,
+                commentsCount: 0,
+                createdAt: DateTime.now(),
+                isLikedByUser: false,
+              ),
+            );
           }
 
           // 3. Populate action history matching actions status
@@ -208,14 +234,16 @@ class ProfileCubit extends Cubit<ProfileState> {
               statusText = 'Certified';
             }
 
-            actionHistory.add(HistoryItem(
-              id: action.id,
-              title: action.title,
-              status: statusText,
-              statusColor: statusColor,
-              date: action.createdAt,
-              points: action.score,
-            ));
+            actionHistory.add(
+              HistoryItem(
+                id: action.id,
+                title: action.title,
+                status: statusText,
+                statusColor: statusColor,
+                date: action.createdAt,
+                points: action.score,
+              ),
+            );
           }
 
           // 4. Update Shared Preferences locally to persist cached user data
@@ -223,12 +251,14 @@ class ProfileCubit extends Cubit<ProfileState> {
           prefs.name = profile.name;
           prefs.username = data['username'] ?? '';
 
-          emit(state.copyWith(
-            isLoading: false,
-            profile: profile,
-            myActions: myActions,
-            actionHistory: actionHistory,
-          ));
+          emit(
+            state.copyWith(
+              isLoading: false,
+              profile: profile,
+              myActions: myActions,
+              actionHistory: actionHistory,
+            ),
+          );
           return;
         }
       }
@@ -244,7 +274,7 @@ class ProfileCubit extends Cubit<ProfileState> {
       id: prefs.userId.isNotEmpty ? prefs.userId : '1',
       name: prefs.name.isNotEmpty ? prefs.name : 'Guest User',
       avatarUrl: null,
-      bio: 'Building worth through real actions.',
+      bio: 'New to Worth Network! 🚀',
       score: 0,
       level: 1,
       xp: 0,
@@ -252,15 +282,22 @@ class ProfileCubit extends Cubit<ProfileState> {
       totalActions: 0,
       validatedPercentage: 0.0,
       badges: const [
-        BadgeModel(name: 'First Action', description: 'Completed first action', isEarned: true),
+        BadgeModel(
+          id: 'first_action',
+          name: 'First Action',
+          description: 'Published your first real action on Worth Network',
+          isEarned: true,
+        ),
       ],
     );
 
-    emit(state.copyWith(
-      isLoading: false,
-      profile: profile,
-      myActions: const [],
-      actionHistory: const [],
-    ));
+    emit(
+      state.copyWith(
+        isLoading: false,
+        profile: profile,
+        myActions: const [],
+        actionHistory: const [],
+      ),
+    );
   }
 }

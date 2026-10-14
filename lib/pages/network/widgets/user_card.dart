@@ -1,5 +1,8 @@
 // lib/pages/dashboard/network/widgets/user_card.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
+import 'package:worth_network/core/utils/app_localizations.dart';
 import 'package:worth_network/core/model/user/user_model.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
@@ -110,21 +113,26 @@ class UserCard extends StatelessWidget {
                   Row(
                     children: [
                       // Level (Future-ready)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSize.paddingS,
-                          vertical: AppSize.paddingXS,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.grey800,
-                          borderRadius: BorderRadius.circular(AppSize.radiusS),
-                        ),
-                        child: Text(
-                          'Level ${user.level}',
-                          style: CustomTextStyle.size10W600(
-                            color: AppColors.primary,
-                          ),
-                        ),
+                      BlocBuilder<LocaleCubit, String>(
+                        builder: (context, localeCode) {
+                          final loc = AppLocalizations(localeCode);
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSize.paddingS,
+                              vertical: AppSize.paddingXS,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.grey800,
+                              borderRadius: BorderRadius.circular(AppSize.radiusS),
+                            ),
+                            child: Text(
+                              '${loc.translate('level_prefix')} ${user.level}',
+                              style: CustomTextStyle.size10W600(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(width: AppSize.spacingS),
                       // Score

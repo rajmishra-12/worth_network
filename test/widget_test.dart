@@ -7,9 +7,9 @@ void main() {
       final loc = AppLocalizations('en');
 
       expect(loc.translate('validation_method_label'), 'Validation Method');
-      expect(loc.translate('validation_type_person'), 'Person-based Validator');
-      expect(loc.translate('validation_type_independent'), 'Independent Action');
-      expect(loc.translate('request_independent_validation'), 'Request Independent Validation');
+      expect(loc.translate('validation_type_person'), 'Confirm with the person helped');
+      expect(loc.translate('validation_type_independent'), 'Verify with the WORTH team');
+      expect(loc.translate('request_independent_validation'), 'Verify with the WORTH team');
       expect(loc.translate('potential_reward_label'), 'Potential reward');
       expect(loc.translate('points_awarded_after_validation'), 'Points are awarded only after validation.');
       expect(loc.translate('earned_reward_label'), 'Earned reward');
@@ -26,11 +26,11 @@ void main() {
       final loc = AppLocalizations('fr');
 
       expect(loc.translate('validation_method_label'), 'Méthode de validation');
-      expect(loc.translate('validation_type_person'), 'Validateur bénéficiaire');
-      expect(loc.translate('validation_type_independent'), 'Action indépendante');
-      expect(loc.translate('request_independent_validation'), 'Demander une validation indépendante');
+      expect(loc.translate('validation_type_person'), 'Faire confirmer par la personne aidée');
+      expect(loc.translate('validation_type_independent'), 'Faire vérifier par l’équipe WORTH');
+      expect(loc.translate('request_independent_validation'), 'Faire vérifier par l’équipe WORTH');
       expect(loc.translate('potential_reward_label'), 'Récompense potentielle');
-      expect(loc.translate('points_awarded_after_validation'), 'Les points ne sont attribués qu\'après validation.');
+      expect(loc.translate('points_awarded_after_validation'), 'Les points sont attribués uniquement après validation.');
       expect(loc.translate('earned_reward_label'), 'Récompense obtenue');
       expect(loc.translate('action_validated_reward_earned'), 'Validée • Points attribués');
       expect(loc.translate('validation_rejected_label'), 'Validation rejetée');

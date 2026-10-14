@@ -81,8 +81,8 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
 
                     _buildInfoTile(loc.translate('reported_by'), '@${report.reporterName ?? report.reporterId}'),
                     _buildInfoTile(loc.translate('reported_user'), '@${report.reportedUserName ?? report.reportedUserId}'),
-                    _buildInfoTile(loc.translate('reason_label'), report.reason.toUpperCase()),
-                    _buildInfoTile(loc.translate('content_type_label'), report.contentType.toUpperCase()),
+                    _buildInfoTile(loc.translate('reason_label'), loc.translateReason(report.reason)),
+                    _buildInfoTile(loc.translate('content_type_label'), loc.translateContentType(report.contentType)),
 
                     if (report.contentPreview != null && report.contentPreview!.isNotEmpty) ...[
                       const SizedBox(height: 8),
@@ -444,7 +444,7 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
                             title: Row(
                               children: [
                                 Text(
-                                  '${report.contentType.toUpperCase()}: ${report.reason}',
+                                  '${loc.translateContentType(report.contentType)}: ${loc.translateReason(report.reason)}',
                                   style: CustomTextStyle.size14W600(color: AppColors.white100),
                                 ),
                                 const Spacer(),
