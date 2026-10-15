@@ -92,42 +92,49 @@ class StatsCard extends StatelessWidget {
                   ),
                   const SizedBox(width: AppSize.spacingM),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    child: Builder(
+                      builder: (context) {
+                        // Level progress towards next level (100 XP per level)
+                        final levelBaseXp = (level > 0 ? level - 1 : 0) * 100;
+                        final currentLevelXp = (xp - levelBaseXp).clamp(0, 100);
+                        const xpNeededForLevel = 100;
+                        final progressRatio = (currentLevelXp / xpNeededForLevel).clamp(0.0, 1.0);
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              loc.translate('xp_progress'),
-                              style: CustomTextStyle.size12W400(
-                                color: AppColors.grey400,
-                              ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  loc.translate('xp_progress'),
+                                  style: CustomTextStyle.size12W400(
+                                    color: AppColors.grey400,
+                                  ),
+                                ),
+                                Text(
+                                  '$currentLevelXp / $xpNeededForLevel',
+                                  style: CustomTextStyle.size12W600(
+                                    color: AppColors.white100,
+                                  ),
+                                ),
+                              ],
                             ),
-                            Text(
-                              '$xp / $nextLevelXp',
-                              style: CustomTextStyle.size12W600(
-                                color: AppColors.white100,
+                            const SizedBox(height: 6),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(AppSize.radiusS),
+                              child: LinearProgressIndicator(
+                                value: progressRatio,
+                                backgroundColor: AppColors.grey800,
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                  AppColors.primary,
+                                ),
+                                minHeight: 6,
                               ),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 6),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(AppSize.radiusS),
-                          child: LinearProgressIndicator(
-                            value: (xp / (nextLevelXp > 0 ? nextLevelXp : 1)).clamp(
-                              0.0,
-                              1.0,
-                            ),
-                            backgroundColor: AppColors.grey800,
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              AppColors.primary,
-                            ),
-                            minHeight: 6,
-                          ),
-                        ),
-                      ],
+                        );
+                      },
                     ),
                   ),
                 ],

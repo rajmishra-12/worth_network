@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
 import 'package:worth_network/core/repo/action_repo.dart';
+import 'package:worth_network/core/services/notification_service.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
@@ -117,11 +118,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget _buildNotificationCard(Map<String, dynamic> item, AppLocalizations loc) {
     final String id = item['id'] as String? ?? '';
     final type = item['type'] as String;
-    String title = item['title'] as String? ?? '';
-    String description = item['description'] as String? ?? '';
     String time = item['time'] as String? ?? '';
     final bool isRead = item['isRead'] ?? false;
     final createdAt = item['createdAt'];
+
+    final localized = NotificationService.formatNotificationText(
+      data: item,
+      language: loc.localeCode,
+    );
+    String title = localized['title']!;
+    String description = localized['body']!;
 
     if (type == 'level_up') {
       title = loc.translate('notif_level_up_title');
@@ -136,40 +142,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       final translatedBadge = loc.translateBadgeName(badgeRaw);
       description = loc.translateFormatted('notif_badge_unlocked_desc', {'badge': translatedBadge});
       time = loc.translate('notif_time_unlocked');
-    } else if (type == 'validation_requested' || type == 'validation_request') {
-      title = loc.translate('notif_val_requested_title');
-      if (createdAt is DateTime) {
-        time = loc.formatTimeAgo(createdAt);
-      }
-    } else if (type == 'independent_validation_request') {
-      title = loc.translate('notif_independent_request_title');
-      description = loc.translate('notif_independent_request_desc');
-      if (createdAt is DateTime) {
-        time = loc.formatTimeAgo(createdAt);
-      }
-    } else if (type == 'independent_action_submitted') {
-      title = loc.translate('notif_independent_submitted_title');
-      if (createdAt is DateTime) {
-        time = loc.formatTimeAgo(createdAt);
-      }
-    } else if (type == 'approved') {
-      if (title.contains('Certified')) {
-        title = loc.translate('notif_action_certified_title');
-      } else {
-        title = loc.translate('notif_action_confirmed_title');
-      }
-      if (createdAt is DateTime) {
-        time = loc.formatTimeAgo(createdAt);
-      }
-    } else if (type == 'rejected') {
-      title = loc.translate('notif_val_rejected_title');
-      if (createdAt is DateTime) {
-        time = loc.formatTimeAgo(createdAt);
-      }
-    } else {
-      if (createdAt is DateTime) {
-        time = loc.formatTimeAgo(createdAt);
-      }
+    }
+
+    if (createdAt is DateTime && (time.isEmpty || (type != 'level_up' && type != 'badge_unlocked'))) {
+      time = loc.formatTimeAgo(createdAt);
     }
 
     IconData icon;

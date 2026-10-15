@@ -179,6 +179,26 @@ class ProfileCubit extends Cubit<ProfileState> {
             } catch (_) {}
           }
 
+          final userXp = (data['xp'] ?? 0) as int;
+          final computedLevel = (userXp / 100).floor() + 1;
+          final finalLevel = userLevel > computedLevel ? userLevel : computedLevel;
+          final nextLevelXp = finalLevel * 100;
+
+          final validatedActionsCount = myActions.where((a) => a.isValidated).length;
+          final double dynamicValidatedPercentage = totalActionsCount > 0
+              ? (validatedActionsCount / totalActionsCount) * 100
+              : 0.0;
+
+          // Auto-heal any stale nextLevelXp or validatedPercentage in Firestore
+          if (data['nextLevelXp'] != nextLevelXp ||
+              (data['validatedPercentage'] as num?)?.toDouble() != dynamicValidatedPercentage) {
+            doc.reference.update({
+              'nextLevelXp': nextLevelXp,
+              'validatedPercentage': dynamicValidatedPercentage,
+              'level': finalLevel,
+            }).catchError((_) {});
+          }
+
           final profile = ProfileModel(
             id: currentUser.uid,
             name: data['name'] ?? currentUser.displayName ?? 'User',
@@ -191,12 +211,11 @@ class ProfileCubit extends Cubit<ProfileState> {
                     .toList() ??
                 const [],
             score: userScore,
-            level: userLevel,
-            xp: data['xp'] ?? 0,
-            nextLevelXp: data['nextLevelXp'] ?? 100,
+            level: finalLevel,
+            xp: userXp,
+            nextLevelXp: nextLevelXp,
             totalActions: totalActionsCount,
-            validatedPercentage:
-                (data['validatedPercentage'] as num?)?.toDouble() ?? 0.0,
+            validatedPercentage: dynamicValidatedPercentage,
             badges: dynamicBadges,
           );
 

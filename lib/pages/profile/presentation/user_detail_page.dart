@@ -82,9 +82,11 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
         _accountType = data['accountType'] as String?;
         _roles = (data['roles'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
         _score = data['score'] ?? 0;
-        _level = data['level'] ?? 1;
         _xp = data['xp'] ?? 0;
-        _nextLevelXp = data['nextLevelXp'] ?? 100;
+        final rawLevel = (data['level'] ?? 1) as int;
+        final computedLevel = (_xp / 100).floor() + 1;
+        _level = rawLevel > computedLevel ? rawLevel : computedLevel;
+        _nextLevelXp = _level * 100;
       }
 
       // Fetch user published actions

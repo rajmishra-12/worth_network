@@ -28,6 +28,13 @@ class AddActionCubit extends Cubit<AddActionState> {
     emit(state.copyWith(description: description, clearErrorMessage: true));
   }
 
+  void updateImpact(String impact) {
+    emit(state.copyWith(
+      impact: impact,
+      clearErrorMessage: true,
+    ));
+  }
+
   void updateCategory(String category) {
     emit(state.copyWith(category: category));
   }
@@ -178,13 +185,36 @@ class AddActionCubit extends Cubit<AddActionState> {
   }
 
   Future<void> submitAction() async {
+    final effectiveDesc = state.description.trim().isNotEmpty
+        ? state.description.trim()
+        : state.impact.trim();
+    final effectiveImpact = state.impact.trim().isNotEmpty
+        ? state.impact.trim()
+        : null;
+
     if (state.title.trim().isEmpty ||
-        state.description.trim().isEmpty ||
+        effectiveDesc.isEmpty ||
         state.category.trim().isEmpty) {
       emit(state.copyWith(
         errorMessage: 'Please fill all required fields (title, description, category)',
       ));
       return;
+    }
+
+    final isIndependent = state.validationType == 'independent' || state.requestIndependentValidation;
+
+    // Requirement: Supporting evidence (photo, document, audio, link) is strictly required for WORTH team validation
+    if (isIndependent) {
+      final hasSupportingEvidence = state.evidences.any(
+        (e) => e.type == 'photo' || e.type == 'document' || e.type == 'audio' || e.type == 'link',
+      ) || (state.evidenceFile != null && state.evidenceType != EvidenceType.text && state.evidenceType != EvidenceType.none);
+
+      if (!hasSupportingEvidence) {
+        emit(state.copyWith(
+          errorMessage: 'err_independent_evidence_required',
+        ));
+        return;
+      }
     }
 
     emit(state.copyWith(isSubmitting: true, errorMessage: null));
@@ -212,12 +242,11 @@ class AddActionCubit extends Cubit<AddActionState> {
           break;
       }
 
-      final isIndependent = state.validationType == 'independent' || state.requestIndependentValidation;
-
       await _repository.publishAction(
         title: state.title,
-        description: state.description,
+        description: effectiveDesc,
         category: state.category,
+        impact: effectiveImpact,
         proofType: proofType,
         proofFile: state.evidenceFile,
         textProof: state.textProof,

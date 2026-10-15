@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
 import 'package:worth_network/core/model/home/action_model.dart';
+import 'package:worth_network/core/repo/action_repo.dart';
 import 'package:worth_network/core/repo/moderation_repo.dart';
 import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
 import 'package:worth_network/core/utils/app_localizations.dart';
+import 'package:worth_network/core/utils/preferences.dart';
 import 'package:worth_network/pages/home/cubit/home_cubit.dart';
 import 'package:worth_network/pages/home/widgets/empty_feed_widget.dart';
 import 'package:worth_network/pages/home/widgets/proof_card.dart';
@@ -140,189 +142,192 @@ class ActionCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // User Info Row
+              // User Info Header
               Padding(
-                padding: const EdgeInsets.all(AppSize.paddingM),
-                child: Row(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSize.paddingM,
+                  AppSize.paddingM,
+                  AppSize.paddingM,
+                  AppSize.paddingS + 2,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    GestureDetector(
-                      onTap: onUserTap,
-                      child: CircleAvatar(
-                        radius: 20,
-                        backgroundColor: AppColors.grey800,
-                        backgroundImage: (action.userAvatar != null &&
-                                action.userAvatar!.isNotEmpty &&
-                                !action.userAvatar!.contains('pravatar.cc'))
-                            ? NetworkImage(action.userAvatar!)
-                            : null,
-                        onBackgroundImageError: (action.userAvatar != null &&
-                                action.userAvatar!.isNotEmpty &&
-                                !action.userAvatar!.contains('pravatar.cc'))
-                            ? (_, __) {}
-                            : null,
-                        child: (action.userAvatar == null ||
-                                action.userAvatar!.isEmpty ||
-                                action.userAvatar!.contains('pravatar.cc'))
-                            ? const Icon(
-                                Icons.person_rounded,
-                                size: 22,
-                                color: AppColors.grey400,
-                              )
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(width: AppSize.spacingM),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: onUserTap,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              action.userName,
-                              style: CustomTextStyle.size14W600(
-                                color: AppColors.white100,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        GestureDetector(
+                          onTap: onUserTap,
+                          child: CircleAvatar(
+                            radius: 20,
+                            backgroundColor: AppColors.grey800,
+                            backgroundImage: (action.userAvatar != null &&
+                                    action.userAvatar!.isNotEmpty &&
+                                    !action.userAvatar!.contains('pravatar.cc'))
+                                ? NetworkImage(action.userAvatar!)
+                                : null,
+                            onBackgroundImageError: (action.userAvatar != null &&
+                                    action.userAvatar!.isNotEmpty &&
+                                    !action.userAvatar!.contains('pravatar.cc'))
+                                ? (exception, stackTrace) {}
+                                : null,
+                            child: (action.userAvatar == null ||
+                                    action.userAvatar!.isEmpty ||
+                                    action.userAvatar!.contains('pravatar.cc'))
+                                ? const Icon(
+                                    Icons.person_rounded,
+                                    size: 22,
+                                    color: AppColors.grey400,
+                                  )
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(width: AppSize.spacingM),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: onUserTap,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                Text(
+                                  action.userName,
+                                  style: CustomTextStyle.size14W600(
+                                    color: AppColors.white100,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
                                 Text(
                                   _formatTimeAgo(action.createdAt, loc),
                                   style: CustomTextStyle.size12W400(
                                     color: AppColors.grey400,
                                   ),
                                 ),
-                                const SizedBox(width: AppSize.spacingS),
-                                Flexible(
-                                  child: ValidationBadge(status: action.validationStatus),
-                                ),
                               ],
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    InkWell(
-                      onTap: () => showScoreInfoSheet(context, action, loc),
-                      borderRadius: BorderRadius.circular(AppSize.radiusM),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSize.paddingS + 2,
-                          vertical: AppSize.paddingXS + 1,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.grey800,
-                          borderRadius: BorderRadius.circular(AppSize.radiusM),
-                          border: Border.all(
-                            color: action.isValidated
-                                ? AppColors.accent.withValues(alpha: 0.4)
-                                : action.validationStatus == ValidationStatus.rejected
-                                    ? AppColors.error.withValues(alpha: 0.4)
-                                    : AppColors.warning.withValues(alpha: 0.4),
                           ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              action.isValidated
-                                  ? Icons.star
-                                  : action.validationStatus == ValidationStatus.rejected
-                                      ? Icons.cancel_outlined
-                                      : Icons.star_outline_rounded,
-                              color: action.isValidated
-                                  ? AppColors.accent
-                                  : action.validationStatus == ValidationStatus.rejected
-                                      ? AppColors.error
-                                      : AppColors.warning,
-                              size: 14,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              action.validationStatus == ValidationStatus.rejected
-                                  ? '0'
-                                  : '+${action.score}',
-                              style: CustomTextStyle.size13W600(
-                                color: action.isValidated
-                                    ? AppColors.accent
-                                    : action.validationStatus == ValidationStatus.rejected
-                                        ? AppColors.error
-                                        : AppColors.warning,
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.more_vert, color: AppColors.grey400, size: 20),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          color: AppColors.grey900,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppSize.radiusS),
+                            side: const BorderSide(color: AppColors.grey800),
+                          ),
+                          onSelected: (value) async {
+                            if (value == 'delete') {
+                              _showDeleteConfirmation(context, loc);
+                            } else if (value == 'report') {
+                              ReportDialog.show(
+                                context,
+                                reportedUserId: action.userId,
+                                reportedUserName: action.userName,
+                                contentId: action.id,
+                                contentType: 'action',
+                                contentPreview: '${action.title}\n${action.description}',
+                              );
+                            } else if (value == 'block') {
+                              _confirmBlockUser(context, action.userId, action.userName, action.userAvatar, loc);
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            if (action.userId == Preferences().userId || onDeleteTap != null) ...[
+                              if (onDeleteTap != null)
+                                PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.delete_outline, color: AppColors.error, size: 18),
+                                      const SizedBox(width: 8),
+                                      Text(loc.translate('delete_btn'), style: CustomTextStyle.size14W500(color: AppColors.error)),
+                                    ],
+                                  ),
+                                ),
+                            ] else ...[
+                              PopupMenuItem(
+                                value: 'report',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.flag_outlined, color: AppColors.warning, size: 18),
+                                    const SizedBox(width: 8),
+                                    Text(loc.translate('report_action'), style: CustomTextStyle.size14W500(color: AppColors.white100)),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'block',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.block_outlined, color: AppColors.error, size: 18),
+                                    const SizedBox(width: 8),
+                                    Text(loc.translate('block_user'), style: CustomTextStyle.size14W500(color: AppColors.error)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSize.spacingS + 2),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        ValidationBadge(status: action.validationStatus),
+                        const SizedBox(width: AppSize.spacingS),
+                        Flexible(
+                          child: InkWell(
+                            onTap: () => showScoreInfoSheet(context, action, loc),
+                            borderRadius: BorderRadius.circular(AppSize.radiusM),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSize.paddingS + 2,
+                                vertical: AppSize.paddingXS + 1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.grey800,
+                                borderRadius: BorderRadius.circular(AppSize.radiusM),
+                                border: Border.all(
+                                  color: getPointsColor(action).withValues(alpha: 0.4),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    action.isValidated
+                                        ? Icons.star
+                                        : action.validationStatus == ValidationStatus.rejected
+                                            ? Icons.cancel_outlined
+                                            : Icons.star_outline_rounded,
+                                    color: getPointsColor(action),
+                                    size: 13,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      formatPointsBadge(action, loc),
+                                      style: CustomTextStyle.size11W600(
+                                        color: getPointsColor(action),
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.info_outline_rounded,
+                                    size: 11,
+                                    color: getPointsColor(action).withValues(alpha: 0.7),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              Icons.info_outline_rounded,
-                              size: 12,
-                              color: action.isValidated
-                                  ? AppColors.accent.withValues(alpha: 0.7)
-                                  : action.validationStatus == ValidationStatus.rejected
-                                      ? AppColors.error.withValues(alpha: 0.7)
-                                      : AppColors.warning.withValues(alpha: 0.7),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert, color: AppColors.grey400, size: 20),
-                      color: AppColors.grey900,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppSize.radiusS),
-                        side: const BorderSide(color: AppColors.grey800),
-                      ),
-                      onSelected: (value) async {
-                        if (value == 'delete') {
-                          _showDeleteConfirmation(context, loc);
-                        } else if (value == 'report') {
-                          ReportDialog.show(
-                            context,
-                            reportedUserId: action.userId,
-                            reportedUserName: action.userName,
-                            contentId: action.id,
-                            contentType: 'action',
-                            contentPreview: '${action.title}\n${action.description}',
-                          );
-                        } else if (value == 'block') {
-                          _confirmBlockUser(context, action.userId, action.userName, action.userAvatar, loc);
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        if (onDeleteTap != null)
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                const Icon(Icons.delete_outline, color: AppColors.error, size: 18),
-                                const SizedBox(width: 8),
-                                Text(loc.translate('delete_btn'), style: CustomTextStyle.size14W500(color: AppColors.error)),
-                              ],
-                            ),
-                          )
-                        else ...[
-                          PopupMenuItem(
-                            value: 'report',
-                            child: Row(
-                              children: [
-                                const Icon(Icons.flag_outlined, color: AppColors.warning, size: 18),
-                                const SizedBox(width: 8),
-                                Text(loc.translate('report_action'), style: CustomTextStyle.size14W500(color: AppColors.white100)),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'block',
-                            child: Row(
-                              children: [
-                                const Icon(Icons.block_outlined, color: AppColors.error, size: 18),
-                                const SizedBox(width: 8),
-                                Text(loc.translate('block_user'), style: CustomTextStyle.size14W500(color: AppColors.error)),
-                              ],
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ],
@@ -387,6 +392,46 @@ class ActionCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              // Subtle Positive Impact Note (compact, non-intrusive, non-expanding)
+              if (action.impact != null && action.impact!.trim().isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSize.paddingM),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.spa_outlined,
+                        size: 13,
+                        color: AppColors.grey500,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '${loc.translate('impact_label')}: ',
+                                style: CustomTextStyle.size12W500(
+                                  color: AppColors.grey400,
+                                ),
+                              ),
+                              TextSpan(
+                                text: action.impact!,
+                                style: CustomTextStyle.size12W400(
+                                  color: AppColors.grey500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               // Action Buttons
               Padding(
                 padding: const EdgeInsets.fromLTRB(
@@ -474,6 +519,29 @@ class ActionCard extends StatelessWidget {
         return AppColors.primary;
       default:
         return AppColors.grey400;
+    }
+  }
+
+  static String formatPointsBadge(ActionModel action, AppLocalizations loc) {
+    if (action.isValidated) {
+      return loc.translateFormatted('points_earned_badge', {'pts': '${action.score}'});
+    } else if (action.validationStatus == ValidationStatus.rejected) {
+      return loc.translate('points_rejected_badge');
+    } else if (action.validationStatus == ValidationStatus.pending || action.isPendingIndependentReview) {
+      return loc.translateFormatted('points_pending_badge', {'pts': '${action.score}'});
+    } else {
+      // Self-declared action that has not yet been submitted/validated
+      return loc.translateFormatted('points_after_validation_badge', {'pts': '${action.score}'});
+    }
+  }
+
+  static Color getPointsColor(ActionModel action) {
+    if (action.isValidated) {
+      return AppColors.accent;
+    } else if (action.validationStatus == ValidationStatus.rejected) {
+      return AppColors.error;
+    } else {
+      return AppColors.warning;
     }
   }
 

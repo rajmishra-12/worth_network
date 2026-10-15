@@ -35,7 +35,7 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
     try {
       await _actionRepo.addComment(widget.action.id, text);
       _commentController.clear();
-      FocusScope.of(context).unfocus();
+      FocusManager.instance.primaryFocus?.unfocus();
     } catch (e) {
       if (mounted) {
         final localeCode = context.read<LocaleCubit>().state;
@@ -52,6 +52,7 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
   @override
   void dispose() {
     _commentController.dispose();
+    FocusManager.instance.primaryFocus?.unfocus();
     super.dispose();
   }
 
@@ -128,10 +129,13 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                 ],
               ),
 
-          body: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
+          body: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
                   padding: const EdgeInsets.all(AppSize.paddingM),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,102 +197,98 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
 
                   Row(
                     children: [
-                      GestureDetector(
-                        onTap: () {
-                          context.push('/user-detail', extra: {
-                            'userId': action.userId,
-                            'userName': action.userName,
-                            'userAvatar': action.userAvatar,
-                          });
-                        },
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 22,
-                              backgroundColor: AppColors.grey800,
-                              backgroundImage: action.userAvatar != null && action.userAvatar!.isNotEmpty
-                                  ? NetworkImage(action.userAvatar!)
-                                  : null,
-                              child: action.userAvatar == null || action.userAvatar!.isEmpty
-                                  ? Text(action.userName.isNotEmpty ? action.userName[0].toUpperCase() : 'U',
-                                      style: const TextStyle(color: AppColors.white100))
-                                  : null,
-                            ),
-                            const SizedBox(width: AppSize.spacingM),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  action.userName,
-                                  style: CustomTextStyle.size15W600(color: AppColors.white100),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            context.push('/user-detail', extra: {
+                              'userId': action.userId,
+                              'userName': action.userName,
+                              'userAvatar': action.userAvatar,
+                            });
+                          },
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 22,
+                                backgroundColor: AppColors.grey800,
+                                backgroundImage: action.userAvatar != null && action.userAvatar!.isNotEmpty
+                                    ? NetworkImage(action.userAvatar!)
+                                    : null,
+                                child: action.userAvatar == null || action.userAvatar!.isEmpty
+                                    ? Text(action.userName.isNotEmpty ? action.userName[0].toUpperCase() : 'U',
+                                        style: const TextStyle(color: AppColors.white100))
+                                    : null,
+                              ),
+                              const SizedBox(width: AppSize.spacingM),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      action.userName,
+                                      style: CustomTextStyle.size15W600(color: AppColors.white100),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      DateFormat.yMMMMd(localeCode).format(action.createdAt),
+                                      style: CustomTextStyle.size12W400(color: AppColors.grey500),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  DateFormat.yMMMMd(localeCode).format(action.createdAt),
-                                  style: CustomTextStyle.size12W400(color: AppColors.grey500),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: AppSize.spacingS),
+                      Flexible(
+                        child: InkWell(
+                          onTap: () => ActionCard.showScoreInfoSheet(context, action, loc),
+                          borderRadius: BorderRadius.circular(AppSize.radiusM),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.grey900,
+                              borderRadius: BorderRadius.circular(AppSize.radiusM),
+                              border: Border.all(
+                                color: ActionCard.getPointsColor(action).withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  action.isValidated
+                                      ? Icons.star
+                                      : action.validationStatus == ValidationStatus.rejected
+                                          ? Icons.cancel_outlined
+                                          : Icons.star_outline_rounded,
+                                  color: ActionCard.getPointsColor(action),
+                                  size: 15,
+                                ),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    ActionCard.formatPointsBadge(action, loc),
+                                    style: CustomTextStyle.size13W600(
+                                      color: ActionCard.getPointsColor(action),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.info_outline_rounded,
+                                  size: 13,
+                                  color: ActionCard.getPointsColor(action).withValues(alpha: 0.7),
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                      ),
-                      const Spacer(),
-                      InkWell(
-                        onTap: () => ActionCard.showScoreInfoSheet(context, action, loc),
-                        borderRadius: BorderRadius.circular(AppSize.radiusM),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: AppColors.grey900,
-                            borderRadius: BorderRadius.circular(AppSize.radiusM),
-                            border: Border.all(
-                              color: action.isValidated
-                                  ? AppColors.accent.withValues(alpha: 0.4)
-                                  : action.validationStatus == ValidationStatus.rejected
-                                      ? AppColors.error.withValues(alpha: 0.4)
-                                      : AppColors.warning.withValues(alpha: 0.4),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                action.isValidated
-                                    ? Icons.star
-                                    : action.validationStatus == ValidationStatus.rejected
-                                        ? Icons.cancel_outlined
-                                        : Icons.star_outline_rounded,
-                                color: action.isValidated
-                                    ? AppColors.accent
-                                    : action.validationStatus == ValidationStatus.rejected
-                                        ? AppColors.error
-                                        : AppColors.warning,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                action.validationStatus == ValidationStatus.rejected
-                                    ? '0'
-                                    : '+${action.score}',
-                                style: CustomTextStyle.size14W600(
-                                  color: action.isValidated
-                                  ? AppColors.accent
-                                  : action.validationStatus == ValidationStatus.rejected
-                                      ? AppColors.error
-                                      : AppColors.warning,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Icon(
-                                Icons.info_outline_rounded,
-                                size: 13,
-                                color: action.isValidated
-                                    ? AppColors.accent.withValues(alpha: 0.7)
-                                    : action.validationStatus == ValidationStatus.rejected
-                                        ? AppColors.error.withValues(alpha: 0.7)
-                                        : AppColors.warning.withValues(alpha: 0.7),
-                              ),
-                            ],
                           ),
                         ),
                       ),
@@ -522,6 +522,20 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
                   ),
                   const SizedBox(height: AppSize.spacingXL),
 
+                  // Positive Impact Section
+                  if (action.impact != null && action.impact!.trim().isNotEmpty) ...[
+                    Text(
+                      loc.translate('action_impact_title'),
+                      style: CustomTextStyle.size15W600(color: AppColors.white100),
+                    ),
+                    const SizedBox(height: AppSize.spacingS),
+                    Text(
+                      action.impact!,
+                      style: CustomTextStyle.size14W400(color: AppColors.grey300),
+                    ),
+                    const SizedBox(height: AppSize.spacingXL),
+                  ],
+
                   // Evidence / Proof Section
                   Text(
                     loc.translate('uploaded_proof_label'),
@@ -680,7 +694,8 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
           ),
         ],
       ),
-    );
+    ),
+  );
   },
 );
       },

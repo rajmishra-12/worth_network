@@ -81,6 +81,7 @@ class _DashboardScreenAnimatedState extends State<DashboardScreenAnimated> {
                       ),
                       currentIndex: state.currentIndex,
                       onTap: (index) {
+                        FocusManager.instance.primaryFocus?.unfocus();
                         context.read<DashboardCubit>().changeTab(index);
                       },
                       elevation: 0,

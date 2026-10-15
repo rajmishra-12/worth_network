@@ -32,6 +32,7 @@ class _AddActionScreenState extends State<AddActionScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _impactController = TextEditingController();
   final _personController = TextEditingController();
   
   late AddActionCubit _cubit;
@@ -44,8 +45,10 @@ class _AddActionScreenState extends State<AddActionScreen> {
 
   @override
   void dispose() {
+    FocusManager.instance.primaryFocus?.unfocus();
     _titleController.dispose();
     _descriptionController.dispose();
+    _impactController.dispose();
     _personController.dispose();
     super.dispose();
   }
@@ -71,6 +74,8 @@ class _AddActionScreenState extends State<AddActionScreen> {
                     onPressed: state.isSubmitting
                         ? null
                         : () {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            FocusScope.of(context).unfocus();
                             if (_formKey.currentState!.validate()) {
                               _cubit.submitAction();
                             }
@@ -95,30 +100,43 @@ class _AddActionScreenState extends State<AddActionScreen> {
               ),
             ],
           ),
-          body: BlocConsumer<AddActionCubit, AddActionState>(
-            listener: (context, state) {
-              if (state.isSuccess) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(loc.translate('action_submitted_success')),
-                    backgroundColor: AppColors.success,
-                  ),
-                );
+          body: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              FocusManager.instance.primaryFocus?.unfocus();
+              FocusScope.of(context).unfocus();
+            },
+            child: BlocConsumer<AddActionCubit, AddActionState>(
+              listener: (context, state) {
+                if (state.isSuccess) {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  FocusScope.of(context).unfocus();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(loc.translate('action_submitted_success')),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
 
-                // Navigate to Home tab
-                context.read<DashboardCubit>().changeTab(0);
+                  // Navigate to Home tab
+                  context.read<DashboardCubit>().changeTab(0);
 
-                // Reset cubit state
-                _cubit.resetState();
+                  // Reset cubit state
+                  _cubit.resetState();
 
-                if (Navigator.canPop(context)) {
-                  Navigator.pop(context);
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
                 }
-              } else if (state.errorMessage != null) {
+ else if (state.errorMessage != null) {
+                final rawMsg = state.errorMessage!;
+                final errorMsg = rawMsg.startsWith('err_')
+                    ? loc.translate(rawMsg)
+                    : rawMsg;
                 ScaffoldMessenger.of(context).hideCurrentSnackBar();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(state.errorMessage!),
+                    content: Text(errorMsg),
                     backgroundColor: AppColors.error,
                   ),
                 );
@@ -126,6 +144,7 @@ class _AddActionScreenState extends State<AddActionScreen> {
               }
             },
             builder: (context, state) {
+              final isIndependentValidation = state.validationType == 'independent' || state.requestIndependentValidation;
               return Form(
                 key: _formKey,
                 child: SingleChildScrollView(
@@ -133,6 +152,43 @@ class _AddActionScreenState extends State<AddActionScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Impact Callout Header
+                      Container(
+                        margin: const EdgeInsets.only(bottom: AppSize.paddingM),
+                        padding: const EdgeInsets.all(AppSize.paddingS + 2),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.primary.withValues(alpha: 0.15),
+                              AppColors.grey900,
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(AppSize.radiusM),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.35),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.spa_outlined,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
+                            const SizedBox(width: AppSize.spacingS),
+                            Expanded(
+                              child: Text(
+                                loc.translate('action_impact_question'),
+                                style: CustomTextStyle.size13W500(
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
                       // Title Field
                       _buildLabel(loc.translate('title_label')),
                       const SizedBox(height: AppSize.spacingS),
@@ -372,25 +428,73 @@ class _AddActionScreenState extends State<AddActionScreen> {
                       const SizedBox(height: AppSize.spacingL),
 
                       
-                      // Description Field
-                      _buildLabel(loc.translate('description_label')),
+                      // Positive Impact Question Card & Field
+                      Container(
+                        padding: const EdgeInsets.all(AppSize.paddingM),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(AppSize.radiusM),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(
+                                  Icons.volunteer_activism_outlined,
+                                  color: AppColors.primary,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: AppSize.spacingS),
+                                Expanded(
+                                  child: Text(
+                                    loc.translate('action_impact_question'),
+                                    style: CustomTextStyle.size14W600(
+                                      color: AppColors.white100,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSize.spacingM),
+                            TextFormField(
+                              controller: _impactController,
+                              style: CustomTextStyle.size15W400(color: AppColors.white100),
+                              maxLines: 4,
+                              decoration: _buildInputDecoration(
+                                hintText: loc.translate('action_impact_placeholder'),
+                              ),
+                              validator: (value) {
+                                final text = value?.trim() ?? '';
+                                final desc = _descriptionController.text.trim();
+                                if (text.isEmpty && desc.isEmpty) {
+                                  return loc.translate('err_desc_required');
+                                }
+                                return null;
+                              },
+                              onChanged: (value) {
+                                _cubit.updateImpact(value);
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppSize.spacingL),
+
+                      // Description Field (Optional details)
+                      _buildLabel('${loc.translate('description_label')} (${loc.translate('optional')})'),
                       const SizedBox(height: AppSize.spacingS),
                       TextFormField(
                         controller: _descriptionController,
                         style: CustomTextStyle.size15W400(color: AppColors.white100),
-                        maxLines: 4,
+                        maxLines: 3,
                         decoration: _buildInputDecoration(
                           hintText: loc.translate('describe_placeholder'),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return loc.translate('err_desc_required');
-                          }
-                          if (value.length < 10) {
-                            return loc.translate('err_desc_min_length');
-                          }
-                          return null;
-                        },
                         onChanged: (value) => _cubit.updateDescription(value),
                       ),
                       const SizedBox(height: AppSize.spacingL),
@@ -400,23 +504,51 @@ class _AddActionScreenState extends State<AddActionScreen> {
                         children: [
                           Icon(
                             Icons.verified_outlined,
-                            color: AppColors.primary,
+                            color: isIndependentValidation ? AppColors.accent : AppColors.primary,
                             size: 20,
                           ),
                           const SizedBox(width: AppSize.spacingS),
-                          Text(
-                            loc.translate('add_proof_title'),
-                            style: CustomTextStyle.size16W600(
-                              color: AppColors.white100,
+                          Expanded(
+                            child: Text(
+                              isIndependentValidation
+                                  ? loc.translate('evidence_required_for_worth')
+                                  : loc.translate('add_proof_title'),
+                              style: CustomTextStyle.size16W600(
+                                color: isIndependentValidation ? AppColors.accent : AppColors.white100,
+                              ),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: AppSize.spacingS),
-                      Text(
-                        loc.translate('add_proof_desc'),
-                        style: CustomTextStyle.size12W400(color: AppColors.grey400),
-                      ),
+                      if (isIndependentValidation) ...[
+                        Container(
+                          padding: const EdgeInsets.all(AppSize.paddingS + 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.accent.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(AppSize.radiusS),
+                            border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.info_outline, size: 16, color: AppColors.accent),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  loc.translate('evidence_required_for_worth_banner'),
+                                  style: CustomTextStyle.size12W400(color: AppColors.grey300),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else ...[
+                        Text(
+                          loc.translate('add_proof_desc'),
+                          style: CustomTextStyle.size12W400(color: AppColors.grey400),
+                        ),
+                      ],
                       const SizedBox(height: AppSize.spacingM),
                       
                       // Evidence Type Selector
@@ -552,9 +684,10 @@ class _AddActionScreenState extends State<AddActionScreen> {
               );
             },
           ),
-        );
-      },
-    );
+        ),
+      );
+    },
+  );
   }
 
   Widget _buildLabel(String text) {

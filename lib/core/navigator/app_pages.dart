@@ -27,12 +27,39 @@ import 'package:worth_network/pages/network/presentation/user_connections_page.d
 
 part 'app_router.dart';
 
+class KeyboardDismisserObserver extends NavigatorObserver {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    super.didPush(route, previousRoute);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    super.didPop(route, previousRoute);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+  }
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    super.didRemove(route, previousRoute);
+  }
+}
+
 class Pages {
   static GoRouter get appRouter => _appRouter;
 
   static final GoRouter _appRouter = GoRouter(
     initialLocation: Routes.splashPage,
     navigatorKey: GlobalKeys.navigatorKey,
+    observers: [KeyboardDismisserObserver()],
     routes: [
       GoRoute(
         path: Routes.splashPage,

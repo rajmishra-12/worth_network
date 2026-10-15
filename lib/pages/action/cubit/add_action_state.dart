@@ -3,6 +3,7 @@ part of 'add_action_cubit.dart';
 class AddActionState extends Equatable {
   final String title;
   final String description;
+  final String impact;
   final String category;
   final DateTime date;
   final String? personInvolved;
@@ -23,6 +24,7 @@ class AddActionState extends Equatable {
   AddActionState({
     this.title = '',
     this.description = '',
+    this.impact = '',
     this.category = '',
     DateTime? date,
     this.personInvolved,
@@ -44,6 +46,7 @@ class AddActionState extends Equatable {
   AddActionState copyWith({
     String? title,
     String? description,
+    String? impact,
     String? category,
     DateTime? date,
     String? personInvolved,
@@ -66,6 +69,7 @@ class AddActionState extends Equatable {
     return AddActionState(
       title: title ?? this.title,
       description: description ?? this.description,
+      impact: impact ?? this.impact,
       category: category ?? this.category,
       date: date ?? this.date,
       personInvolved: personInvolved ?? this.personInvolved,
@@ -92,6 +96,7 @@ class AddActionState extends Equatable {
   List<Object?> get props => [
     title,
     description,
+    impact,
     category,
     date,
     personInvolved,

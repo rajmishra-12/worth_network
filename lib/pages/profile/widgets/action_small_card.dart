@@ -8,8 +8,8 @@ import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
 import 'package:worth_network/core/utils/app_localizations.dart';
+import 'package:worth_network/pages/home/widgets/action_cards.dart';
 import 'package:worth_network/pages/home/widgets/empty_feed_widget.dart';
-
 
 class ActionCardSmall extends StatelessWidget {
   final ActionModel action;
@@ -21,18 +21,8 @@ class ActionCardSmall extends StatelessWidget {
     return BlocBuilder<LocaleCubit, String>(
       builder: (context, localeCode) {
         final loc = AppLocalizations(localeCode);
-        final String pointsText;
-        final Color pointsColor;
-        if (action.isValidated) {
-          pointsText = '+${action.score} pts';
-          pointsColor = AppColors.primary;
-        } else if (action.validationStatus == ValidationStatus.rejected) {
-          pointsText = '0 pts';
-          pointsColor = AppColors.error;
-        } else {
-          pointsText = '+${action.score} pts';
-          pointsColor = AppColors.warning;
-        }
+        final String pointsText = ActionCard.formatPointsBadge(action, loc);
+        final Color pointsColor = ActionCard.getPointsColor(action);
 
         return Container(
           padding: const EdgeInsets.all(AppSize.paddingM),
@@ -77,9 +67,13 @@ class ActionCardSmall extends StatelessWidget {
                       children: [
                         ValidationBadge(status: action.validationStatus),
                         const SizedBox(width: AppSize.spacingS),
-                        Text(
-                          pointsText,
-                          style: CustomTextStyle.size11W500(color: pointsColor),
+                        Flexible(
+                          child: Text(
+                            pointsText,
+                            style: CustomTextStyle.size11W500(color: pointsColor),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),

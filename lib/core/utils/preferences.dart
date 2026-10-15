@@ -17,6 +17,7 @@ class Preferences {
   static const String _keyEmail = 'email';
   static const String _keyUsername = 'username';
   static const String _keyName = 'name';
+  static const String _keyLanguage = 'selected_language';
 
   // Getters & Setters
   bool get isLoggedIn => _prefs.getBool(_keyIsLoggedIn) ?? false;
@@ -33,6 +34,9 @@ class Preferences {
 
   String get name => _prefs.getString(_keyName) ?? '';
   set name(String value) => _prefs.setString(_keyName, value);
+
+  String get language => _prefs.getString(_keyLanguage) ?? 'fr';
+  set language(String value) => _prefs.setString(_keyLanguage, value);
 
   Future<void> clear() async {
     await _prefs.clear();

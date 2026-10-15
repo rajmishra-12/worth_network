@@ -43,6 +43,7 @@ class ActionModel extends Equatable {
   final String? reviewedByAdminId;
   final String? reviewedByAdminName;
   final String? rejectionReason;
+  final String? impact;
 
   const ActionModel({
     required this.id,
@@ -52,6 +53,7 @@ class ActionModel extends Equatable {
     required this.title,
     required this.description,
     required this.category,
+    this.impact,
     this.proofType,
     this.proofUrl,
     this.textProof,
@@ -122,6 +124,7 @@ class ActionModel extends Equatable {
     String? reviewedByAdminId,
     String? reviewedByAdminName,
     String? rejectionReason,
+    String? impact,
   }) {
     return ActionModel(
       id: id ?? this.id,
@@ -131,6 +134,7 @@ class ActionModel extends Equatable {
       title: title ?? this.title,
       description: description ?? this.description,
       category: category ?? this.category,
+      impact: impact ?? this.impact,
       proofType: proofType ?? this.proofType,
       proofUrl: proofUrl ?? this.proofUrl,
       textProof: textProof ?? this.textProof,
@@ -168,6 +172,7 @@ class ActionModel extends Equatable {
       'title': title,
       'description': description,
       'category': category,
+      if (impact != null) 'impact': impact,
       'proofType': proofType,
       'proofUrl': proofUrl,
       'textProof': textProof,
@@ -267,6 +272,7 @@ class ActionModel extends Equatable {
       title: map['title'] ?? '',
       description: map['description'] ?? '',
       category: map['category'] ?? 'General',
+      impact: map['impact'] as String?,
       proofType: map['proofType'],
       proofUrl: map['proofUrl'],
       textProof: map['textProof'],
@@ -304,6 +310,7 @@ class ActionModel extends Equatable {
         title,
         description,
         category,
+        impact,
         proofType,
         proofUrl,
         textProof,

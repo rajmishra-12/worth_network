@@ -7,6 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:worth_network/core/navigator/app_pages.dart';
 import 'package:worth_network/core/repo/action_repo.dart';
+import 'package:worth_network/core/utils/app_localizations.dart';
+import 'package:worth_network/core/utils/preferences.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -159,8 +161,9 @@ class NotificationService {
                     createdAt.toDate().isAfter(_serviceInitTime!.subtract(const Duration(seconds: 10))));
 
             if (isRecent) {
-              final title = data['title'] as String? ?? 'Worth Network';
-              final body = data['body'] as String? ?? data['description'] as String? ?? '';
+              final localized = formatNotificationText(data: data);
+              final title = localized['title']!;
+              final body = localized['body']!;
               final Map<String, dynamic> notificationPayload = {
                 ...data,
                 'docId': change.doc.id,
@@ -179,6 +182,88 @@ class NotificationService {
     }, onError: (e) {
       print('Error in Firestore notifications listener: $e');
     });
+  }
+
+  /// Format notification title & body according to the specified language (or active Preferences language)
+  static Map<String, String> formatNotificationText({
+    required Map<String, dynamic> data,
+    String? language,
+  }) {
+    final lang = language ?? Preferences().language;
+    final loc = AppLocalizations(lang);
+    final type = data['type'] as String? ?? '';
+    final rawTitle = data['title'] as String? ?? 'Worth Network';
+    final rawBody = data['body'] as String? ?? data['description'] as String? ?? '';
+    final actionTitle = (data['actionTitle'] ?? (data['action'] is Map ? data['action']['title'] : null)) as String? ?? '';
+    final requesterName = (data['requesterName'] ?? '') as String;
+    final validatorName = (data['validatorName'] ?? '') as String;
+    final score = data['score'] ?? data['awardScore'] ?? 50;
+    final isIndependent = data['isIndependent'] == true ||
+        rawTitle.toLowerCase().contains('independent') ||
+        rawTitle.toLowerCase().contains('indépendante') ||
+        rawTitle.toLowerCase().contains('validated') ||
+        rawTitle.toLowerCase().contains('validée') ||
+        type == 'independent_action_submitted' ||
+        type == 'independent_validation_request';
+
+    String title = rawTitle;
+    String body = rawBody;
+
+    if (type == 'approved') {
+      if (isIndependent) {
+        title = loc.translate('notif_action_validated_title');
+        body = loc.translateFormatted('notif_action_validated_desc', {'points': '$score'});
+      } else if (rawTitle.toLowerCase().contains('certified') || rawTitle.toLowerCase().contains('certifiée')) {
+        title = loc.translate('notif_action_certified_title');
+        body = loc.translateFormatted('notif_action_certified_desc', {
+          'action': actionTitle.isNotEmpty ? actionTitle : (lang == 'fr' ? 'Votre action' : 'Your action'),
+          'validator': validatorName.isNotEmpty ? validatorName : (lang == 'fr' ? 'un évaluateur' : 'a validator'),
+          'points': '100',
+        });
+      } else {
+        title = loc.translate('notif_action_confirmed_title');
+        body = loc.translateFormatted('notif_action_confirmed_desc', {
+          'action': actionTitle.isNotEmpty ? actionTitle : (lang == 'fr' ? 'Votre action' : 'Your action'),
+          'validator': validatorName.isNotEmpty ? validatorName : (lang == 'fr' ? 'un évaluateur' : 'a validator'),
+          'points': '$score',
+        });
+      }
+    } else if (type == 'rejected') {
+      title = loc.translate('notif_val_rejected_title');
+      if (isIndependent) {
+        final reason = data['reason'] != null && data['reason'].toString().trim().isNotEmpty
+            ? ' (${loc.translate('rejection_reason_prefix')}: ${data['reason'].toString().trim()})'
+            : '';
+        body = loc.translateFormatted('notif_independent_rejected_desc', {
+          'action': actionTitle.isNotEmpty ? actionTitle : (lang == 'fr' ? 'Votre action' : 'Your action'),
+          'reason': reason,
+        });
+      } else {
+        body = loc.translateFormatted('notif_val_rejected_desc', {
+          'action': actionTitle.isNotEmpty ? actionTitle : (lang == 'fr' ? 'Votre action' : 'Your action'),
+          'validator': validatorName.isNotEmpty ? validatorName : (lang == 'fr' ? 'l’évaluateur' : 'validator'),
+        });
+      }
+    } else if (type == 'validation_requested' || type == 'validation_request') {
+      title = loc.translate('notif_val_requested_title');
+      body = loc.translateFormatted('notif_val_requested_desc', {
+        'user': requesterName.isNotEmpty ? requesterName : (lang == 'fr' ? 'Un utilisateur' : 'A user'),
+        'action': actionTitle.isNotEmpty ? actionTitle : (lang == 'fr' ? 'une action' : 'an action'),
+      });
+    } else if (type == 'independent_validation_request') {
+      title = loc.translate('notif_independent_request_title');
+      body = loc.translateFormatted('notif_independent_admin_request_desc', {
+        'user': requesterName.isNotEmpty ? requesterName : (lang == 'fr' ? 'Un utilisateur' : 'A user'),
+        'action': actionTitle.isNotEmpty ? actionTitle : (lang == 'fr' ? 'une action' : 'an action'),
+      });
+    } else if (type == 'independent_action_submitted') {
+      title = loc.translate('notif_independent_submitted_title');
+      body = loc.translateFormatted('notif_independent_submitted_desc', {
+        'action': actionTitle.isNotEmpty ? actionTitle : (lang == 'fr' ? 'Votre action' : 'Your action'),
+      });
+    }
+
+    return {'title': title, 'body': body};
   }
 
   /// Convert non-encodable objects like Timestamp to JSON encodable primitives
@@ -269,11 +354,18 @@ class NotificationService {
 
   /// Show heads-up banner when notification arrives in foreground
   Future<void> _showLocalNotification(RemoteMessage message) async {
+    final payload = Map<String, dynamic>.from(message.data);
+    if (message.notification != null) {
+      payload['title'] ??= message.notification?.title;
+      payload['body'] ??= message.notification?.body;
+    }
+
+    final localized = formatNotificationText(data: payload);
+    String title = localized['title']!;
+    String body = localized['body']!;
+
     RemoteNotification? notification = message.notification;
     AndroidNotification? android = message.notification?.android;
-
-    String title = notification?.title ?? message.data['title'] ?? 'Worth Network Notification';
-    String body = notification?.body ?? message.data['body'] ?? '';
 
     _localNotifications.show(
       notification.hashCode,
@@ -355,21 +447,42 @@ class NotificationService {
     final senderUser = _auth.currentUser;
     final senderUid = senderUser?.uid ?? '';
 
+    // Fetch target user's preferred language from Firestore (default to French)
+    String targetLang = 'fr';
+    try {
+      final userDoc = await _firestore.collection('users').doc(targetUserId).get();
+      if (userDoc.exists) {
+        final userData = userDoc.data() ?? {};
+        targetLang = (userData['preferredLanguage'] ?? userData['language'] ?? 'fr') as String;
+      }
+    } catch (_) {}
+
+    final rawPayload = {
+      'type': type,
+      'title': title,
+      'body': body,
+      'actionId': actionId,
+      if (extraData != null) ...extraData,
+    };
+    final localized = formatNotificationText(data: rawPayload, language: targetLang);
+    final localizedTitle = localized['title']!;
+    final localizedBody = localized['body']!;
+
     // 1. Store in Firestore notifications collection (Real-time in-app feed)
     try {
       await _firestore.collection('notifications').add({
         'targetUserId': targetUserId,
         'requesterId': senderUid,
         'type': type,
-        'title': title,
-        'description': body,
-        'body': body,
+        'title': localizedTitle,
+        'description': localizedBody,
+        'body': localizedBody,
         'actionId': actionId,
         'createdAt': FieldValue.serverTimestamp(),
         'isRead': false,
         if (extraData != null) ...extraData,
       });
-      print('Saved notification entry in Firestore for user $targetUserId');
+      print('Saved notification entry in Firestore for user $targetUserId ($targetLang)');
     } catch (e) {
       print('Error writing notification document: $e');
     }

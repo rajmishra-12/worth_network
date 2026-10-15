@@ -25,6 +25,7 @@ class DashboardCubit extends Cubit<DashboardState> {
   }
 
   void changeTab(int index) {
+    FocusManager.instance.primaryFocus?.unfocus();
     emit(state.copyWith(currentIndex: index));
   }
 }

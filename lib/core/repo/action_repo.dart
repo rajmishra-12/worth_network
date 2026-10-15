@@ -134,6 +134,7 @@ class ActionRepository {
     required String title,
     required String description,
     required String category,
+    String? impact,
     String? proofType,
     File? proofFile,
     String? textProof,
@@ -155,6 +156,11 @@ class ActionRepository {
 
     final descError = await textService.checkText(description);
     if (descError != null) throw Exception(descError);
+
+    if (impact != null && impact.trim().isNotEmpty) {
+      final impactError = await textService.checkText(impact);
+      if (impactError != null) throw Exception(impactError);
+    }
 
     if (textProof != null && textProof.isNotEmpty) {
       final proofError = await textService.checkText(textProof);
@@ -226,6 +232,7 @@ class ActionRepository {
       'title': title.trim(),
       'description': description.trim(),
       'category': category,
+      if (impact != null && impact.trim().isNotEmpty) 'impact': impact.trim(),
       'proofType': firstEvidence?.type ?? proofType,
       'proofUrl': firstEvidence?.url ?? proofFile?.path,
       'textProof': firstEvidence?.text ?? textProof,
@@ -707,6 +714,30 @@ class ActionRepository {
     await docRef.delete();
   }
 
+  /// Update an action's positive impact statement
+  Future<void> updateActionImpact(String actionId, String impact) async {
+    final uid = currentUserId;
+    if (uid == null) throw Exception('Not authenticated');
+
+    final textService = ModerationTextService();
+    final error = await textService.checkText(impact);
+    if (error != null) throw Exception(error);
+
+    final docRef = _firestore.collection('actions').doc(actionId);
+    final snapshot = await docRef.get();
+    if (!snapshot.exists) throw Exception('Action not found');
+
+    final data = snapshot.data()!;
+    if (data['userId'] != uid) {
+      throw Exception('Only the post author can adjust this action.');
+    }
+
+    await docRef.update({
+      'impact': impact.trim(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   /// Real-time stream of a single action document with live user profile data
   Stream<ActionModel?> getActionStream(String actionId) {
     return _firestore
@@ -1115,6 +1146,7 @@ class ActionRepository {
             final newScore = currentScore + rewardScore;
             final newXp = currentXp + rewardScore;
             final newLevel = (newXp / 100).floor() + 1;
+            final nextLevelXp = newLevel * 100;
             final newTotalActions = currentTotalActions + 1;
 
             final userActionsSnap = await _firestore
@@ -1135,6 +1167,7 @@ class ActionRepository {
               'score': newScore,
               'xp': newXp,
               'level': newLevel,
+              'nextLevelXp': nextLevelXp,
               'totalActions': newTotalActions,
               'validatedPercentage': percentage.clamp(0.0, 100.0),
             });
@@ -1157,11 +1190,13 @@ class ActionRepository {
             final newScore = currentScore + 10;
             final newXp = currentXp + 10;
             final newLevel = (newXp / 100).floor() + 1;
+            final nextLevelXp = newLevel * 100;
 
             transaction.update(validatorRef, {
               'score': newScore,
               'xp': newXp,
               'level': newLevel,
+              'nextLevelXp': nextLevelXp,
             });
           }
         });
@@ -1192,6 +1227,12 @@ class ActionRepository {
         body: body,
         type: isRej ? 'rejected' : 'approved',
         actionId: actionId,
+        extraData: {
+          'actionTitle': actionTitle,
+          'validatorName': validatorName,
+          'score': scoreReward,
+          'decision': decision,
+        },
       );
     } catch (e) {
       print('Error sending validation decision notification: $e');
@@ -1436,12 +1477,14 @@ class ActionRepository {
         final newScore = currentScore + awardScore;
         final newXp = currentXp + awardScore;
         final newLevel = (newXp / 100).floor() + 1;
+        final nextLevelXp = newLevel * 100;
         final newTotalActions = currentTotalActions + 1;
 
         transaction.update(publisherRef, {
           'score': newScore,
           'xp': newXp,
           'level': newLevel,
+          'nextLevelXp': nextLevelXp,
           'totalActions': newTotalActions,
         });
       }
@@ -1453,9 +1496,14 @@ class ActionRepository {
         await NotificationService().sendNotification(
           targetUserId: publisherId,
           title: 'Action Validated!',
-          body: 'Your independent action "$actionTitle" has been approved by admin (+$awardScore Worth Score).',
+          body: 'Your action has been validated by the WORTH team. You earned $awardScore points.',
           type: 'approved',
           actionId: actionId,
+          extraData: {
+            'actionTitle': actionTitle,
+            'isIndependent': true,
+            'score': awardScore,
+          },
         );
       } catch (e) {
         print('Warning sending approval notification: $e');
@@ -1528,6 +1576,11 @@ class ActionRepository {
           body: 'Your independent validation request for "$actionTitle" was not approved.$reasonMsg',
           type: 'rejected',
           actionId: actionId,
+          extraData: {
+            'actionTitle': actionTitle,
+            'isIndependent': true,
+            'reason': trimmedReason,
+          },
         );
       } catch (e) {
         print('Warning sending rejection notification: $e');
