@@ -218,7 +218,7 @@ class NotificationService {
         body = loc.translateFormatted('notif_action_certified_desc', {
           'action': actionTitle.isNotEmpty ? actionTitle : (lang == 'fr' ? 'Votre action' : 'Your action'),
           'validator': validatorName.isNotEmpty ? validatorName : (lang == 'fr' ? 'un évaluateur' : 'a validator'),
-          'points': '100',
+          'points': '$score',
         });
       } else {
         title = loc.translate('notif_action_confirmed_title');

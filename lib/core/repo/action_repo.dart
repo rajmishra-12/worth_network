@@ -987,13 +987,15 @@ class ActionRepository {
                   action.validationStatus == ValidationStatus.certified) {
                 seenIds.add(notifId);
                 final isCert = action.validationStatus == ValidationStatus.certified;
-                final scoreReward = isCert ? 100 : 50;
+                const scoreReward = 50;
                 final validatorName = action.validatorName ?? 'Validator';
                 notifications.add({
                   'id': notifId,
                   'type': 'approved',
                   'title': isCert ? 'Action Certified!' : 'Action Confirmed!',
-                  'description': 'Your action "${action.title}" has been confirmed by $validatorName (+$scoreReward Worth Score)',
+                  'description': isCert
+                      ? 'Your action "${action.title}" was certified by WORTH (+$scoreReward Worth Score)'
+                      : 'Your action "${action.title}" has been confirmed by $validatorName (+$scoreReward Worth Score)',
                   'time': _formatNotificationTime(action.createdAt),
                   'createdAt': action.createdAt,
                   'action': action,
@@ -1098,13 +1100,19 @@ class ActionRepository {
     final actionData = actionDoc.data()!;
     final publisherId = actionData['userId'] as String;
 
+    final alreadyAwarded = actionData['xpAwarded'] == true;
+
     // Update action status
-    await actionRef.update({
+    final actionUpdates = <String, dynamic>{
       'validationStatus': decision,
       'validationComment': comment.trim(),
       'confidenceScore': confidence,
       'validatedAt': FieldValue.serverTimestamp(),
-    });
+    };
+    if (!alreadyAwarded && (decision == 'confirmed' || decision == 'certified')) {
+      actionUpdates['xpAwarded'] = true;
+    }
+    await actionRef.update(actionUpdates);
 
     // Update any pending validation_request notification docs for this validator & action in Firestore
     try {
@@ -1128,9 +1136,9 @@ class ActionRepository {
       print('Error updating validator notification: $e');
     }
 
-    // Evolution of Reputation & Stats
-    if (decision == 'confirmed' || decision == 'certified') {
-      final rewardScore = decision == 'certified' ? 100 : 50;
+    // Evolution of Reputation & Stats (50 XP reward, awarded only once)
+    if ((decision == 'confirmed' || decision == 'certified') && !alreadyAwarded) {
+      const rewardScore = 50;
 
       // 1. Update Publisher Profile
       try {
@@ -1216,10 +1224,12 @@ class ActionRepository {
       final title = isRej
           ? 'Validation Rejected'
           : (isCert ? 'Action Certified!' : 'Action Confirmed!');
-      final scoreReward = isCert ? 100 : 50;
+      const scoreReward = 50;
       final body = isRej
           ? 'Your action "$actionTitle" was rejected by $validatorName.'
-          : 'Your action "$actionTitle" was confirmed by $validatorName (+$scoreReward Worth Score)';
+          : (isCert
+              ? 'Your action "$actionTitle" was certified by WORTH (+$scoreReward Worth Score)'
+              : 'Your action "$actionTitle" was confirmed by $validatorName (+$scoreReward Worth Score)');
 
       await NotificationService().sendNotification(
         targetUserId: publisherId,
@@ -1454,12 +1464,14 @@ class ActionRepository {
       // ==========================================
 
       // WRITE 1: Update action document atomically
+      final alreadyAwarded = actionData['xpAwarded'] == true;
       final updates = <String, dynamic>{
-        'validationStatus': 'confirmed',
+        'validationStatus': 'certified',
         'independentReviewStatus': 'approved',
         'reviewedByAdminId': adminId,
         'reviewedByAdminName': adminName,
         'reviewedAt': FieldValue.serverTimestamp(),
+        if (!alreadyAwarded) 'xpAwarded': true,
       };
       if (adminNote != null && adminNote.trim().isNotEmpty) {
         updates['adminNote'] = adminNote.trim();
@@ -1467,8 +1479,8 @@ class ActionRepository {
 
       transaction.update(actionRef, updates);
 
-      // WRITE 2: Award points to publisher profile exactly once
-      if (publisherRef != null && pubSnap != null && pubSnap.exists) {
+      // WRITE 2: Award 50 XP points to publisher profile exactly once
+      if (!alreadyAwarded && publisherRef != null && pubSnap != null && pubSnap.exists) {
         final pData = pubSnap.data()!;
         final currentScore = (pData['score'] ?? 0) as int;
         final currentXp = (pData['xp'] ?? 0) as int;

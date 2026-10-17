@@ -9,6 +9,7 @@ class EvidenceModel extends Equatable {
   final String? imageUrl; // Web page thumbnail image (for link evidence)
   final String? description; // Web page description (for link evidence)
   final File? localFile; // Local File object during uploading (transient)
+  final bool isPublic; // Whether this document is public or private (default: private)
 
   const EvidenceModel({
     required this.type,
@@ -18,6 +19,7 @@ class EvidenceModel extends Equatable {
     this.imageUrl,
     this.description,
     this.localFile,
+    this.isPublic = false,
   });
 
   EvidenceModel copyWith({
@@ -28,6 +30,7 @@ class EvidenceModel extends Equatable {
     String? imageUrl,
     String? description,
     File? localFile,
+    bool? isPublic,
   }) {
     return EvidenceModel(
       type: type ?? this.type,
@@ -37,6 +40,7 @@ class EvidenceModel extends Equatable {
       imageUrl: imageUrl ?? this.imageUrl,
       description: description ?? this.description,
       localFile: localFile ?? this.localFile,
+      isPublic: isPublic ?? this.isPublic,
     );
   }
 
@@ -48,6 +52,7 @@ class EvidenceModel extends Equatable {
       if (title != null) 'title': title,
       if (imageUrl != null) 'imageUrl': imageUrl,
       if (description != null) 'description': description,
+      'isPublic': isPublic,
     };
   }
 
@@ -59,6 +64,7 @@ class EvidenceModel extends Equatable {
       title: map['title'],
       imageUrl: map['imageUrl'],
       description: map['description'],
+      isPublic: map['isPublic'] as bool? ?? false,
     );
   }
 
@@ -71,5 +77,6 @@ class EvidenceModel extends Equatable {
         imageUrl,
         description,
         localFile,
+        isPublic,
       ];
 }

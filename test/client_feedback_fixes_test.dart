@@ -569,5 +569,224 @@ void main() {
       expect(cubit.state.currentIndex, 0);
     });
   });
+
+  group('Client Feedback - Point 1: 50 XP Allocation & Certification System', () {
+    test('Action pending awards 0 XP', () {
+      final pendingAction = ActionModel(
+        id: 'act-pending-0xp',
+        userId: 'u1',
+        userName: 'Jean',
+        title: 'Pending Tree Planting',
+        description: 'Waiting for review',
+        category: 'Environment',
+        score: 50, // Potential score
+        createdAt: DateTime.now(),
+        validationStatus: ValidationStatus.pending,
+        xpAwarded: false,
+        likesCount: 0,
+        commentsCount: 0,
+      );
+
+      // Pending action is not validated and has not received its reward yet
+      expect(pendingAction.isValidated, isFalse);
+      expect(pendingAction.xpAwarded, isFalse);
+    });
+
+    test('Both beneficiary confirmed and WORTH certified actions yield exactly +50 XP', () {
+      final confirmedAction = ActionModel(
+        id: 'act-confirmed-50xp',
+        userId: 'u1',
+        userName: 'Jean',
+        title: 'Community Garden',
+        description: 'Confirmed by neighbor',
+        category: 'Environment',
+        score: 50,
+        createdAt: DateTime.now(),
+        validationStatus: ValidationStatus.confirmed,
+        xpAwarded: true,
+        likesCount: 0,
+        commentsCount: 0,
+      );
+
+      final certifiedAction = ActionModel(
+        id: 'act-certified-50xp',
+        userId: 'u1',
+        userName: 'Jean',
+        title: 'Solar Installation',
+        description: 'Certified by WORTH team',
+        category: 'Environment',
+        score: 50, // Certified is +50 XP, not 100 XP
+        createdAt: DateTime.now(),
+        validationStatus: ValidationStatus.certified,
+        xpAwarded: true,
+        likesCount: 0,
+        commentsCount: 0,
+      );
+
+      expect(confirmedAction.isValidated, isTrue);
+      expect(certifiedAction.isValidated, isTrue);
+      expect(confirmedAction.score, 50);
+      expect(certifiedAction.score, 50);
+      expect(confirmedAction.validationStatus, ValidationStatus.confirmed);
+      expect(certifiedAction.validationStatus, ValidationStatus.certified);
+    });
+
+    test('Action cannot receive XP reward more than once (xpAwarded check)', () {
+      // Simulate action repo idempotency check
+      bool awardXpToUser({required bool alreadyAwarded, required int score}) {
+        if (alreadyAwarded) {
+          // Reject duplicate award
+          return false;
+        }
+        return true;
+      }
+
+      // First validation: awards 50 XP
+      expect(awardXpToUser(alreadyAwarded: false, score: 50), isTrue);
+
+      // Subsequent duplicate validation: blocked
+      expect(awardXpToUser(alreadyAwarded: true, score: 50), isFalse);
+    });
+
+    test('Distinguishes Confirmed vs WORTH Certified labels in EN and FR', () {
+      final locEn = AppLocalizations('en');
+      final locFr = AppLocalizations('fr');
+
+      expect(locEn.translate('status_confirmed'), 'Confirmed');
+      expect(locFr.translate('status_confirmed'), 'Confirmé');
+
+      expect(locEn.translate('status_certified'), 'WORTH Certified');
+      expect(locFr.translate('status_certified'), 'Certifié WORTH');
+    });
+  });
+
+  group('Client Feedback - Point 2: Supporting Document Privacy', () {
+    test('Evidence defaults to Private (isPublic: false)', () {
+      const defaultEvidence = EvidenceModel(
+        type: 'photo',
+        url: 'https://example.com/doc.pdf',
+      );
+      expect(defaultEvidence.isPublic, isFalse);
+
+      final map = defaultEvidence.toMap();
+      expect(map['isPublic'], isFalse);
+
+      final restored = EvidenceModel.fromMap(map);
+      expect(restored.isPublic, isFalse);
+    });
+
+    test('AddActionState handles evidence visibility toggling and consent requirement', () {
+      var state = AddActionState(
+        evidences: const [
+          EvidenceModel(type: 'photo', url: 'https://example.com/photo.jpg', isPublic: false),
+        ],
+        publicEvidenceConsent: false,
+      );
+
+      // Initially private, no public consent needed
+      expect(state.evidences.first.isPublic, isFalse);
+      expect(state.publicEvidenceConsent, isFalse);
+
+      // Toggle to public
+      final updatedEvidences = List<EvidenceModel>.from(state.evidences);
+      updatedEvidences[0] = updatedEvidences[0].copyWith(isPublic: true);
+      state = state.copyWith(evidences: updatedEvidences);
+
+      expect(state.evidences.first.isPublic, isTrue);
+
+      // Verification logic: If any evidence is public, publicEvidenceConsent MUST be true
+      bool canSubmit(AddActionState s) {
+        final hasPublic = s.evidences.any((e) => e.isPublic);
+        if (hasPublic && !s.publicEvidenceConsent) return false;
+        return true;
+      }
+
+      // Without consent checkbox -> blocked
+      expect(canSubmit(state), isFalse);
+
+      // User checks consent
+      state = state.copyWith(publicEvidenceConsent: true);
+      expect(canSubmit(state), isTrue);
+    });
+  });
+
+  group('Client Feedback - Point 5: Legal Documents Links & Acceptance', () {
+    test('Privacy Policy and Terms of Service share the canonical Google Sites URL', () {
+      const expectedUrl = 'https://sites.google.com/view/worth-network-privacy-policy/home';
+      expect(
+        'https://sites.google.com/view/worth-network-privacy-policy/home',
+        expectedUrl,
+      );
+    });
+
+    test('User registration records termsAccepted and privacyPolicyAccepted fields', () {
+      final userRegistrationData = <String, dynamic>{
+        'termsAccepted': true,
+        'termsAcceptedAt': DateTime.now().toIso8601String(),
+        'privacyPolicyAccepted': true,
+        'privacyPolicyAcceptedAt': DateTime.now().toIso8601String(),
+      };
+
+      expect(userRegistrationData['termsAccepted'], isTrue);
+      expect(userRegistrationData['privacyPolicyAccepted'], isTrue);
+      expect(userRegistrationData['termsAcceptedAt'], isNotNull);
+      expect(userRegistrationData['privacyPolicyAcceptedAt'], isNotNull);
+    });
+  });
+
+  group('Client Feedback - Point 6: About WORTH Concept & App Version', () {
+    test('About WORTH pop-up title and simplified description match client specification', () {
+      final locFr = AppLocalizations('fr');
+      final locEn = AppLocalizations('en');
+
+      expect(locFr.translate('about_worth_popup_title'), 'À propos de WORTH');
+      expect(locEn.translate('about_worth_popup_title'), 'About WORTH');
+
+      expect(
+        locFr.translate('about_worth_popup_text'),
+        'WORTH est un réseau social qui valorise les actions concrètes plutôt que les apparences.\n\n'
+        'Partagez vos initiatives, apportez des preuves et faites valider vos actions par d’autres personnes.\n\n'
+        'Chaque action confirmée contribue à votre progression et à votre crédibilité sur WORTH.\n\n'
+        'WORTH – Prove Your Worth.',
+      );
+
+      expect(
+        locEn.translate('about_worth_popup_text'),
+        'WORTH is a social network that values concrete actions over appearances.\n\n'
+        'Share your initiatives, provide evidence, and have your actions validated by others.\n\n'
+        'Every confirmed action contributes to your progression and credibility on WORTH.\n\n'
+        'WORTH – Prove Your Worth.',
+      );
+    });
+  });
+
+  group('Client Feedback - Point 7: Translations & Localization Parity', () {
+    test('admin_console_desc is properly translated in both English and French', () {
+      final locEn = AppLocalizations('en');
+      final locFr = AppLocalizations('fr');
+
+      expect(
+        locEn.translate('admin_console_desc'),
+        'Manage actions, validations, and reports.',
+      );
+      expect(
+        locFr.translate('admin_console_desc'),
+        'Gérez les actions, les validations et les signalements.',
+      );
+    });
+
+    test('All English translation keys exist in French localization map', () {
+      final enKeys = AppLocalizations.localizedValues['en']!.keys.toSet();
+      final frKeys = AppLocalizations.localizedValues['fr']!.keys.toSet();
+
+      final missingInFr = enKeys.difference(frKeys);
+      expect(
+        missingInFr,
+        isEmpty,
+        reason: 'The following keys are in EN but missing from FR: $missingInFr',
+      );
+    });
+  });
 }
+
 

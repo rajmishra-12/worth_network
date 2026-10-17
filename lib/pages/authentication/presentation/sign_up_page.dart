@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:worth_network/components/common/common_button.dart';
 import 'package:worth_network/components/common/custom_textfield.dart';
 import 'package:worth_network/components/common/language_toggle_button.dart';
@@ -803,7 +804,12 @@ class _SignupScreenState extends State<SignupScreen> {
                                       text: loc.translate('terms_of_service'),
                                       style: CustomTextStyle.size13W500(
                                         color: AppColors.primary,
-                                      ),
+                                      ).copyWith(decoration: TextDecoration.underline),
+                                      recognizer: TapGestureRecognizer()
+                                        ..onTap = () async {
+                                          final uri = Uri.parse('https://sites.google.com/view/worth-network-privacy-policy/home');
+                                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                        },
                                     ),
                                     TextSpan(
                                       text: loc.translate('and_text'),
@@ -815,7 +821,12 @@ class _SignupScreenState extends State<SignupScreen> {
                                       text: loc.translate('privacy_policy'),
                                       style: CustomTextStyle.size13W500(
                                         color: AppColors.primary,
-                                      ),
+                                      ).copyWith(decoration: TextDecoration.underline),
+                                      recognizer: TapGestureRecognizer()
+                                        ..onTap = () async {
+                                          final uri = Uri.parse('https://sites.google.com/view/worth-network-privacy-policy/home');
+                                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                        },
                                     ),
                                   ],
                                 ),

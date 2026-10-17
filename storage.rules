@@ -1,0 +1,39 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        (request.auth.token != null && 'email' in request.auth.token && (request.auth.token.email.lower() == 'admin@gmail.com' || request.auth.token.email.lower() == 'adribuellet@hotmail.com')) ||
+        (request.auth.token != null && 'admin' in request.auth.token && request.auth.token.admin == true)
+      );
+    }
+
+    // Action Proofs / Supporting Evidence Rules
+    match /action_proofs/{fileName} {
+      // Writes allowed for authenticated users uploading proofs
+      allow create, update: if isAuthenticated();
+      // Deletions allowed for admins
+      allow delete: if isAdmin();
+      // Reads allowed for authenticated users
+      allow read: if isAuthenticated();
+    }
+
+    // User Avatars Rules
+    match /avatars/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // General media / uploads
+    match /uploads/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+  }
+}

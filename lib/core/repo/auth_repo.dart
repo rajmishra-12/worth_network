@@ -102,6 +102,10 @@ class AuthRepository {
           'nextLevelXp': 100,
           'totalActions': 0,
           'validatedPercentage': 0.0,
+          'termsAccepted': true,
+          'termsAcceptedAt': FieldValue.serverTimestamp(),
+          'privacyPolicyAccepted': true,
+          'privacyPolicyAcceptedAt': FieldValue.serverTimestamp(),
           'createdAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
 

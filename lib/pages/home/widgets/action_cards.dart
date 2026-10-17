@@ -378,6 +378,8 @@ class ActionCard extends StatelessWidget {
                     proofType: action.proofType,
                     proofUrl: action.proofUrl,
                     textProof: action.textProof,
+                    authorId: action.userId,
+                    validatorId: action.validatorId,
                   ),
                 ),
               // Description

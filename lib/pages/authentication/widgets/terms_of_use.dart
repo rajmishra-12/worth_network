@@ -29,7 +29,7 @@ class TermsOfUsePage extends StatelessWidget {
                 /// HEADER
                 const Text(
                   'Terms of Use / End-User License Agreement (EULA)\n'
-                  'Application: “Trop c’est Trop”',
+                  'Application: “Worth Network”',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -46,7 +46,7 @@ class TermsOfUsePage extends StatelessWidget {
                   1,
                   'Acceptance of the Terms (Mandatory)',
                   '''
-By creating an account or using the application “Trop c’est Trop” (the “Application”), you confirm that you have read, understood, and explicitly accepted these Terms of Use / End-User License Agreement (“Terms”).
+By creating an account or using the application “Worth Network” (the “Application”), you confirm that you have read, understood, and explicitly accepted these Terms of Use / End-User License Agreement (“Terms”).
 
 Acceptance of these Terms is mandatory.
 If you do not agree, you must not create an account or use the Application.
@@ -159,7 +159,7 @@ Any dispute shall fall under the jurisdiction of the competent French courts.
                   1,
                   'Acceptation obligatoire',
                   '''
-En créant un compte ou en utilisant l’application « Trop c’est Trop » (ci-après « l’Application »), vous reconnaissez avoir lu, compris et accepté expressément les présentes Conditions d’utilisation / Licence Utilisateur Final (« Conditions »).
+En créant un compte ou en utilisant l’application « Worth Network » (ci-après « l’Application »), vous reconnaissez avoir lu, compris et accepté expressément les présentes Conditions d’utilisation / Licence Utilisateur Final (« Conditions »).
 
 L’acceptation de ces Conditions est obligatoire.
 En cas de refus, vous ne devez pas utiliser l’Application.

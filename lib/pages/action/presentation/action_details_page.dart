@@ -709,6 +709,8 @@ class _ActionDetailsScreenState extends State<ActionDetailsScreen> {
       proofType: action.proofType,
       proofUrl: action.proofUrl,
       textProof: action.textProof,
+      authorId: action.userId,
+      validatorId: action.validatorId,
     );
   }
 }

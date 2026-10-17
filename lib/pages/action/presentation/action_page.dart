@@ -615,6 +615,167 @@ class _AddActionScreenState extends State<AddActionScreen> {
                           evidences: state.evidences,
                           onRemoveAtIndex: (index) => _cubit.removeEvidenceAt(index),
                         ),
+                        // Evidence Visibility Options
+                        Container(
+                          margin: const EdgeInsets.only(top: AppSize.paddingM),
+                          padding: const EdgeInsets.all(AppSize.paddingM),
+                          decoration: BoxDecoration(
+                            color: AppColors.grey900,
+                            borderRadius: BorderRadius.circular(AppSize.radiusM),
+                            border: Border.all(color: AppColors.grey800),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.shield_outlined, size: 18, color: AppColors.primary),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    loc.translate('evidence_privacy_title'),
+                                    style: CustomTextStyle.size14W600(color: AppColors.white100),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                loc.translate('evidence_private_desc'),
+                                style: CustomTextStyle.size12W400(color: AppColors.grey400),
+                              ),
+                              const SizedBox(height: AppSize.spacingM),
+                              ...state.evidences.asMap().entries.map((entry) {
+                                final idx = entry.key;
+                                final ev = entry.value;
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.grey800,
+                                    borderRadius: BorderRadius.circular(AppSize.radiusS),
+                                    border: Border.all(color: AppColors.grey700),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        ev.type == 'photo'
+                                            ? Icons.image_outlined
+                                            : ev.type == 'document'
+                                                ? Icons.description_outlined
+                                                : ev.type == 'audio'
+                                                    ? Icons.mic_none_outlined
+                                                    : ev.type == 'link'
+                                                        ? Icons.link_rounded
+                                                        : Icons.format_quote,
+                                        size: 16,
+                                        color: AppColors.grey300,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          '${loc.translate('step_proof')} #${idx + 1} (${ev.type.toUpperCase()})',
+                                          style: CustomTextStyle.size12W500(color: AppColors.grey300),
+                                        ),
+                                      ),
+                                      InkWell(
+                                        onTap: () => _cubit.toggleEvidenceVisibility(idx, !ev.isPublic),
+                                        borderRadius: BorderRadius.circular(AppSize.radiusS),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                          decoration: BoxDecoration(
+                                            color: ev.isPublic
+                                                ? AppColors.primary.withValues(alpha: 0.15)
+                                                : AppColors.grey800,
+                                            borderRadius: BorderRadius.circular(AppSize.radiusS),
+                                            border: Border.all(
+                                              color: ev.isPublic ? AppColors.primary : AppColors.grey700,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                ev.isPublic ? Icons.public : Icons.lock_outline,
+                                                size: 12,
+                                                color: ev.isPublic ? AppColors.primary : AppColors.grey400,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                ev.isPublic
+                                                    ? loc.translate('evidence_public_label')
+                                                    : loc.translate('evidence_private_label'),
+                                                style: CustomTextStyle.size11W600(
+                                                  color: ev.isPublic ? AppColors.primary : AppColors.grey400,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ],
+                          ),
+                        ),
+
+                        // Mandatory warning & consent checkbox when any evidence is public
+                        if (state.evidences.any((e) => e.isPublic)) ...[
+                          const SizedBox(height: AppSize.spacingM),
+                          Container(
+                            padding: const EdgeInsets.all(AppSize.paddingM),
+                            decoration: BoxDecoration(
+                              color: AppColors.warning.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(AppSize.radiusM),
+                              border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 20),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        loc.translate('evidence_public_warning'),
+                                        style: CustomTextStyle.size12W500(color: AppColors.warning),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: AppSize.spacingM),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: Checkbox(
+                                        value: state.publicEvidenceConsent,
+                                        onChanged: (val) => _cubit.updatePublicConsent(val ?? false),
+                                        activeColor: AppColors.primary,
+                                        checkColor: AppColors.black100,
+                                        side: const BorderSide(color: AppColors.grey600),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: () => _cubit.updatePublicConsent(!state.publicEvidenceConsent),
+                                        child: Text(
+                                          loc.translate('evidence_public_consent'),
+                                          style: CustomTextStyle.size12W500(color: AppColors.white100),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ] else if (state.evidenceFile != null || state.textProof != null)
                         Padding(
                           padding: const EdgeInsets.only(top: AppSize.paddingM),

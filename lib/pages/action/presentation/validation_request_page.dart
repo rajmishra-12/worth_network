@@ -41,9 +41,7 @@ class _ValidationRequestScreenState extends State<ValidationRequestScreen> {
 
     try {
       String decision = 'confirmed';
-      if (_selectedDecision == 0) {
-        decision = _confidenceScore >= 8.0 ? 'certified' : 'confirmed';
-      } else if (_selectedDecision == 1) {
+      if (_selectedDecision == 0 || _selectedDecision == 1) {
         decision = 'confirmed';
       } else {
         decision = 'rejected';

@@ -4,6 +4,7 @@ class AppLocalizations {
   AppLocalizations(this.languageCode);
 
   String get localeCode => languageCode;
+  static Map<String, Map<String, String>> get localizedValues => _localizedValues;
 
   static final Map<String, Map<String, String>> _localizedValues = {
     'en': {
@@ -67,17 +68,30 @@ class AppLocalizations {
       'validation_invitations': 'Validation Invitations',
       'validation_invitations_desc': 'Allow users to invite you to validate deeds',
       'sec_general': 'General',
-      'about_worth_concept': 'About Worth Concept',
+      'about_worth_concept': 'About WORTH',
       'about_worth_desc': 'Learn about credibility scoring engine',
       'privacy_policy': 'Privacy Policy',
       'privacy_policy_desc': 'Read our platform privacy guidelines',
+      'terms_of_service_desc': 'Read our terms of service and user agreement',
       'logout_btn': 'Log Out',
       'logout_dialog_title': 'Log Out',
       'logout_dialog_desc': 'Are you sure you want to log out of Worth Network?',
       'cancel': 'Cancel',
       'dismiss': 'Dismiss',
-      'about_worth_popup_title': 'About Worth Network',
-      'about_worth_popup_text': 'WORTH is a social platform built on decentralized credibility.\n\nUnlike other platforms that measure engagement through passive interactions, WORTH emphasizes real-life positive deeds, verified proof, and decentralized validators to compute a confidence-score for reputation.\n\nVersion: 1.0.0 (Production Build)',
+      'about_worth_popup_title': 'About WORTH',
+      'about_worth_popup_text': 'WORTH is a social network that values concrete actions over appearances.\n\nShare your initiatives, provide evidence, and have your actions validated by others.\n\nEvery confirmed action contributes to your progression and credibility on WORTH.\n\nWORTH – Prove Your Worth.',
+      
+      // Evidence Privacy
+      'evidence_privacy_title': 'Supporting Document Privacy',
+      'evidence_private_label': 'Private (Default)',
+      'evidence_public_label': 'Public',
+      'evidence_private_desc': 'Accessible only to you and authorized reviewers',
+      'evidence_public_desc': 'Visible to everyone who views this post',
+      'evidence_public_warning': 'Warning: Do not publish sensitive documents or third-party personal information without authorization.',
+      'evidence_public_consent': 'I confirm that I have the necessary permissions and respect the privacy of everyone concerned.',
+      'evidence_consent_required': 'Please confirm that you have the required permissions before making evidence public.',
+      'private_evidence_placeholder_title': 'Private Supporting Evidence',
+      'private_evidence_placeholder_desc': 'This document is kept confidential by the author and is only accessible to authorized validators.',
 
       // Sign Up Page
       'create_account': 'Create Account',
@@ -144,7 +158,7 @@ class AppLocalizations {
       'profile_tab': 'Profile',
 
       // Validation Statuses
-      'status_certified': 'Certified',
+      'status_certified': 'WORTH Certified',
       'status_confirmed': 'Confirmed',
       'status_pending': 'Pending',
       'status_rejected': 'Rejected',
@@ -304,6 +318,7 @@ class AppLocalizations {
       
       // Admin & Management
       'admin_console_title': 'Admin Console',
+      'admin_console_desc': 'Manage actions, validations, and reports.',
       'reports_queue': 'Reports Queue',
       'content_moderation': 'Content Moderation',
       'user_moderation': 'User Moderation',
@@ -726,17 +741,30 @@ class AppLocalizations {
       'validation_invitations': 'Invitations à la validation',
       'validation_invitations_desc': 'Autoriser les utilisateurs à vous inviter à valider des actions',
       'sec_general': 'Général',
-      'about_worth_concept': 'À propos du concept Worth',
+      'about_worth_concept': 'À propos de WORTH',
       'about_worth_desc': 'En savoir plus sur le moteur de score de crédibilité',
       'privacy_policy': 'Politique de confidentialité',
       'privacy_policy_desc': 'Lire nos directives de confidentialité',
+      'terms_of_service_desc': 'Lire nos conditions d’utilisation et accord utilisateur',
       'logout_btn': 'Se déconnecter',
       'logout_dialog_title': 'Se déconnecter',
       'logout_dialog_desc': 'Êtes-vous sûr de vouloir vous déconnecter de Worth Network ?',
       'cancel': 'Annuler',
       'dismiss': 'Fermer',
-      'about_worth_popup_title': 'À propos de Worth Network',
-      'about_worth_popup_text': 'WORTH est une plateforme sociale basée sur la crédibilité décentralisée.\n\nVersion : 1.0.0 (Production)',
+      'about_worth_popup_title': 'À propos de WORTH',
+      'about_worth_popup_text': 'WORTH est un réseau social qui valorise les actions concrètes plutôt que les apparences.\n\nPartagez vos initiatives, apportez des preuves et faites valider vos actions par d’autres personnes.\n\nChaque action confirmée contribue à votre progression et à votre crédibilité sur WORTH.\n\nWORTH – Prove Your Worth.',
+      
+      // Evidence Privacy
+      'evidence_privacy_title': 'Confidentialité du document',
+      'evidence_private_label': 'Privé (Par défaut)',
+      'evidence_public_label': 'Public',
+      'evidence_private_desc': 'Accessible uniquement par vous et les réviseurs autorisés',
+      'evidence_public_desc': 'Visible par tous les utilisateurs qui voient cette action',
+      'evidence_public_warning': 'Attention : Ne publiez pas de documents sensibles ou de données personnelles de tiers sans autorisation.',
+      'evidence_public_consent': 'Je confirme détenir les autorisations nécessaires et respecter la vie privée des personnes concernées.',
+      'evidence_consent_required': 'Veuillez confirmer que vous disposez des autorisations nécessaires avant de publier des preuves publiques.',
+      'private_evidence_placeholder_title': 'Document justificatif privé',
+      'private_evidence_placeholder_desc': 'Ce document est confidentiel et accessible uniquement aux validateurs autorisés.',
 
       // Sign Up Page
       'create_account': 'Créer un compte',
@@ -803,7 +831,7 @@ class AppLocalizations {
       'profile_tab': 'Profil',
 
       // Validation Statuses
-      'status_certified': 'Certifié',
+      'status_certified': 'Certifié WORTH',
       'status_confirmed': 'Confirmé',
       'status_pending': 'En attente',
       'status_rejected': 'Rejeté',
@@ -963,6 +991,7 @@ class AppLocalizations {
 
       // Admin & Management
       'admin_console_title': 'Console d\'administration',
+      'admin_console_desc': 'Gérez les actions, les validations et les signalements.',
       'reports_queue': 'File des signalements',
       'content_moderation': 'Modération des contenus',
       'user_moderation': 'Modération des utilisateurs',

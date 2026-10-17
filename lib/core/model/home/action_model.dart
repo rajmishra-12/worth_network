@@ -44,6 +44,7 @@ class ActionModel extends Equatable {
   final String? reviewedByAdminName;
   final String? rejectionReason;
   final String? impact;
+  final bool xpAwarded;
 
   const ActionModel({
     required this.id,
@@ -79,6 +80,7 @@ class ActionModel extends Equatable {
     this.reviewedByAdminId,
     this.reviewedByAdminName,
     this.rejectionReason,
+    this.xpAwarded = false,
   });
 
   bool get isVisible => moderationStatus == 'visible';
@@ -125,6 +127,7 @@ class ActionModel extends Equatable {
     String? reviewedByAdminName,
     String? rejectionReason,
     String? impact,
+    bool? xpAwarded,
   }) {
     return ActionModel(
       id: id ?? this.id,
@@ -160,6 +163,7 @@ class ActionModel extends Equatable {
       reviewedByAdminId: reviewedByAdminId ?? this.reviewedByAdminId,
       reviewedByAdminName: reviewedByAdminName ?? this.reviewedByAdminName,
       rejectionReason: rejectionReason ?? this.rejectionReason,
+      xpAwarded: xpAwarded ?? this.xpAwarded,
     );
   }
 
@@ -199,6 +203,7 @@ class ActionModel extends Equatable {
       'reviewedByAdminId': reviewedByAdminId,
       'reviewedByAdminName': reviewedByAdminName,
       'rejectionReason': rejectionReason,
+      'xpAwarded': xpAwarded,
     };
   }
 
@@ -298,6 +303,7 @@ class ActionModel extends Equatable {
       reviewedByAdminId: map['reviewedByAdminId'],
       reviewedByAdminName: map['reviewedByAdminName'],
       rejectionReason: map['rejectionReason'],
+      xpAwarded: map['xpAwarded'] as bool? ?? false,
     );
   }
 
@@ -336,5 +342,6 @@ class ActionModel extends Equatable {
         reviewedByAdminId,
         reviewedByAdminName,
         rejectionReason,
+        xpAwarded,
       ];
 }

@@ -17,10 +17,26 @@ class AppVersion {
     if (_cachedVersion != null) return _cachedVersion!;
     try {
       final info = await PackageInfo.fromPlatform();
-      _cachedVersion = 'Version ${info.version}';
-      return _cachedVersion!;
+      if (info.version.isNotEmpty) {
+        _cachedVersion = 'Version ${info.version} (Build ${info.buildNumber})';
+        return _cachedVersion!;
+      }
+      return 'Version 1.0.4';
     } catch (_) {
-      return 'Version 1.0.0';
+      return 'Version 1.0.4';
+    }
+  }
+
+  /// Simple short version string e.g. "Version 1.0.4"
+  static Future<String> getShortVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (info.version.isNotEmpty) {
+        return 'Version ${info.version}';
+      }
+      return 'Version 1.0.4';
+    } catch (_) {
+      return 'Version 1.0.4';
     }
   }
 }

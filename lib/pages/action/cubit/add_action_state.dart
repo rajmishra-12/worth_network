@@ -20,6 +20,7 @@ class AddActionState extends Equatable {
   final bool shouldRefreshHome;
   final String validationType; // 'person' or 'independent'
   final bool requestIndependentValidation;
+  final bool publicEvidenceConsent;
 
   AddActionState({
     this.title = '',
@@ -41,6 +42,7 @@ class AddActionState extends Equatable {
     this.shouldRefreshHome = false,
     this.validationType = 'person',
     this.requestIndependentValidation = false,
+    this.publicEvidenceConsent = false,
   }) : date = date ?? DateTime.now();
 
   AddActionState copyWith({
@@ -65,6 +67,7 @@ class AddActionState extends Equatable {
     bool? shouldRefreshHome,
     String? validationType,
     bool? requestIndependentValidation,
+    bool? publicEvidenceConsent,
   }) {
     return AddActionState(
       title: title ?? this.title,
@@ -89,6 +92,8 @@ class AddActionState extends Equatable {
       validationType: validationType ?? this.validationType,
       requestIndependentValidation:
           requestIndependentValidation ?? this.requestIndependentValidation,
+      publicEvidenceConsent:
+          publicEvidenceConsent ?? this.publicEvidenceConsent,
     );
   }
 
@@ -113,5 +118,6 @@ class AddActionState extends Equatable {
     shouldRefreshHome,
     validationType,
     requestIndependentValidation,
+    publicEvidenceConsent,
   ];
 }

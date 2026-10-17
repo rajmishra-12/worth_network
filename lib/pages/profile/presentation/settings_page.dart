@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:worth_network/components/common/language_toggle_button.dart';
 import 'package:worth_network/core/bloc_observer/locale_cubit.dart';
 import 'package:worth_network/core/navigator/app_pages.dart';
@@ -9,6 +10,7 @@ import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
 import 'package:worth_network/core/utils/app_localizations.dart';
+import 'package:worth_network/core/utils/app_version.dart';
 import 'package:worth_network/pages/authentication/cubit/auth_cubit.dart';
 import 'package:worth_network/pages/profile/cubit/profile_cubit.dart';
 
@@ -113,9 +115,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.grey900,
-        title: Text(
-          loc.translate('about_worth_popup_title'),
-          style: CustomTextStyle.size18W600(color: AppColors.white100),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSize.radiusL),
+          side: const BorderSide(color: AppColors.grey800),
+        ),
+        title: Row(
+          children: [
+            const Icon(Icons.info_outline, color: AppColors.primary),
+            const SizedBox(width: 8),
+            Text(
+              loc.translate('about_worth_popup_title'),
+              style: CustomTextStyle.size18W600(color: AppColors.white100),
+            ),
+          ],
         ),
         content: SingleChildScrollView(
           child: Column(
@@ -124,7 +136,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Text(
                 loc.translate('about_worth_popup_text'),
-                style: CustomTextStyle.size13W400(color: AppColors.grey300),
+                style: CustomTextStyle.size14W400(color: AppColors.grey300),
+              ),
+              const SizedBox(height: AppSize.spacingL),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.grey800,
+                  borderRadius: BorderRadius.circular(AppSize.radiusS),
+                  border: Border.all(color: AppColors.grey700),
+                ),
+                child: FutureBuilder<String>(
+                  future: AppVersion.getVersion(),
+                  builder: (context, snapshot) {
+                    final version = snapshot.data ?? 'Version 1.0.4';
+                    return Text(
+                      version,
+                      style: CustomTextStyle.size12W500(color: AppColors.grey400),
+                    );
+                  },
+                ),
               ),
             ],
           ),
@@ -221,13 +252,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: Icons.security_outlined,
                 title: loc.translate('privacy_policy'),
                 subtitle: loc.translate('privacy_policy_desc'),
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(loc.translate('privacy_policy_coming_soon')),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
+                onTap: () async {
+                  final uri = Uri.parse('https://sites.google.com/view/worth-network-privacy-policy/home');
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                },
+              ),
+              _buildSettingsTile(
+                icon: Icons.description_outlined,
+                title: loc.translate('terms_of_service'),
+                subtitle: loc.translate('terms_of_service_desc'),
+                onTap: () async {
+                  final uri = Uri.parse('https://sites.google.com/view/worth-network-privacy-policy/home');
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
                 },
               ),
               const SizedBox(height: AppSize.spacingXL),

@@ -166,6 +166,17 @@ class AddActionCubit extends Cubit<AddActionState> {
     ));
   }
 
+  void toggleEvidenceVisibility(int index, bool isPublic) {
+    if (index < 0 || index >= state.evidences.length) return;
+    final updated = List<EvidenceModel>.from(state.evidences);
+    updated[index] = updated[index].copyWith(isPublic: isPublic);
+    emit(state.copyWith(evidences: updated));
+  }
+
+  void updatePublicConsent(bool consent) {
+    emit(state.copyWith(publicEvidenceConsent: consent));
+  }
+
   void removeEvidenceAt(int index) {
     if (index < 0 || index >= state.evidences.length) return;
     final updated = List<EvidenceModel>.from(state.evidences)..removeAt(index);
@@ -181,6 +192,7 @@ class AddActionCubit extends Cubit<AddActionState> {
       evidenceFile: null,
       textProof: null,
       evidences: const [],
+      publicEvidenceConsent: false,
     ));
   }
 
@@ -215,6 +227,15 @@ class AddActionCubit extends Cubit<AddActionState> {
         ));
         return;
       }
+    }
+
+    // Requirement: If any evidence is public, user must give mandatory consent
+    final hasPublicEvidence = state.evidences.any((e) => e.isPublic);
+    if (hasPublicEvidence && !state.publicEvidenceConsent) {
+      emit(state.copyWith(
+        errorMessage: 'evidence_consent_required',
+      ));
+      return;
     }
 
     emit(state.copyWith(isSubmitting: true, errorMessage: null));

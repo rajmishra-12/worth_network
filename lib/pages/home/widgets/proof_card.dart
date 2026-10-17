@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -11,6 +12,7 @@ import 'package:worth_network/core/theme/app_colors.dart';
 import 'package:worth_network/core/theme/app_size.dart';
 import 'package:worth_network/core/theme/app_text.dart';
 import 'package:worth_network/core/utils/app_localizations.dart';
+import 'package:worth_network/core/utils/preferences.dart';
 import 'package:worth_network/pages/home/widgets/in_app_document_viewer.dart';
 
 class ProofCard extends StatelessWidget {
@@ -22,6 +24,9 @@ class ProofCard extends StatelessWidget {
   final List<EvidenceModel>? evidences; // Multi-evidence items list
   final VoidCallback? onRemove; // Optional remove callback during upload
   final Function(int index)? onRemoveAtIndex; // Optional index-based remove callback for carousel
+  final String? authorId; // Author of the action
+  final String? validatorId; // Designated validator of the action
+  final bool? isAuthorized; // Explicit authorization override
 
   const ProofCard({
     super.key,
@@ -33,6 +38,9 @@ class ProofCard extends StatelessWidget {
     this.evidences,
     this.onRemove,
     this.onRemoveAtIndex,
+    this.authorId,
+    this.validatorId,
+    this.isAuthorized,
   });
 
   @override
@@ -42,11 +50,17 @@ class ProofCard extends StatelessWidget {
       if (evidences!.length == 1) {
         return ProofCard(
           evidence: evidences![0],
+          authorId: authorId,
+          validatorId: validatorId,
+          isAuthorized: isAuthorized,
           onRemove: onRemoveAtIndex != null ? () => onRemoveAtIndex!(0) : onRemove,
         );
       }
       return _EvidenceCarousel(
         evidences: evidences!,
+        authorId: authorId,
+        validatorId: validatorId,
+        isAuthorized: isAuthorized,
         onRemove: onRemove,
         onRemoveAtIndex: onRemoveAtIndex,
       );
@@ -61,9 +75,41 @@ class ProofCard extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final isAuthorOrValidatorOrAdmin = () {
+      if (isAuthorized != null) return isAuthorized!;
+      final currentUid = FirebaseAuth.instance.currentUser?.uid ?? Preferences().userId;
+      final currentEmail = FirebaseAuth.instance.currentUser?.email?.toLowerCase();
+      final isAdmin = currentEmail == 'admin@gmail.com' || currentEmail == 'adribuellet@hotmail.com';
+      if (onRemove != null || onRemoveAtIndex != null || localFile != null || evidence?.localFile != null) {
+        return true; // Author is currently creating/uploading
+      }
+      if (currentUid.isNotEmpty) {
+        if (authorId != null && authorId == currentUid) return true;
+        if (validatorId != null && validatorId == currentUid) return true;
+        if (isAdmin) return true;
+      }
+      return false;
+    }();
+
+    final isPublic = evidence?.isPublic ?? true;
+    final canView = isPublic || isAuthorOrValidatorOrAdmin;
+
     return BlocBuilder<LocaleCubit, String>(
       builder: (context, localeCode) {
         final loc = AppLocalizations(localeCode);
+
+        // If evidence is private and user is not authorized, display secure private placeholder
+        if (!canView) {
+          return Container(
+            margin: const EdgeInsets.symmetric(vertical: AppSize.paddingS),
+            decoration: BoxDecoration(
+              color: AppColors.grey900,
+              borderRadius: BorderRadius.circular(AppSize.radiusL),
+              border: Border.all(color: AppColors.grey800),
+            ),
+            child: _PrivateEvidencePlaceholder(loc: loc),
+          );
+        }
 
         return Container(
           margin: const EdgeInsets.symmetric(vertical: AppSize.paddingS),
@@ -75,7 +121,7 @@ class ProofCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header line with proof type badge & remove button if uploading
+              // Header line with proof type badge & privacy indicator & remove button if uploading
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                   AppSize.paddingM,
@@ -98,6 +144,42 @@ class ProofCard extends StatelessWidget {
                           _getTitleForType(type, loc),
                           style: CustomTextStyle.size12W600(color: AppColors.primary),
                         ),
+                        if (evidence != null) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: isPublic
+                                  ? AppColors.primary.withValues(alpha: 0.12)
+                                  : AppColors.grey800,
+                              borderRadius: BorderRadius.circular(AppSize.radiusS),
+                              border: Border.all(
+                                color: isPublic
+                                    ? AppColors.primary.withValues(alpha: 0.3)
+                                    : AppColors.grey700,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isPublic ? Icons.public : Icons.lock_outline,
+                                  size: 11,
+                                  color: isPublic ? AppColors.primary : AppColors.grey400,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  isPublic
+                                      ? loc.translate('evidence_public_label')
+                                      : loc.translate('evidence_private_label'),
+                                  style: CustomTextStyle.size10W500(
+                                    color: isPublic ? AppColors.primary : AppColors.grey400,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                     if (onRemove != null)
@@ -808,11 +890,17 @@ class _EvidenceCarousel extends StatefulWidget {
   final List<EvidenceModel> evidences;
   final VoidCallback? onRemove;
   final Function(int index)? onRemoveAtIndex;
+  final String? authorId;
+  final String? validatorId;
+  final bool? isAuthorized;
 
   const _EvidenceCarousel({
     required this.evidences,
     this.onRemove,
     this.onRemoveAtIndex,
+    this.authorId,
+    this.validatorId,
+    this.isAuthorized,
   });
 
   @override
@@ -862,6 +950,9 @@ class _EvidenceCarouselState extends State<_EvidenceCarousel> {
                     margin: const EdgeInsets.symmetric(horizontal: 2.0),
                     child: ProofCard(
                       evidence: item,
+                      authorId: widget.authorId,
+                      validatorId: widget.validatorId,
+                      isAuthorized: widget.isAuthorized,
                       onRemove: removeItem,
                     ),
                   );
@@ -913,6 +1004,55 @@ class _EvidenceCarouselState extends State<_EvidenceCarousel> {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ----------------------------------------------------------------------
+// Private Evidence Placeholder for Protected Documents
+// ----------------------------------------------------------------------
+class _PrivateEvidencePlaceholder extends StatelessWidget {
+  final AppLocalizations loc;
+
+  const _PrivateEvidencePlaceholder({required this.loc});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSize.paddingL,
+        vertical: AppSize.paddingXL,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.lock_rounded,
+              color: AppColors.primary,
+              size: 28,
+            ),
+          ),
+          const SizedBox(height: AppSize.spacingM),
+          Text(
+            loc.translate('private_evidence_placeholder_title'),
+            style: CustomTextStyle.size14W600(color: AppColors.white100),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            loc.translate('private_evidence_placeholder_desc'),
+            style: CustomTextStyle.size12W400(color: AppColors.grey400),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 }
